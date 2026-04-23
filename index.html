@@ -536,18 +536,20 @@
       <div class="field-row">
         <div class="field">
           <label>City</label>
-          <input type="text" id="input-city" placeholder="Florence" />
+          <input type="text" id="input-city" placeholder="Florence" list="city-suggestions" autocomplete="off" />
+          <datalist id="city-suggestions"></datalist>
         </div>
         <div class="field">
           <label>Recommended by</label>
-          <input type="text" id="input-person" placeholder="Jake" />
+          <input type="text" id="input-person" placeholder="Jake" list="person-suggestions" autocomplete="off" />
+          <datalist id="person-suggestions"></datalist>
         </div>
       </div>
       <div class="field">
         <label>Paste anything — texts, links, lists, Instagram posts…</label>
         <textarea id="raw-input" placeholder="Da Camilo&#10;Tre Panche&#10;La Giostra"></textarea>
       </div>
-      <button class="btn btn-primary btn-full" onclick="parseInput()" id="parse-btn">Parse with AI</button>
+      <button class="btn btn-primary btn-full" onclick="parseInput()" id="parse-btn">Add</button>
     </div>
     <div id="parse-results" class="parse-results"></div>
   </div>
@@ -723,6 +725,14 @@ async function loadFilters() {
   fillSelect('filter-city', data.cities);
   fillSelect('filter-type', data.types);
   fillSelect('filter-person', data.people);
+  fillDatalist('city-suggestions', data.cities);
+  fillDatalist('person-suggestions', data.people);
+}
+
+function fillDatalist(id, items) {
+  const dl = document.getElementById(id);
+  if (!dl) return;
+  dl.innerHTML = items.map(v => `<option value="${esc(v)}">`).join('');
 }
 
 function fillSelect(id, items) {
