@@ -2,33 +2,32 @@ require('dotenv').config({ override: true });
 const express = require('express');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
-const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+
 const fetch = require('node-fetch');
 const path = require('path');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const JWT_SECRET = process.env.SESSION_SECRET || 'honeymoon-secret';
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// Simple in-memory session store
-const sessions = {};
-
-function generateSessionId() {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-function getSession(req) {
-  const token = req.headers['x-session-token'];
-  return token && sessions[token] ? sessions[token] : null;
+function generateToken(userId) {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '90d' });
 }
 
 function requireAuth(req, res, next) {
-  const session = getSession(req);
-  if (!session) return res.status(401).json({ error: 'Unauthorized' });
-  req.userId = session.userId;
-  next();
+  const token = req.headers['x-session-token'];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch (e) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 }
 
 // Initialize DB schema
@@ -75,9 +74,8 @@ app.post('/api/auth/register', async (req, res) => {
       'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name',
       [email.toLowerCase(), hash, name]
     );
-    const sessionId = generateSessionId();
-    sessions[sessionId] = { userId: result.rows[0].id };
-    res.json({ token: sessionId, user: result.rows[0] });
+    const token = generateToken(result.rows[0].id);
+    res.json({ token, user: result.rows[0] });
   } catch (err) {
     if (err.code === '23505') return res.status(400).json({ error: 'Email already registered' });
     res.status(500).json({ error: 'Server error' });
@@ -91,17 +89,14 @@ app.post('/api/auth/login', async (req, res) => {
     if (!result.rows[0]) return res.status(401).json({ error: 'Invalid credentials' });
     const valid = await bcrypt.compare(password, result.rows[0].password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
-    const sessionId = generateSessionId();
-    sessions[sessionId] = { userId: result.rows[0].id };
-    res.json({ token: sessionId, user: { id: result.rows[0].id, email: result.rows[0].email, name: result.rows[0].name } });
+    const token = generateToken(result.rows[0].id);
+    res.json({ token, user: { id: result.rows[0].id, email: result.rows[0].email, name: result.rows[0].name } });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  const token = req.headers['x-session-token'];
-  if (token) delete sessions[token];
   res.json({ ok: true });
 });
 
