@@ -334,26 +334,24 @@
       position: fixed;
       bottom: 28px;
       right: 20px;
-      height: 48px;
-      padding: 0 20px;
-      border-radius: 24px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
       background: var(--blue);
       color: white;
-      font-size: 14px;
-      font-weight: 500;
-      font-family: 'Google Sans', sans-serif;
+      font-size: 28px;
+      font-weight: 300;
       border: none;
       cursor: pointer;
-      box-shadow: 0 1px 3px rgba(26,115,232,0.4), 0 4px 8px rgba(26,115,232,0.2);
+      box-shadow: 0 2px 6px rgba(26,115,232,0.4), 0 4px 12px rgba(26,115,232,0.2);
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
       z-index: 1000;
       transition: box-shadow 0.15s, transform 0.15s;
-      letter-spacing: 0.01em;
+      line-height: 1;
     }
-    .add-btn:hover { box-shadow: 0 2px 8px rgba(26,115,232,0.5), 0 6px 16px rgba(26,115,232,0.25); transform: translateY(-1px); }
-    .add-btn-icon { font-size: 20px; font-weight: 300; line-height: 1; }
+    .add-btn:hover { box-shadow: 0 4px 12px rgba(26,115,232,0.5); transform: translateY(-1px); }
 
     /* DRAWER */
     .overlay {
@@ -526,9 +524,7 @@
     <div id="map-view"><div id="map"></div></div>
   </div>
 
-  <button class="add-btn" onclick="openAddDrawer()">
-    <span class="add-btn-icon">+</span> Add place
-  </button>
+  <button class="add-btn" onclick="openAddDrawer()">+</button>
 </div>
 
 <!-- ADD DRAWER -->
