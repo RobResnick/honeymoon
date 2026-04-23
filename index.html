@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Honeymoon Italy</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #faf9f7;
+      --card: #ffffff;
+      --border: #e8e3db;
+      --text: #1a1614;
+      --muted: #7a6f65;
+      --accent: #c8693a;
+      --accent-light: #fdf0ea;
+      --accent2: #4a7c6a;
+      --tag-bg: #f0ece6;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* AUTH */
+    #auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .auth-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+    .auth-box h1 {
+      font-size: 22px;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+    .auth-box p.subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+    .auth-toggle {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .auth-toggle a { color: var(--accent); cursor: pointer; text-decoration: none; }
+
+    /* FORM ELEMENTS */
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+    input[type=text], input[type=email], input[type=password], select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    .field { margin-bottom: 16px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    btn, button, .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s, background 0.15s;
+      font-family: inherit;
+    }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-secondary { background: var(--tag-bg); color: var(--text); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--tag-bg); }
+    .btn-danger { background: #fee2e2; color: #b91c1c; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-full { width: 100%; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* APP LAYOUT */
+    #app { display: none; flex-direction: column; height: 100vh; }
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 56px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 17px; color: var(--accent); flex: 1; }
+    .header-count { font-size: 12px; color: var(--muted); }
+
+    .tab-bar {
+      display: flex;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+    /* FILTERS */
+    .filter-bar {
+      padding: 12px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-bar input[type=text] {
+      flex: 1;
+      min-width: 140px;
+      padding: 7px 10px;
+      font-size: 13px;
+    }
+    .filter-bar select { padding: 7px 10px; font-size: 13px; max-width: 130px; }
+
+    /* LIST VIEW */
+    #list-view { flex: 1; overflow-y: auto; padding: 12px 16px; }
+    .rec-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+      box-shadow: var(--shadow);
+    }
+    .rec-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .rec-card-top { display: flex; align-items: flex-start; gap: 10px; }
+    .rec-type-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--accent-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .rec-card-info { flex: 1; min-width: 0; }
+    .rec-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rec-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .rec-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: var(--tag-bg);
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .tag.city { background: #e8f0fe; color: #2d5db8; }
+    .tag.type { background: var(--accent-light); color: var(--accent); }
+    .tag.person { background: #e8f4f0; color: var(--accent2); }
+    .rec-notes {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+      display: none;
+    }
+    .rec-card.expanded .rec-notes { display: block; }
+    .rec-actions { display: none; gap: 8px; margin-top: 10px; }
+    .rec-card.expanded .rec-actions { display: flex; }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+
+    /* MAP VIEW */
+    #map-view { flex: 1; display: none; }
+    #map { height: 100%; }
+    .leaflet-popup-content { font-size: 13px; }
+    .leaflet-popup-content strong { font-size: 14px; display: block; margin-bottom: 4px; }
+
+    /* ADD PANEL */
+    .add-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 26px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(200,105,58,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: transform 0.15s;
+    }
+    .add-btn:hover { transform: scale(1.05); }
+
+    /* MODAL / DRAWER */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 2000;
+      display: none;
+      align-items: flex-end;
+    }
+    .overlay.open { display: flex; }
+    .drawer {
+      background: var(--card);
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 20px 20px 32px;
+    }
+    .drawer-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+    .drawer h2 { font-size: 18px; margin-bottom: 20px; }
+
+    /* PARSE INPUT */
+    .parse-area textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .parse-results { margin-top: 16px; }
+    .parse-result-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .parse-result-item .item-name {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+
+    /* EDIT MODAL (centered) */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 3000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .modal h2 { font-size: 17px; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1614;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      z-index: 5000;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (min-width: 600px) {
+      .overlay { align-items: center; justify-content: center; }
+      .drawer { border-radius: 16px; max-width: 560px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <h1>🇮🇹 Honeymoon Italy</h1>
+    <p class="subtitle">Your Italy recommendations, all in one place.</p>
+    <div id="auth-form">
+      <div class="field" id="name-field" style="display:none">
+        <label>Your Name</label>
+        <input type="text" id="auth-name" placeholder="Rob" />
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="auth-email" placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="auth-password" placeholder="••••••••" />
+      </div>
+      <button class="btn btn-primary btn-full" onclick="submitAuth()">Sign In</button>
+    </div>
+    <div class="auth-toggle">
+      <span id="auth-toggle-text">Don't have an account?</span>
+      <a onclick="toggleAuthMode()"> <span id="auth-toggle-link">Sign up</span></a>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <h1>🇮🇹 Honeymoon Italy</h1>
+    <span class="header-count" id="rec-count"></span>
+    <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
+  </header>
+
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('list')" id="tab-list">List</div>
+    <div class="tab" onclick="switchTab('map')" id="tab-map">Map</div>
+  </div>
+
+  <div class="filter-bar">
+    <input type="text" id="search-input" placeholder="Search..." oninput="applyFilters()" />
+    <select id="filter-city" onchange="applyFilters()"><option value="">All cities</option></select>
+    <select id="filter-type" onchange="applyFilters()"><option value="">All types</option></select>
+    <select id="filter-person" onchange="applyFilters()"><option value="">All people</option></select>
+  </div>
+
+  <div class="main-content">
+    <div id="list-view"></div>
+    <div id="map-view"><div id="map"></div></div>
+  </div>
+
+  <button class="add-btn" onclick="openAddDrawer()" title="Add recommendation">+</button>
+</div>
+
+<!-- ADD DRAWER -->
+<div class="overlay" id="add-overlay" onclick="closeAddDrawer(event)">
+  <div class="drawer">
+    <div class="drawer-handle"></div>
+    <h2>Add Recommendations</h2>
+    <div class="parse-area">
+      <div class="field">
+        <label>Paste anything — texts, links, lists, Instagram posts…</label>
+        <textarea id="raw-input" placeholder="e.g. &quot;You have to go to Trattoria Sostanza in Florence, best bistecca ever - from Jake. Also check out Mercato Centrale for lunch&quot;"></textarea>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="parseInput()" id="parse-btn">Parse with AI</button>
+    </div>
+    <div id="parse-results" class="parse-results"></div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-overlay" onclick="closeEditModal(event)">
+  <div class="modal">
+    <h2>Edit Recommendation</h2>
+    <input type="hidden" id="edit-id" />
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="edit-name" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Type</label>
+        <select id="edit-type">
+          <option value="restaurant">Restaurant</option>
+          <option value="bar">Bar</option>
+          <option value="cafe">Cafe</option>
+          <option value="museum">Museum</option>
+          <option value="attraction">Attraction</option>
+          <option value="hotel">Hotel</option>
+          <option value="shop">Shop</option>
+          <option value="market">Market</option>
+          <option value="beach">Beach</option>
+          <option value="church">Church</option>
+          <option value="neighborhood">Neighborhood</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>City</label>
+        <input type="text" id="edit-city" />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Neighborhood</label>
+        <input type="text" id="edit-neighborhood" />
+      </div>
+      <div class="field">
+        <label>Recommended by</label>
+        <input type="text" id="edit-recommended-by" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Address</label>
+      <input type="text" id="edit-address" />
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="edit-notes" style="min-height:80px;resize:vertical"></textarea>
+    </div>
+    <div class="field">
+      <label>Source URL</label>
+      <input type="text" id="edit-source-url" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const TYPE_ICONS = {
+  restaurant: '🍽️', bar: '🍷', cafe: '☕', museum: '🏛️',
+  attraction: '🎯', hotel: '🏨', shop: '🛍️', market: '🥬',
+  beach: '🏖️', church: '⛪', neighborhood: '🗺️', other: '📍'
+};
+
+let sessionToken = localStorage.getItem('hm_token') || null;
+let allRecs = [];
+let filtered = [];
+let map = null;
+let markers = [];
+let authMode = 'login';
+
+// AUTH
+function toggleAuthMode() {
+  authMode = authMode === 'login' ? 'register' : 'login';
+  document.getElementById('name-field').style.display = authMode === 'register' ? 'block' : 'none';
+  document.querySelector('#auth-form button').textContent = authMode === 'login' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-toggle-text').textContent = authMode === 'login' ? "Don't have an account?" : 'Already have an account?';
+  document.getElementById('auth-toggle-link').textContent = authMode === 'login' ? 'Sign up' : 'Sign in';
+}
+
+async function submitAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const name = document.getElementById('auth-name').value.trim();
+  if (!email || !password) return showToast('Email and password required');
+  const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+  const body = authMode === 'login' ? { email, password } : { email, password, name };
+  const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) return showToast(data.error || 'Error');
+  sessionToken = data.token;
+  localStorage.setItem('hm_token', sessionToken);
+  showApp();
+}
+
+async function logout() {
+  await api('/api/auth/logout', 'POST');
+  localStorage.removeItem('hm_token');
+  sessionToken = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+// API helper
+async function api(url, method = 'GET', body = null) {
+  const opts = { method, headers: { 'x-session-token': sessionToken } };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const res = await fetch(url, opts);
+  if (res.status === 401) { logout(); return null; }
+  return res.json();
+}
+
+// INIT
+async function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  await loadRecs();
+  await loadFilters();
+}
+
+async function checkSession() {
+  if (!sessionToken) return;
+  const me = await api('/api/auth/me');
+  if (me) showApp();
+  else { localStorage.removeItem('hm_token'); sessionToken = null; }
+}
+
+// RECS
+async function loadRecs() {
+  const params = buildFilterParams();
+  const qs = new URLSearchParams(params).toString();
+  allRecs = await api('/api/recommendations' + (qs ? '?' + qs : '')) || [];
+  filtered = allRecs;
+  renderList();
+  if (map) renderMapMarkers();
+  document.getElementById('rec-count').textContent = allRecs.length + ' places';
+}
+
+async function loadFilters() {
+  const data = await api('/api/filters');
+  if (!data) return;
+  fillSelect('filter-city', data.cities);
+  fillSelect('filter-type', data.types);
+  fillSelect('filter-person', data.people);
+}
+
+function fillSelect(id, items) {
+  const sel = document.getElementById(id);
+  const current = sel.value;
+  while (sel.options.length > 1) sel.remove(1);
+  items.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v.charAt(0).toUpperCase() + v.slice(1); sel.appendChild(o); });
+  if (current) sel.value = current;
+}
+
+function buildFilterParams() {
+  const p = {};
+  const search = document.getElementById('search-input').value.trim();
+  const city = document.getElementById('filter-city').value;
+  const type = document.getElementById('filter-type').value;
+  const person = document.getElementById('filter-person').value;
+  if (search) p.search = search;
+  if (city) p.city = city;
+  if (type) p.type = type;
+  if (person) p.recommended_by = person;
+  return p;
+}
+
+function applyFilters() { loadRecs(); }
+
+// RENDER LIST
+function renderList() {
+  const el = document.getElementById('list-view');
+  if (!allRecs.length) {
+    el.innerHTML = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap + to add your first one.</p></div>`;
+    return;
+  }
+  el.innerHTML = allRecs.map(r => `
+    <div class="rec-card" id="card-${r.id}" onclick="toggleCard(${r.id})">
+      <div class="rec-card-top">
+        <div class="rec-type-icon">${TYPE_ICONS[r.type] || '📍'}</div>
+        <div class="rec-card-info">
+          <div class="rec-name">${esc(r.name)}</div>
+          <div class="rec-meta">${[r.city, r.neighborhood].filter(Boolean).join(' · ')}</div>
+        </div>
+      </div>
+      <div class="rec-tags">
+        ${r.city ? `<span class="tag city">${esc(r.city)}</span>` : ''}
+        ${r.type ? `<span class="tag type">${esc(r.type)}</span>` : ''}
+        ${r.recommended_by ? `<span class="tag person">from ${esc(r.recommended_by)}</span>` : ''}
+      </div>
+      ${r.notes ? `<div class="rec-notes">${esc(r.notes)}${r.source_url ? `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--accent);font-size:12px;margin-top:4px;display:inline-block">View source ↗</a>` : ''}</div>` : ''}
+      <div class="rec-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEdit(${r.id},event)">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteRec(${r.id},event)">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleCard(id) {
+  document.getElementById('card-' + id).classList.toggle('expanded');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// TABS
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('list-view').style.display = tab === 'list' ? 'block' : 'none';
+  document.getElementById('map-view').style.display = tab === 'map' ? 'block' : 'none';
+  if (tab === 'map') initMap();
+}
+
+// MAP
+function initMap() {
+  if (map) { renderMapMarkers(); return; }
+  map = L.map('map').setView([42.5, 12.5], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors', maxZoom: 19
+  }).addTo(map);
+  renderMapMarkers();
+}
+
+function renderMapMarkers() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  allRecs.filter(r => r.latitude && r.longitude).forEach(r => {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="font-size:22px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${TYPE_ICONS[r.type] || '📍'}</div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14]
+    });
+    const m = L.marker([r.latitude, r.longitude], { icon })
+      .addTo(map)
+      .bindPopup(`<strong>${r.name}</strong>${r.city ? '<br>' + r.city : ''}${r.recommended_by ? '<br><em>from ' + r.recommended_by + '</em>' : ''}${r.notes ? '<br><small>' + r.notes.substring(0,100) + '</small>' : ''}`);
+    markers.push(m);
+  });
+  if (markers.length) {
+    const group = L.featureGroup(markers);
+    map.fitBounds(group.getBounds().pad(0.2));
+  }
+}
+
+// ADD DRAWER
+function openAddDrawer() {
+  document.getElementById('raw-input').value = '';
+  document.getElementById('parse-results').innerHTML = '';
+  document.getElementById('add-overlay').classList.add('open');
+}
+
+function closeAddDrawer(e) {
+  if (!e || e.target === document.getElementById('add-overlay')) {
+    document.getElementById('add-overlay').classList.remove('open');
+  }
+}
+
+async function parseInput() {
+  const input = document.getElementById('raw-input').value.trim();
+  if (!input) return showToast('Paste something first');
+  const btn = document.getElementById('parse-btn');
+  btn.innerHTML = '<span class="spinner"></span> Parsing…';
+  btn.disabled = true;
+  const data = await api('/api/parse', 'POST', { input });
+  btn.innerHTML = 'Parse with AI';
+  btn.disabled = false;
+  if (!data || !data.recommendations) return showToast('Could not parse — try again');
+  renderParseResults(data.recommendations, input);
+}
+
+function renderParseResults(recs, rawInput) {
+  const el = document.getElementById('parse-results');
+  if (!recs.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px">No recommendations found in that text.</p>'; return; }
+
+  const types = ['restaurant','bar','cafe','museum','attraction','hotel','shop','market','beach','church','neighborhood','other'];
+  const typeOptions = types.map(t => `<option value="${t}">${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('');
+
+  el.innerHTML = recs.map((r, i) => `
+    <div class="parse-result-item" id="result-${i}">
+      <div class="item-name">${TYPE_ICONS[r.type] || '📍'} ${esc(r.name)}</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Type</label>
+          <select id="r-type-${i}">${types.map(t=>`<option value="${t}"${r.type===t?' selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}</select>
+        </div>
+        <div class="field">
+          <label>City</label>
+          <input type="text" id="r-city-${i}" value="${esc(r.city||'')}" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Recommended by</label>
+          <input type="text" id="r-by-${i}" value="${esc(r.recommended_by||'')}" />
+        </div>
+        <div class="field">
+          <label>Neighborhood</label>
+          <input type="text" id="r-hood-${i}" value="${esc(r.neighborhood||'')}" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="r-notes-${i}" style="min-height:60px;resize:vertical">${esc(r.notes||'')}</textarea>
+      </div>
+    </div>
+  `).join('') + `
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-ghost" onclick="closeAddDrawer()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveParseResults(${JSON.stringify(recs.length)}, ${JSON.stringify(rawInput).replace(/</g,'\\u003c')})">Save ${recs.length} place${recs.length>1?'s':''}</button>
+    </div>
+  `;
+}
+
+async function saveParseResults(count, rawInput) {
+  const recs = [];
+  for (let i = 0; i < count; i++) {
+    recs.push({
+      name: document.getElementById(`r-city-${i}`) ? document.querySelector(`#result-${i} input[id^="r-city-"]`)?.value || '' : '',
+      type: document.getElementById(`r-type-${i}`)?.value,
+      city: document.getElementById(`r-city-${i}`)?.value,
+      neighborhood: document.getElementById(`r-hood-${i}`)?.value,
+      recommended_by: document.getElementById(`r-by-${i}`)?.value,
+      notes: document.getElementById(`r-notes-${i}`)?.value,
+      raw_input: rawInput,
+    });
+    // get name from the item-name div
+    const nameDiv = document.querySelector(`#result-${i} .item-name`);
+    if (nameDiv) {
+      const text = nameDiv.textContent.trim();
+      // strip emoji (first char + space)
+      recs[i].name = text.replace(/^.\s/, '').trim();
+    }
+  }
+
+  const btn = document.querySelector('#parse-results .btn-primary');
+  if (btn) { btn.innerHTML = '<span class="spinner"></span> Saving…'; btn.disabled = true; }
+  const saved = await api('/api/recommendations', 'POST', recs);
+  closeAddDrawer();
+  showToast(`Saved ${saved?.length || count} place${count>1?'s':''}!`);
+  await loadRecs();
+  await loadFilters();
+}
+
+// EDIT
+function openEdit(id, e) {
+  if (e) e.stopPropagation();
+  const r = allRecs.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('edit-id').value = r.id;
+  document.getElementById('edit-name').value = r.name || '';
+  document.getElementById('edit-type').value = r.type || 'other';
+  document.getElementById('edit-city').value = r.city || '';
+  document.getElementById('edit-neighborhood').value = r.neighborhood || '';
+  document.getElementById('edit-recommended-by').value = r.recommended_by || '';
+  document.getElementById('edit-address').value = r.address || '';
+  document.getElementById('edit-notes').value = r.notes || '';
+  document.getElementById('edit-source-url').value = r.source_url || '';
+  document.getElementById('edit-overlay').classList.add('open');
+}
+
+function closeEditModal(e) {
+  if (!e || e.target === document.getElementById('edit-overlay')) {
+    document.getElementById('edit-overlay').classList.remove('open');
+  }
+}
+
+async function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const body = {
+    name: document.getElementById('edit-name').value,
+    type: document.getElementById('edit-type').value,
+    city: document.getElementById('edit-city').value,
+    neighborhood: document.getElementById('edit-neighborhood').value,
+    recommended_by: document.getElementById('edit-recommended-by').value,
+    address: document.getElementById('edit-address').value,
+    notes: document.getElementById('edit-notes').value,
+    source_url: document.getElementById('edit-source-url').value,
+  };
+  await api('/api/recommendations/' + id, 'PUT', body);
+  closeEditModal();
+  showToast('Saved!');
+  await loadRecs();
+  await loadFilters();
+}
+
+// DELETE
+async function deleteRec(id, e) {
+  if (e) e.stopPropagation();
+  if (!confirm('Delete this recommendation?')) return;
+  await api('/api/recommendations/' + id, 'DELETE');
+  showToast('Deleted');
+  await loadRecs();
+  await loadFilters();
+}
+
+// TOAST
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// INIT
+switchTab('list');
+checkSession();
+</script>
+</body>
+</html>
