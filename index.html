@@ -409,9 +409,19 @@
     <div class="drawer-handle"></div>
     <h2>Add Recommendations</h2>
     <div class="parse-area">
+      <div class="field-row">
+        <div class="field">
+          <label>City</label>
+          <input type="text" id="input-city" placeholder="Florence" />
+        </div>
+        <div class="field">
+          <label>Recommended by</label>
+          <input type="text" id="input-person" placeholder="Jake" />
+        </div>
+      </div>
       <div class="field">
         <label>Paste anything — texts, links, lists, Instagram posts…</label>
-        <textarea id="raw-input" placeholder="e.g. &quot;You have to go to Trattoria Sostanza in Florence, best bistecca ever - from Jake. Also check out Mercato Centrale for lunch&quot;"></textarea>
+        <textarea id="raw-input" placeholder="Da Camilo&#10;Tre Panche&#10;La Giostra"></textarea>
       </div>
       <button class="btn btn-primary btn-full" onclick="parseInput()" id="parse-btn">Parse with AI</button>
     </div>
@@ -676,6 +686,8 @@ function renderMapMarkers() {
 // ADD DRAWER
 function openAddDrawer() {
   document.getElementById('raw-input').value = '';
+  document.getElementById('input-city').value = '';
+  document.getElementById('input-person').value = '';
   document.getElementById('parse-results').innerHTML = '';
   document.getElementById('add-overlay').classList.add('open');
 }
@@ -704,35 +716,16 @@ function renderParseResults(recs, rawInput) {
   if (!recs.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px">No recommendations found in that text.</p>'; return; }
 
   const types = ['restaurant','bar','cafe','museum','attraction','hotel','shop','market','beach','church','neighborhood','other'];
-  const typeOptions = types.map(t => `<option value="${t}">${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('');
+  const isSingle = recs.length === 1;
 
   el.innerHTML = recs.map((r, i) => `
     <div class="parse-result-item" id="result-${i}">
       <div class="item-name">${TYPE_ICONS[r.type] || '📍'} ${esc(r.name)}</div>
-      <div class="field-row">
-        <div class="field">
-          <label>Type</label>
-          <select id="r-type-${i}">${types.map(t=>`<option value="${t}"${r.type===t?' selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}</select>
-        </div>
-        <div class="field">
-          <label>City</label>
-          <input type="text" id="r-city-${i}" value="${esc(r.city||'')}" />
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Recommended by</label>
-          <input type="text" id="r-by-${i}" value="${esc(r.recommended_by||'')}" />
-        </div>
-        <div class="field">
-          <label>Neighborhood</label>
-          <input type="text" id="r-hood-${i}" value="${esc(r.neighborhood||'')}" />
-        </div>
-      </div>
       <div class="field">
-        <label>Notes</label>
-        <textarea id="r-notes-${i}" style="min-height:60px;resize:vertical">${esc(r.notes||'')}</textarea>
+        <label>Type</label>
+        <select id="r-type-${i}">${types.map(t=>`<option value="${t}"${r.type===t?' selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}</select>
       </div>
+      ${isSingle ? `<div class="field"><label>Notes</label><textarea id="r-notes-${i}" style="min-height:60px;resize:vertical">${esc(r.notes||'')}</textarea></div>` : ''}
     </div>
   `).join('') + `
     <div style="display:flex;gap:8px;margin-top:4px">
@@ -743,24 +736,21 @@ function renderParseResults(recs, rawInput) {
 }
 
 async function saveParseResults(count, rawInput) {
+  const city = document.getElementById('input-city').value.trim();
+  const recommended_by = document.getElementById('input-person').value.trim();
+  const isSingle = count === 1;
   const recs = [];
   for (let i = 0; i < count; i++) {
+    const nameDiv = document.querySelector(`#result-${i} .item-name`);
+    const name = nameDiv ? nameDiv.textContent.trim().replace(/^.\s/, '').trim() : '';
     recs.push({
-      name: document.getElementById(`r-city-${i}`) ? document.querySelector(`#result-${i} input[id^="r-city-"]`)?.value || '' : '',
+      name,
       type: document.getElementById(`r-type-${i}`)?.value,
-      city: document.getElementById(`r-city-${i}`)?.value,
-      neighborhood: document.getElementById(`r-hood-${i}`)?.value,
-      recommended_by: document.getElementById(`r-by-${i}`)?.value,
-      notes: document.getElementById(`r-notes-${i}`)?.value,
+      city,
+      recommended_by,
+      notes: isSingle ? (document.getElementById(`r-notes-${i}`)?.value || '') : '',
       raw_input: rawInput,
     });
-    // get name from the item-name div
-    const nameDiv = document.querySelector(`#result-${i} .item-name`);
-    if (nameDiv) {
-      const text = nameDiv.textContent.trim();
-      // strip emoji (first char + space)
-      recs[i].name = text.replace(/^.\s/, '').trim();
-    }
   }
 
   const btn = document.querySelector('#parse-results .btn-primary');
