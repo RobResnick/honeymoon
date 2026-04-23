@@ -232,27 +232,23 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 14px 16px;
-      margin-bottom: 8px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
       cursor: pointer;
       transition: box-shadow 0.15s;
       box-shadow: var(--shadow);
     }
     .rec-card:hover { box-shadow: var(--shadow-md); }
 
-    .rec-card-top { display: flex; align-items: flex-start; gap: 12px; }
+    .rec-card-top { display: flex; align-items: center; gap: 10px; }
     .rec-type-icon {
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
+      font-size: 20px;
       flex-shrink: 0;
+      line-height: 1;
     }
-    .rec-card-info { flex: 1; min-width: 0; }
+    .rec-card-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .rec-name {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 500;
       font-family: 'Google Sans', sans-serif;
       white-space: nowrap;
@@ -260,14 +256,14 @@
       text-overflow: ellipsis;
       color: var(--text);
     }
-    .rec-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
-    .rec-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .rec-tags { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
     .tag {
       font-size: 11px;
-      padding: 3px 10px;
+      padding: 2px 8px;
       border-radius: 20px;
       font-weight: 500;
       border: 1px solid;
+      white-space: nowrap;
     }
     .tag.city { background: var(--blue-light); color: var(--blue-dark); border-color: #b8cef8; }
     .tag.type { background: var(--purple-light); color: var(--purple); border-color: #dbb8f8; }
@@ -289,22 +285,20 @@
     .rec-card { position: relative; }
     .rec-delete-btn {
       position: absolute;
-      top: 10px; right: 10px;
-      width: 22px; height: 22px;
-      border-radius: 50%;
+      top: 8px; right: 10px;
       border: none;
-      background: #e0e0e0;
-      color: var(--text2);
-      font-size: 16px;
+      background: none;
+      color: var(--text3);
+      font-size: 18px;
       line-height: 1;
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
       opacity: 0;
-      transition: opacity 0.15s, background 0.15s;
+      transition: opacity 0.15s, color 0.15s;
       z-index: 2;
+      padding: 2px 4px;
     }
     .rec-card:hover .rec-delete-btn { opacity: 1; }
-    .rec-delete-btn:hover { background: var(--red-light); color: var(--red); }
+    .rec-delete-btn:hover { color: var(--red); }
 
     .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
     .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
@@ -799,13 +793,12 @@ function renderList() {
         <div class="rec-type-icon">${TYPE_ICONS[r.type] || '📍'}</div>
         <div class="rec-card-info">
           <div class="rec-name">${esc(r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name)}</div>
-          <div class="rec-meta">${[r.city, r.neighborhood].filter(Boolean).join(' · ') || '&nbsp;'}</div>
+          <div class="rec-tags">
+            ${r.city ? `<span class="tag city">${esc(r.city)}</span>` : ''}
+            ${r.type ? `<span class="tag type">${esc(r.type)}</span>` : ''}
+            ${r.recommended_by ? r.recommended_by.split(',').map(p => `<span class="tag person">${esc(p.trim())}</span>`).join('') : ''}
+          </div>
         </div>
-      </div>
-      <div class="rec-tags">
-        ${r.city ? `<span class="tag city">${esc(r.city)}</span>` : ''}
-        ${r.type ? `<span class="tag type">${esc(r.type)}</span>` : ''}
-        ${r.recommended_by ? r.recommended_by.split(',').map(p => `<span class="tag person">${esc(p.trim())}</span>`).join('') : ''}
       </div>
       ${r.notes ? `<div class="rec-notes">${esc(r.notes)}${r.source_url ? `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:6px;display:inline-block">View source ↗</a>` : ''}</div>` : ''}
       <div class="rec-actions">
