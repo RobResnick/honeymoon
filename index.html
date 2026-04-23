@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Honeymoon</title>
   <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -174,6 +174,7 @@
       padding: 3px 10px;
       border-radius: 20px;
       border: 1px solid var(--border);
+      display: none; /* hidden on mobile */
     }
 
     .tab-bar {
@@ -201,28 +202,31 @@
 
     /* FILTERS */
     .filter-bar {
-      padding: 10px 16px;
+      padding: 8px 12px;
       background: var(--card);
       border-bottom: 1px solid var(--border);
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
+      flex-direction: column;
+      gap: 6px;
     }
     .filter-bar input[type=text] {
-      flex: 1;
-      min-width: 140px;
+      width: 100%;
       padding: 7px 12px;
-      font-size: 13px;
+      font-size: 16px; /* prevents iOS zoom on focus */
       border-radius: 20px;
       background: var(--bg);
     }
-    .filter-bar select {
-      padding: 7px 10px;
-      font-size: 13px;
-      max-width: 130px;
+    .filter-row {
+      display: flex;
+      gap: 5px;
+    }
+    .filter-row select {
+      flex: 1;
+      padding: 5px 4px;
+      font-size: 11px;
       border-radius: 20px;
       background: var(--bg);
+      min-width: 0;
     }
 
     /* LIST VIEW */
@@ -246,7 +250,7 @@
       flex-shrink: 0;
       line-height: 1;
     }
-    .rec-card-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .rec-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
     .rec-name {
       font-size: 14px;
       font-weight: 500;
@@ -556,10 +560,14 @@
       .overlay { align-items: center; justify-content: center; }
       .drawer { border-radius: 8px; max-width: 500px; }
 
-      /* Tighter cards on desktop */
+      /* Tighter cards on desktop, name+tags inline */
       .rec-card { padding: 8px 12px; margin-bottom: 4px; }
+      .rec-card-info { flex-direction: row; align-items: center; gap: 8px; }
       .rec-name { font-size: 13px; }
       .tag { font-size: 10px; padding: 1px 7px; }
+
+      /* Show count on desktop */
+      .header-count { display: inline-block; }
     }
   </style>
 </head>
@@ -601,7 +609,6 @@
       <span class="header-icon">👫</span>
       <h1>Honeymoon</h1>
       <span class="header-count" id="rec-count"></span>
-      <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
     </header>
 
     <div class="tab-bar">
@@ -954,7 +961,7 @@ function renderMapMarkers() {
   });
   if (markers.length) {
     const group = L.featureGroup(markers);
-    map.fitBounds(group.getBounds().pad(0.3));
+    map.fitBounds(group.getBounds().pad(0.3), { maxZoom: 14 });
   }
 }
 
