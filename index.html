@@ -3,27 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Honeymoon Italy</title>
+  <title>Honeymoon</title>
+  <meta name="theme-color" content="#ffffff">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' transform='scale(-1,1) translate(-100,0)'>👫</text></svg>">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #faf9f7;
+      --blue: #1A73E8;
+      --blue-light: #e8f0fe;
+      --blue-dark: #1557b0;
+      --red: #EA4335;
+      --red-light: #fce8e6;
+      --green: #34A853;
+      --green-light: #e6f4ea;
+      --yellow: #FBBC05;
+      --yellow-light: #fef7e0;
+      --purple: #9334E6;
+      --purple-light: #f3e8fd;
+      --text: #202124;
+      --text2: #5f6368;
+      --text3: #9aa0a6;
+      --border: #dadce0;
+      --bg: #f8f9fa;
       --card: #ffffff;
-      --border: #e8e3db;
-      --text: #1a1614;
-      --muted: #7a6f65;
-      --accent: #c8693a;
-      --accent-light: #fdf0ea;
-      --accent2: #4a7c6a;
-      --tag-bg: #f0ece6;
-      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow: 0 1px 3px rgba(60,64,67,.15), 0 1px 2px rgba(60,64,67,.1);
+      --shadow-md: 0 2px 6px rgba(60,64,67,.2), 0 1px 2px rgba(60,64,67,.12);
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Roboto', Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -36,91 +50,131 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
+      background: var(--bg);
     }
     .auth-box {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 40px;
+      border-radius: 8px;
+      padding: 40px 48px;
       width: 100%;
-      max-width: 380px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      max-width: 400px;
+      box-shadow: var(--shadow);
+    }
+    .auth-logo {
+      text-align: center;
+      font-size: 48px;
+      margin-bottom: 12px;
+      display: block;
+      transform: scaleX(-1);
     }
     .auth-box h1 {
-      font-size: 22px;
-      margin-bottom: 4px;
-      color: var(--accent);
+      font-family: 'Google Sans', sans-serif;
+      font-size: 24px;
+      font-weight: 400;
+      text-align: center;
+      color: var(--text);
+      margin-bottom: 6px;
     }
     .auth-box p.subtitle {
-      color: var(--muted);
+      color: var(--text2);
       font-size: 14px;
       margin-bottom: 28px;
+      text-align: center;
     }
     .auth-toggle {
       text-align: center;
       margin-top: 20px;
       font-size: 13px;
-      color: var(--muted);
+      color: var(--text2);
     }
-    .auth-toggle a { color: var(--accent); cursor: pointer; text-decoration: none; }
+    .auth-toggle a { color: var(--blue); cursor: pointer; text-decoration: none; }
 
     /* FORM ELEMENTS */
-    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text2);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
     input[type=text], input[type=email], input[type=password], select, textarea {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 4px;
       font-size: 14px;
-      background: var(--bg);
+      background: var(--card);
       color: var(--text);
       outline: none;
-      transition: border-color 0.15s;
-      font-family: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      font-family: 'Roboto', Arial, sans-serif;
     }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+    }
     .field { margin-bottom: 16px; }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    btn, button, .btn {
+    .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      padding: 10px 18px;
-      border-radius: 8px;
+      padding: 10px 20px;
+      border-radius: 4px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       border: none;
-      transition: opacity 0.15s, background 0.15s;
-      font-family: inherit;
+      transition: box-shadow 0.15s, background 0.15s, opacity 0.15s;
+      font-family: 'Google Sans', sans-serif;
+      letter-spacing: 0.01em;
     }
-    .btn-primary { background: var(--accent); color: white; }
-    .btn-primary:hover { opacity: 0.88; }
-    .btn-secondary { background: var(--tag-bg); color: var(--text); }
-    .btn-secondary:hover { background: var(--border); }
-    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-    .btn-ghost:hover { background: var(--tag-bg); }
-    .btn-danger { background: #fee2e2; color: #b91c1c; }
-    .btn-danger:hover { background: #fecaca; }
+    .btn-primary { background: var(--blue); color: white; }
+    .btn-primary:hover { box-shadow: 0 1px 3px rgba(26,115,232,0.4); opacity: 0.92; }
+    .btn-secondary { background: var(--bg); color: var(--blue); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--blue-light); }
+    .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg); }
+    .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid #f5c6c2; }
+    .btn-danger:hover { background: #fad2cf; }
     .btn-full { width: 100%; }
-    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 4px; }
 
     /* APP LAYOUT */
     #app { display: none; flex-direction: column; height: 100vh; }
+
     header {
       background: var(--card);
       border-bottom: 1px solid var(--border);
       padding: 0 20px;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       height: 56px;
       flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(60,64,67,.1);
     }
-    header h1 { font-size: 17px; color: var(--accent); flex: 1; }
-    .header-count { font-size: 12px; color: var(--muted); }
+    .header-icon { font-size: 22px; transform: scaleX(-1); display: inline-block; }
+    header h1 {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text);
+      flex: 1;
+    }
+    .header-count {
+      font-size: 12px;
+      color: var(--text3);
+      background: var(--bg);
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
 
     .tab-bar {
       display: flex;
@@ -130,22 +184,24 @@
     }
     .tab {
       flex: 1;
-      padding: 12px;
+      padding: 14px;
       text-align: center;
       font-size: 13px;
       font-weight: 500;
-      color: var(--muted);
+      font-family: 'Google Sans', sans-serif;
+      color: var(--text2);
       cursor: pointer;
-      border-bottom: 2px solid transparent;
+      border-bottom: 3px solid transparent;
       transition: color 0.15s, border-color 0.15s;
+      letter-spacing: 0.01em;
     }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
 
     .main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 
     /* FILTERS */
     .filter-bar {
-      padding: 12px 16px;
+      padding: 10px 16px;
       background: var(--card);
       border-bottom: 1px solid var(--border);
       display: flex;
@@ -156,96 +212,153 @@
     .filter-bar input[type=text] {
       flex: 1;
       min-width: 140px;
+      padding: 7px 12px;
+      font-size: 13px;
+      border-radius: 20px;
+      background: var(--bg);
+    }
+    .filter-bar select {
       padding: 7px 10px;
       font-size: 13px;
+      max-width: 130px;
+      border-radius: 20px;
+      background: var(--bg);
     }
-    .filter-bar select { padding: 7px 10px; font-size: 13px; max-width: 130px; }
 
     /* LIST VIEW */
     #list-view { flex: 1; overflow-y: auto; padding: 12px 16px; }
+
     .rec-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 14px 16px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       cursor: pointer;
       transition: box-shadow 0.15s;
       box-shadow: var(--shadow);
     }
-    .rec-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .rec-card-top { display: flex; align-items: flex-start; gap: 10px; }
+    .rec-card:hover { box-shadow: var(--shadow-md); }
+
+    .rec-card-top { display: flex; align-items: flex-start; gap: 12px; }
     .rec-type-icon {
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       border-radius: 8px;
-      background: var(--accent-light);
+      background: var(--blue-light);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
+      font-size: 20px;
       flex-shrink: 0;
     }
     .rec-card-info { flex: 1; min-width: 0; }
-    .rec-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .rec-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .rec-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .rec-name {
+      font-size: 15px;
+      font-weight: 500;
+      font-family: 'Google Sans', sans-serif;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+    .rec-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .rec-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
     .tag {
       font-size: 11px;
-      padding: 2px 8px;
+      padding: 3px 10px;
       border-radius: 20px;
-      background: var(--tag-bg);
-      color: var(--muted);
       font-weight: 500;
+      border: 1px solid;
     }
-    .tag.city { background: #e8f0fe; color: #2d5db8; }
-    .tag.type { background: var(--accent-light); color: var(--accent); }
-    .tag.person { background: #e8f4f0; color: var(--accent2); }
+    .tag.city { background: var(--blue-light); color: var(--blue-dark); border-color: #b8cef8; }
+    .tag.type { background: var(--purple-light); color: var(--purple); border-color: #dbb8f8; }
+    .tag.person { background: var(--green-light); color: #1e7e34; border-color: #b7e0c4; }
+
     .rec-notes {
       font-size: 13px;
-      color: var(--muted);
-      margin-top: 8px;
+      color: var(--text2);
+      margin-top: 10px;
       line-height: 1.5;
       display: none;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
     }
     .rec-card.expanded .rec-notes { display: block; }
     .rec-actions { display: none; gap: 8px; margin-top: 10px; }
     .rec-card.expanded .rec-actions { display: flex; }
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
     .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
 
     /* MAP VIEW */
-    #map-view { flex: 1; display: none; }
-    #map { height: 100%; }
-    .leaflet-popup-content { font-size: 13px; }
-    .leaflet-popup-content strong { font-size: 14px; display: block; margin-bottom: 4px; }
+    #map-view { flex: 1; display: none; position: relative; }
+    #map { height: 100%; width: 100%; }
 
-    /* ADD PANEL */
-    .add-btn {
-      position: fixed;
-      bottom: 24px;
-      right: 20px;
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: white;
-      font-size: 26px;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(200,105,58,0.4);
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px !important;
+      box-shadow: var(--shadow-md) !important;
+      border: 1px solid var(--border);
+      font-family: 'Roboto', Arial, sans-serif;
+    }
+    .leaflet-popup-content { font-size: 13px; margin: 12px 16px !important; }
+    .leaflet-popup-content strong {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 14px;
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+    .leaflet-popup-content em { color: var(--text2); font-style: normal; }
+    .leaflet-popup-content small { color: var(--text2); }
+    .leaflet-popup-tip-container { display: none; }
+    .leaflet-control-attribution { font-size: 10px !important; }
+
+    /* MAP MARKER */
+    .map-marker {
+      width: 36px;
+      height: 36px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
-      transition: transform 0.15s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      border: 2px solid white;
     }
-    .add-btn:hover { transform: scale(1.05); }
+    .map-marker-inner { transform: rotate(45deg); font-size: 16px; }
 
-    /* MODAL / DRAWER */
+    /* ADD BUTTON */
+    .add-btn {
+      position: fixed;
+      bottom: 28px;
+      right: 20px;
+      height: 48px;
+      padding: 0 20px;
+      border-radius: 24px;
+      background: var(--blue);
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Google Sans', sans-serif;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(26,115,232,0.4), 0 4px 8px rgba(26,115,232,0.2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 1000;
+      transition: box-shadow 0.15s, transform 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .add-btn:hover { box-shadow: 0 2px 8px rgba(26,115,232,0.5), 0 6px 16px rgba(26,115,232,0.25); transform: translateY(-1px); }
+    .add-btn-icon { font-size: 20px; font-weight: 300; line-height: 1; }
+
+    /* DRAWER */
     .overlay {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(32,33,36,0.5);
       z-index: 2000;
       display: none;
       align-items: flex-end;
@@ -253,45 +366,48 @@
     .overlay.open { display: flex; }
     .drawer {
       background: var(--card);
-      border-radius: 20px 20px 0 0;
+      border-radius: 12px 12px 0 0;
       width: 100%;
       max-height: 92vh;
       overflow-y: auto;
-      padding: 20px 20px 32px;
+      padding: 8px 20px 32px;
     }
     .drawer-handle {
-      width: 40px; height: 4px;
+      width: 36px; height: 4px;
       background: var(--border);
       border-radius: 2px;
-      margin: 0 auto 20px;
+      margin: 12px auto 20px;
     }
-    .drawer h2 { font-size: 18px; margin-bottom: 20px; }
+    .drawer h2 {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 400;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
 
-    /* PARSE INPUT */
-    .parse-area textarea {
-      min-height: 120px;
-      resize: vertical;
-      font-size: 14px;
-      line-height: 1.6;
-    }
+    /* PARSE AREA */
+    .parse-area textarea { min-height: 100px; resize: vertical; font-size: 14px; line-height: 1.6; }
     .parse-results { margin-top: 16px; }
     .parse-result-item {
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 8px;
       padding: 14px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .parse-result-item .item-name {
-      font-weight: 600;
+      font-family: 'Google Sans', sans-serif;
+      font-weight: 500;
       font-size: 15px;
       margin-bottom: 10px;
+      color: var(--text);
     }
 
-    /* EDIT MODAL (centered) */
+    /* EDIT MODAL */
     .modal-overlay {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(32,33,36,0.5);
       z-index: 3000;
       display: none;
       align-items: center;
@@ -301,14 +417,20 @@
     .modal-overlay.open { display: flex; }
     .modal {
       background: var(--card);
-      border-radius: 16px;
+      border-radius: 8px;
       width: 100%;
       max-width: 480px;
       max-height: 90vh;
       overflow-y: auto;
       padding: 24px;
+      box-shadow: 0 8px 24px rgba(60,64,67,.25);
     }
-    .modal h2 { font-size: 17px; margin-bottom: 20px; }
+    .modal h2 {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 400;
+      margin-bottom: 20px;
+    }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 
     /* TOAST */
@@ -317,22 +439,24 @@
       bottom: 90px;
       left: 50%;
       transform: translateX(-50%);
-      background: #1a1614;
+      background: var(--text);
       color: white;
       padding: 10px 20px;
-      border-radius: 20px;
+      border-radius: 4px;
       font-size: 13px;
+      font-family: 'Roboto', sans-serif;
       z-index: 5000;
       opacity: 0;
       transition: opacity 0.2s;
       pointer-events: none;
       white-space: nowrap;
+      box-shadow: var(--shadow-md);
     }
     .toast.show { opacity: 1; }
 
     .spinner {
       display: inline-block;
-      width: 16px; height: 16px;
+      width: 14px; height: 14px;
       border: 2px solid rgba(255,255,255,0.4);
       border-top-color: white;
       border-radius: 50%;
@@ -342,7 +466,7 @@
 
     @media (min-width: 600px) {
       .overlay { align-items: center; justify-content: center; }
-      .drawer { border-radius: 16px; max-width: 560px; }
+      .drawer { border-radius: 8px; max-width: 560px; }
     }
   </style>
 </head>
@@ -351,8 +475,9 @@
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-box">
-    <h1>🇮🇹 Honeymoon Italy</h1>
-    <p class="subtitle">Your Italy recommendations, all in one place.</p>
+    <span class="auth-logo">👫</span>
+    <h1>Honeymoon</h1>
+    <p class="subtitle">Your Italy trip, all in one place.</p>
     <div id="auth-form">
       <div class="field" id="name-field" style="display:none">
         <label>Your Name</label>
@@ -378,7 +503,8 @@
 <!-- APP -->
 <div id="app">
   <header>
-    <h1>🇮🇹 Honeymoon Italy</h1>
+    <span class="header-icon">👫</span>
+    <h1>Honeymoon</h1>
     <span class="header-count" id="rec-count"></span>
     <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
   </header>
@@ -389,10 +515,10 @@
   </div>
 
   <div class="filter-bar">
-    <input type="text" id="search-input" placeholder="Search..." oninput="applyFilters()" />
+    <input type="text" id="search-input" placeholder="🔍  Search places…" oninput="applyFilters()" />
     <select id="filter-city" onchange="applyFilters()"><option value="">All cities</option></select>
     <select id="filter-type" onchange="applyFilters()"><option value="">All types</option></select>
-    <select id="filter-person" onchange="applyFilters()"><option value="">All people</option></select>
+    <select id="filter-person" onchange="applyFilters()"><option value="">Everyone</option></select>
   </div>
 
   <div class="main-content">
@@ -400,14 +526,16 @@
     <div id="map-view"><div id="map"></div></div>
   </div>
 
-  <button class="add-btn" onclick="openAddDrawer()" title="Add recommendation">+</button>
+  <button class="add-btn" onclick="openAddDrawer()">
+    <span class="add-btn-icon">+</span> Add place
+  </button>
 </div>
 
 <!-- ADD DRAWER -->
 <div class="overlay" id="add-overlay" onclick="closeAddDrawer(event)">
   <div class="drawer">
     <div class="drawer-handle"></div>
-    <h2>Add Recommendations</h2>
+    <h2>Add recommendations</h2>
     <div class="parse-area">
       <div class="field-row">
         <div class="field">
@@ -432,7 +560,7 @@
 <!-- EDIT MODAL -->
 <div class="modal-overlay" id="edit-overlay" onclick="closeEditModal(event)">
   <div class="modal">
-    <h2>Edit Recommendation</h2>
+    <h2>Edit place</h2>
     <input type="hidden" id="edit-id" />
     <div class="field">
       <label>Name</label>
@@ -499,6 +627,11 @@ const TYPE_ICONS = {
   attraction: '🎯', hotel: '🏨', shop: '🛍️', market: '🥬',
   beach: '🏖️', church: '⛪', neighborhood: '🗺️', other: '📍'
 };
+const TYPE_COLORS = {
+  restaurant: '#EA4335', bar: '#9334E6', cafe: '#FBBC05', museum: '#1A73E8',
+  attraction: '#34A853', hotel: '#1A73E8', shop: '#EA4335', market: '#34A853',
+  beach: '#1A73E8', church: '#9334E6', neighborhood: '#34A853', other: '#5f6368'
+};
 
 let sessionToken = localStorage.getItem('hm_token') || null;
 let allRecs = [];
@@ -541,7 +674,6 @@ async function logout() {
   document.getElementById('auth-screen').style.display = 'flex';
 }
 
-// API helper
 async function api(url, method = 'GET', body = null) {
   const opts = { method, headers: { 'x-session-token': sessionToken } };
   if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
@@ -550,7 +682,6 @@ async function api(url, method = 'GET', body = null) {
   return res.json();
 }
 
-// INIT
 async function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -565,7 +696,6 @@ async function checkSession() {
   else { localStorage.removeItem('hm_token'); sessionToken = null; }
 }
 
-// RECS
 async function loadRecs() {
   const params = buildFilterParams();
   const qs = new URLSearchParams(params).toString();
@@ -573,7 +703,7 @@ async function loadRecs() {
   filtered = allRecs;
   renderList();
   if (map) renderMapMarkers();
-  document.getElementById('rec-count').textContent = allRecs.length + ' places';
+  document.getElementById('rec-count').textContent = allRecs.length + (allRecs.length === 1 ? ' place' : ' places');
 }
 
 async function loadFilters() {
@@ -607,20 +737,19 @@ function buildFilterParams() {
 
 function applyFilters() { loadRecs(); }
 
-// RENDER LIST
 function renderList() {
   const el = document.getElementById('list-view');
   if (!allRecs.length) {
-    el.innerHTML = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap + to add your first one.</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+ Add place</strong> to get started.</p></div>`;
     return;
   }
   el.innerHTML = allRecs.map(r => `
     <div class="rec-card" id="card-${r.id}" onclick="toggleCard(${r.id})">
       <div class="rec-card-top">
-        <div class="rec-type-icon">${TYPE_ICONS[r.type] || '📍'}</div>
+        <div class="rec-type-icon" style="background:${hexToRgba(TYPE_COLORS[r.type] || '#1A73E8', 0.1)}">${TYPE_ICONS[r.type] || '📍'}</div>
         <div class="rec-card-info">
           <div class="rec-name">${esc(r.name)}</div>
-          <div class="rec-meta">${[r.city, r.neighborhood].filter(Boolean).join(' · ')}</div>
+          <div class="rec-meta">${[r.city, r.neighborhood].filter(Boolean).join(' · ') || '&nbsp;'}</div>
         </div>
       </div>
       <div class="rec-tags">
@@ -628,13 +757,18 @@ function renderList() {
         ${r.type ? `<span class="tag type">${esc(r.type)}</span>` : ''}
         ${r.recommended_by ? `<span class="tag person">from ${esc(r.recommended_by)}</span>` : ''}
       </div>
-      ${r.notes ? `<div class="rec-notes">${esc(r.notes)}${r.source_url ? `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--accent);font-size:12px;margin-top:4px;display:inline-block">View source ↗</a>` : ''}</div>` : ''}
+      ${r.notes ? `<div class="rec-notes">${esc(r.notes)}${r.source_url ? `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:6px;display:inline-block">View source ↗</a>` : ''}</div>` : ''}
       <div class="rec-actions">
         <button class="btn btn-ghost btn-sm" onclick="openEdit(${r.id},event)">Edit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteRec(${r.id},event)">Delete</button>
       </div>
     </div>
   `).join('');
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
 function toggleCard(id) {
@@ -646,7 +780,6 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// TABS
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
@@ -655,12 +788,14 @@ function switchTab(tab) {
   if (tab === 'map') initMap();
 }
 
-// MAP
 function initMap() {
   if (map) { renderMapMarkers(); return; }
-  map = L.map('map').setView([42.5, 12.5], 6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors', maxZoom: 19
+  map = L.map('map', { zoomControl: false }).setView([42.5, 12.5], 6);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 19,
+    subdomains: 'abcd'
   }).addTo(map);
   renderMapMarkers();
 }
@@ -669,23 +804,25 @@ function renderMapMarkers() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
   allRecs.filter(r => r.latitude && r.longitude).forEach(r => {
+    const color = TYPE_COLORS[r.type] || '#1A73E8';
     const icon = L.divIcon({
       className: '',
-      html: `<div style="font-size:22px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${TYPE_ICONS[r.type] || '📍'}</div>`,
-      iconSize: [28, 28], iconAnchor: [14, 14]
+      html: `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white"><span style="transform:rotate(45deg);font-size:16px;line-height:1">${TYPE_ICONS[r.type] || '📍'}</span></div>`,
+      iconSize: [36, 36],
+      iconAnchor: [18, 36],
+      popupAnchor: [0, -36]
     });
     const m = L.marker([r.latitude, r.longitude], { icon })
       .addTo(map)
-      .bindPopup(`<strong>${r.name}</strong>${r.city ? '<br>' + r.city : ''}${r.recommended_by ? '<br><em>from ' + r.recommended_by + '</em>' : ''}${r.notes ? '<br><small>' + r.notes.substring(0,100) + '</small>' : ''}`);
+      .bindPopup(`<strong>${r.name}</strong>${r.city ? `<br><span style="color:#5f6368;font-size:12px">${r.city}</span>` : ''}${r.recommended_by ? `<br><em style="color:#5f6368;font-size:12px">Recommended by ${r.recommended_by}</em>` : ''}${r.notes ? `<br><small style="color:#5f6368">${r.notes.substring(0,100)}</small>` : ''}`, { maxWidth: 220 });
     markers.push(m);
   });
   if (markers.length) {
     const group = L.featureGroup(markers);
-    map.fitBounds(group.getBounds().pad(0.2));
+    map.fitBounds(group.getBounds().pad(0.3));
   }
 }
 
-// ADD DRAWER
 function openAddDrawer() {
   document.getElementById('raw-input').value = '';
   document.getElementById('input-city').value = '';
@@ -715,7 +852,7 @@ async function parseInput() {
 
 function renderParseResults(recs, rawInput) {
   const el = document.getElementById('parse-results');
-  if (!recs.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px">No recommendations found in that text.</p>'; return; }
+  if (!recs.length) { el.innerHTML = '<p style="color:var(--text2);font-size:13px">No recommendations found in that text.</p>'; return; }
 
   const types = ['restaurant','bar','cafe','museum','attraction','hotel','shop','market','beach','church','neighborhood','other'];
   const isSingle = recs.length === 1;
@@ -733,7 +870,7 @@ function renderParseResults(recs, rawInput) {
       ${isSingle ? `<div class="field"><label>Notes</label><textarea id="r-notes-${i}" style="min-height:60px;resize:vertical">${esc(r.notes||'')}</textarea></div>` : ''}
     </div>
   `).join('') + `
-    <div style="display:flex;gap:8px;margin-top:4px">
+    <div style="display:flex;gap:8px;margin-top:8px;padding-bottom:8px">
       <button class="btn btn-ghost" onclick="closeAddDrawer()">Cancel</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveParseResults()">Save ${recs.length} place${recs.length>1?'s':''}</button>
     </div>
@@ -769,7 +906,6 @@ async function saveParseResults() {
   await loadFilters();
 }
 
-// EDIT
 function openEdit(id, e) {
   if (e) e.stopPropagation();
   const r = allRecs.find(x => x.id === id);
@@ -811,7 +947,6 @@ async function saveEdit() {
   await loadFilters();
 }
 
-// DELETE
 async function deleteRec(id, e) {
   if (e) e.stopPropagation();
   if (!confirm('Delete this recommendation?')) return;
@@ -821,7 +956,6 @@ async function deleteRec(id, e) {
   await loadFilters();
 }
 
-// TOAST
 function showToast(msg, duration = 2500) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -829,7 +963,6 @@ function showToast(msg, duration = 2500) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
-// INIT
 switchTab('list');
 checkSession();
 </script>
