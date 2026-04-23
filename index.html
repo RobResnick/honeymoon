@@ -286,6 +286,26 @@
     .rec-actions { display: none; gap: 8px; margin-top: 10px; }
     .rec-card.expanded .rec-actions { display: flex; }
 
+    .rec-card { position: relative; }
+    .rec-delete-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: none;
+      background: #e0e0e0;
+      color: var(--text2);
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s, background 0.15s;
+      z-index: 2;
+    }
+    .rec-card:hover .rec-delete-btn { opacity: 1; }
+    .rec-delete-btn:hover { background: var(--red-light); color: var(--red); }
+
     .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
     .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
     .empty-state p { font-size: 14px; line-height: 1.6; }
@@ -687,9 +707,15 @@ async function showApp() {
 
 async function checkSession() {
   if (!sessionToken) return;
+  // Show app immediately, verify token in background
+  showApp();
   const me = await api('/api/auth/me');
-  if (me) showApp();
-  else { localStorage.removeItem('hm_token'); sessionToken = null; }
+  if (!me) {
+    localStorage.removeItem('hm_token');
+    sessionToken = null;
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
+  }
 }
 
 async function loadRecs(fromServer = true) {
@@ -766,8 +792,9 @@ function renderList() {
     el.innerHTML = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+ Add place</strong> to get started.</p></div>`;
     return;
   }
-  el.innerHTML = allRecs.map(r => `
+  el.innerHTML = filtered.map(r => `
     <div class="rec-card" id="card-${r.id}" onclick="toggleCard(${r.id})">
+      <button class="rec-delete-btn" onclick="deleteRec(${r.id},event)" title="Delete">×</button>
       <div class="rec-card-top">
         <div class="rec-type-icon">${TYPE_ICONS[r.type] || '📍'}</div>
         <div class="rec-card-info">
@@ -778,12 +805,11 @@ function renderList() {
       <div class="rec-tags">
         ${r.city ? `<span class="tag city">${esc(r.city)}</span>` : ''}
         ${r.type ? `<span class="tag type">${esc(r.type)}</span>` : ''}
-        ${r.recommended_by ? r.recommended_by.split(',').map(p => `<span class="tag person">from ${esc(p.trim())}</span>`).join('') : ''}
+        ${r.recommended_by ? r.recommended_by.split(',').map(p => `<span class="tag person">${esc(p.trim())}</span>`).join('') : ''}
       </div>
       ${r.notes ? `<div class="rec-notes">${esc(r.notes)}${r.source_url ? `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:6px;display:inline-block">View source ↗</a>` : ''}</div>` : ''}
       <div class="rec-actions">
         <button class="btn btn-ghost btn-sm" onclick="openEdit(${r.id},event)">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteRec(${r.id},event)">Delete</button>
       </div>
     </div>
   `).join('');
