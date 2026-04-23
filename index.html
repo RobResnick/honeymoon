@@ -769,7 +769,7 @@ function renderList() {
   el.innerHTML = allRecs.map(r => `
     <div class="rec-card" id="card-${r.id}" onclick="toggleCard(${r.id})">
       <div class="rec-card-top">
-        <div class="rec-type-icon" style="background:${hexToRgba(TYPE_COLORS[r.type] || '#1A73E8', 0.1)}">${TYPE_ICONS[r.type] || '📍'}</div>
+        <div class="rec-type-icon">${TYPE_ICONS[r.type] || '📍'}</div>
         <div class="rec-card-info">
           <div class="rec-name">${esc(r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name)}</div>
           <div class="rec-meta">${[r.city, r.neighborhood].filter(Boolean).join(' · ') || '&nbsp;'}</div>
