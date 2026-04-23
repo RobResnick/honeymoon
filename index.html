@@ -696,14 +696,29 @@ async function checkSession() {
   else { localStorage.removeItem('hm_token'); sessionToken = null; }
 }
 
-async function loadRecs() {
-  const params = buildFilterParams();
-  const qs = new URLSearchParams(params).toString();
-  allRecs = await api('/api/recommendations' + (qs ? '?' + qs : '')) || [];
-  filtered = allRecs;
+async function loadRecs(fromServer = true) {
+  if (fromServer) {
+    allRecs = await api('/api/recommendations') || [];
+  }
+  const search = document.getElementById('search-input').value.trim().toLowerCase();
+  const city = document.getElementById('filter-city').value.toLowerCase();
+  const type = document.getElementById('filter-type').value;
+  const person = document.getElementById('filter-person').value.toLowerCase();
+
+  filtered = allRecs.filter(r => {
+    if (city && (r.city || '').toLowerCase() !== city) return false;
+    if (type && r.type !== type) return false;
+    if (person && (r.recommended_by || '').toLowerCase() !== person) return false;
+    if (search) {
+      const hay = [r.name, r.city, r.notes, r.recommended_by].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
   renderList();
   if (map) renderMapMarkers();
-  document.getElementById('rec-count').textContent = allRecs.length + (allRecs.length === 1 ? ' place' : ' places');
+  document.getElementById('rec-count').textContent = filtered.length + (filtered.length === 1 ? ' place' : ' places');
 }
 
 async function loadFilters() {
@@ -735,7 +750,11 @@ function buildFilterParams() {
   return p;
 }
 
-function applyFilters() { loadRecs(); }
+let filterDebounce = null;
+function applyFilters() {
+  clearTimeout(filterDebounce);
+  filterDebounce = setTimeout(() => loadRecs(false), 150);
+}
 
 function renderList() {
   const el = document.getElementById('list-view');
@@ -803,7 +822,7 @@ function initMap() {
 function renderMapMarkers() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
-  allRecs.filter(r => r.latitude && r.longitude).forEach(r => {
+  filtered.filter(r => r.latitude && r.longitude).forEach(r => {
     const color = TYPE_COLORS[r.type] || '#1A73E8';
     const icon = L.divIcon({
       className: '',
