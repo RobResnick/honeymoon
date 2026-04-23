@@ -268,6 +268,7 @@
       line-height: 1;
     }
     .rec-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+    .rec-name-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
     .rec-name {
       font-size: 14px;
       font-weight: 500;
@@ -277,7 +278,15 @@
       text-overflow: ellipsis;
       color: var(--text);
     }
+    .rec-city-text {
+      display: none; /* shown on desktop via media query */
+      font-size: 12px;
+      color: var(--text2);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
     .rec-tags { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+    .desktop-tags { display: none; }
     .tag {
       font-size: 11px;
       padding: 2px 8px;
@@ -614,11 +623,14 @@
       .overlay { align-items: center; justify-content: center; }
       .drawer { border-radius: 8px; max-width: 500px; }
 
-      /* Tighter cards on desktop, name+tags inline */
+      /* Desktop card: two-row layout */
       .rec-card { padding: 8px 12px; margin-bottom: 4px; }
-      .rec-card-info { flex-direction: row; align-items: center; gap: 8px; }
+      .rec-card-info { flex-direction: column; gap: 3px; }
       .rec-name { font-size: 13px; }
-      .tag { font-size: 10px; padding: 1px 7px; }
+      .rec-city-text { display: block; }
+      .mobile-tags { display: none; }
+      .desktop-tags { display: flex; }
+      .tag { font-size: 11px; padding: 2px 8px; }
 
       /* Show count on desktop */
       .header-count { display: inline-block; }
@@ -944,12 +956,16 @@ function renderList() {
       <div class="rec-card-top">
         <div class="rec-type-icon">${TYPE_ICONS[r.type] || '📍'}</div>
         <div class="rec-card-info">
-          <div class="rec-name">${esc(r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name)}</div>
-          <div class="rec-tags">
+          <div class="rec-name-line">
+            <div class="rec-name">${esc(r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name)}</div>
+            ${r.city ? `<div class="rec-city-text">${esc(r.city)}</div>` : ''}
+          </div>
+          <div class="rec-tags mobile-tags">
             ${r.city ? `<span class="tag city">${esc(r.city)}</span>` : ''}
             ${r.type ? `<span class="tag type">${esc(r.type)}</span>` : ''}
             ${r.recommended_by ? r.recommended_by.split(',').map(p => `<span class="tag person">${esc(p.trim())}</span>`).join('') : ''}
           </div>
+          ${r.recommended_by ? `<div class="rec-tags desktop-tags">${r.recommended_by.split(',').map(p => `<span class="tag person">${esc(p.trim())}</span>`).join('')}</div>` : ''}
         </div>
       </div>
       ${r.notes ? `<div class="rec-notes">${esc(r.notes)}${r.source_url ? `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:6px;display:inline-block">View source ↗</a>` : ''}</div>` : ''}
