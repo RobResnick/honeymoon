@@ -155,10 +155,10 @@ ${input}`
 });
 
 // Geocode using Nominatim
-async function geocode(name, address, city, country = 'Italy') {
+async function geocode(name, address, city, country = '') {
   try {
     const query = [name, address, city, country].filter(Boolean).join(', ');
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=it`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
     const resp = await fetch(url, { headers: { 'User-Agent': 'HoneymoonApp/1.0 rob@robresnick.com' } });
     const data = await resp.json();
     if (data && data[0]) {
@@ -166,7 +166,7 @@ async function geocode(name, address, city, country = 'Italy') {
     }
     // Fallback: search just city
     if (city) {
-      const cityUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ', Italy')}&format=json&limit=1&countrycodes=it`;
+      const cityUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`;
       const cityResp = await fetch(cityUrl, { headers: { 'User-Agent': 'HoneymoonApp/1.0 rob@robresnick.com' } });
       const cityData = await cityResp.json();
       if (cityData && cityData[0]) {

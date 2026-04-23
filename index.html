@@ -177,48 +177,65 @@
       display: none; /* hidden on mobile */
     }
 
-    .tab-bar {
+    /* View toggle in header */
+    .view-toggle {
       display: flex;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
       flex-shrink: 0;
     }
-    .tab {
-      flex: 1;
-      padding: 14px;
-      text-align: center;
+    .toggle-btn {
+      padding: 5px 16px;
       font-size: 13px;
-      font-weight: 500;
       font-family: 'Google Sans', sans-serif;
+      border: none;
+      background: transparent;
       color: var(--text2);
       cursor: pointer;
-      border-bottom: 3px solid transparent;
-      transition: color 0.15s, border-color 0.15s;
-      letter-spacing: 0.01em;
+      transition: background 0.15s, color 0.15s;
+      font-weight: 500;
     }
-    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .toggle-btn.active { background: var(--blue); color: white; border-radius: 20px; }
+
+    /* Tab-bar hidden — replaced by toggle in header */
+    .tab-bar { display: none; }
 
     .main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 
-    /* FILTERS */
+    /* FILTERS — floating search bar */
     .filter-bar {
-      padding: 8px 12px;
+      padding: 8px 12px 6px;
       background: var(--card);
       border-bottom: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       gap: 6px;
+      position: relative;
+      z-index: 100;
     }
     .filter-bar input[type=text] {
       width: 100%;
-      padding: 7px 12px;
-      font-size: 16px; /* prevents iOS zoom on focus */
-      border-radius: 20px;
+      padding: 9px 16px;
+      font-size: 16px;
+      border-radius: 24px;
       background: var(--bg);
+      border: 1px solid var(--border);
     }
     .filter-row {
       display: flex;
       gap: 5px;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.2s ease, opacity 0.15s ease, margin 0.2s ease;
+      margin-top: 0;
+    }
+    .filter-bar.filters-open .filter-row {
+      max-height: 40px;
+      opacity: 1;
+      margin-top: 2px;
     }
     .filter-row select {
       flex: 1;
@@ -349,7 +366,7 @@
     .add-btn {
       position: fixed;
       bottom: 28px;
-      right: 20px;
+      left: 20px;
       width: 52px;
       height: 52px;
       border-radius: 50%;
@@ -478,6 +495,39 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── MOBILE: map mode — search floats over map ── */
+    @media (hover: none) and (pointer: coarse) {
+      body.map-mode .main-content {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+      }
+      body.map-mode .filter-bar {
+        position: fixed;
+        top: 52px;
+        left: 0; right: 0;
+        z-index: 200;
+        background: transparent;
+        border: none;
+        padding: 10px 12px 8px;
+        pointer-events: none;
+      }
+      body.map-mode .filter-bar > * { pointer-events: all; }
+      body.map-mode .filter-bar input[type=text] {
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.22), 0 0 0 0.5px rgba(0,0,0,0.06);
+        border-color: transparent;
+      }
+      body.map-mode .filter-bar .filter-row select {
+        background: white;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+        border-color: transparent;
+      }
+      body.map-mode .add-btn {
+        z-index: 200;
+      }
+    }
+
     /* ── MOBILE drawer centering at wider mobile ── */
     @media (min-width: 600px) and (hover: none) {
       .overlay { align-items: center; justify-content: center; }
@@ -546,15 +596,19 @@
         inset: 0;
       }
 
-      /* Add button fixed in left panel */
+      /* Add button fixed in left panel — right side on desktop */
       .add-btn {
         position: absolute;
         bottom: 20px;
+        left: unset;
         right: 16px;
         width: 48px;
         height: 48px;
         font-size: 26px;
       }
+
+      /* Hide mobile view toggle on desktop */
+      .view-toggle { display: none; }
 
       /* Drawer becomes centered modal on desktop */
       .overlay { align-items: center; justify-content: center; }
@@ -609,15 +663,16 @@
       <span class="header-icon">👫</span>
       <h1>Honeymoon</h1>
       <span class="header-count" id="rec-count"></span>
+      <div class="view-toggle" id="view-toggle">
+        <button class="toggle-btn active" id="toggle-list" onclick="switchTab('list')">List</button>
+        <button class="toggle-btn" id="toggle-map" onclick="switchTab('map')">Map</button>
+      </div>
     </header>
 
-    <div class="tab-bar">
-      <div class="tab active" onclick="switchTab('list')" id="tab-list">List</div>
-      <div class="tab" onclick="switchTab('map')" id="tab-map">Map</div>
-    </div>
-
-    <div class="filter-bar">
-      <input type="text" id="search-input" placeholder="🔍  Search places…" oninput="applyFilters()" />
+    <div class="filter-bar" id="filter-bar">
+      <input type="text" id="search-input" placeholder="Search" oninput="applyFilters()"
+        onfocus="document.getElementById('filter-bar').classList.add('filters-open')"
+        onblur="setTimeout(()=>document.getElementById('filter-bar').classList.remove('filters-open'),200)" />
       <div class="filter-row">
         <select id="filter-city" onchange="applyFilters()"><option value="">All cities</option></select>
         <select id="filter-type" onchange="applyFilters()"><option value="">All types</option></select>
@@ -922,12 +977,18 @@ function esc(s) {
 const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 function switchTab(tab) {
+  // Update toggle buttons
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  const toggleBtn = document.getElementById('toggle-' + tab);
+  if (toggleBtn) toggleBtn.classList.add('active');
+
   if (isDesktop()) return; // desktop shows both panels always
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  document.getElementById('list-view').style.display = tab === 'list' ? 'block' : 'none';
-  document.getElementById('map-view').style.display = tab === 'map' ? 'block' : 'none';
-  if (tab === 'map') initMap();
+
+  const isMap = tab === 'map';
+  document.getElementById('list-view').style.display = isMap ? 'none' : 'block';
+  document.getElementById('map-view').style.display = isMap ? 'block' : 'none';
+  document.body.classList.toggle('map-mode', isMap);
+  if (isMap) initMap();
 }
 
 function initMap() {
