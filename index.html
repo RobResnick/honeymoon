@@ -506,6 +506,8 @@ let filtered = [];
 let map = null;
 let markers = [];
 let authMode = 'login';
+let pendingParseCount = 0;
+let pendingRawInput = '';
 
 // AUTH
 function toggleAuthMode() {
@@ -718,6 +720,9 @@ function renderParseResults(recs, rawInput) {
   const types = ['restaurant','bar','cafe','museum','attraction','hotel','shop','market','beach','church','neighborhood','other'];
   const isSingle = recs.length === 1;
 
+  pendingParseCount = recs.length;
+  pendingRawInput = rawInput;
+
   el.innerHTML = recs.map((r, i) => `
     <div class="parse-result-item" id="result-${i}">
       <div class="item-name">${TYPE_ICONS[r.type] || '📍'} ${esc(r.name)}</div>
@@ -730,12 +735,14 @@ function renderParseResults(recs, rawInput) {
   `).join('') + `
     <div style="display:flex;gap:8px;margin-top:4px">
       <button class="btn btn-ghost" onclick="closeAddDrawer()">Cancel</button>
-      <button class="btn btn-primary" style="flex:1" onclick="saveParseResults(${JSON.stringify(recs.length)}, ${JSON.stringify(rawInput).replace(/</g,'\\u003c')})">Save ${recs.length} place${recs.length>1?'s':''}</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveParseResults()">Save ${recs.length} place${recs.length>1?'s':''}</button>
     </div>
   `;
 }
 
-async function saveParseResults(count, rawInput) {
+async function saveParseResults() {
+  const count = pendingParseCount;
+  const rawInput = pendingRawInput;
   const city = document.getElementById('input-city').value.trim();
   const recommended_by = document.getElementById('input-person').value.trim();
   const isSingle = count === 1;
