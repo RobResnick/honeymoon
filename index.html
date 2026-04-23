@@ -474,9 +474,92 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (min-width: 600px) {
+    /* ── MOBILE drawer centering at wider mobile ── */
+    @media (min-width: 600px) and (hover: none) {
       .overlay { align-items: center; justify-content: center; }
       .drawer { border-radius: 8px; max-width: 560px; }
+    }
+
+    /* ── DESKTOP layout ── */
+    @media (hover: hover) and (pointer: fine) {
+      body { overflow: hidden; }
+
+      #app {
+        flex-direction: row;
+        height: 100vh;
+      }
+
+      /* Left panel */
+      #left-panel {
+        display: flex;
+        flex-direction: column;
+        width: 380px;
+        min-width: 320px;
+        flex-shrink: 0;
+        height: 100vh;
+        border-right: 1px solid var(--border);
+        background: var(--card);
+        position: relative;
+        z-index: 10;
+      }
+
+      header {
+        border-bottom: 1px solid var(--border);
+        box-shadow: none;
+        padding: 0 16px;
+        height: 52px;
+      }
+
+      /* Hide mobile tabs on desktop */
+      .tab-bar { display: none; }
+
+      /* Filter bar inside left panel */
+      .filter-bar {
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 12px;
+      }
+      .filter-bar input[type=text] { min-width: unset; border-radius: 20px; }
+      .filter-row { display: flex; gap: 6px; }
+      .filter-row select { flex: 1; font-size: 12px; }
+
+      /* List fills left panel */
+      #list-view {
+        display: block !important;
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 12px 80px;
+      }
+
+      /* Map fills the rest */
+      .main-content {
+        flex: 1;
+        position: relative;
+      }
+      #map-view {
+        display: block !important;
+        position: absolute;
+        inset: 0;
+      }
+
+      /* Add button fixed in left panel */
+      .add-btn {
+        position: absolute;
+        bottom: 20px;
+        right: 16px;
+        width: 48px;
+        height: 48px;
+        font-size: 26px;
+      }
+
+      /* Drawer becomes centered modal on desktop */
+      .overlay { align-items: center; justify-content: center; }
+      .drawer { border-radius: 8px; max-width: 500px; }
+
+      /* Tighter cards on desktop */
+      .rec-card { padding: 8px 12px; margin-bottom: 4px; }
+      .rec-name { font-size: 13px; }
+      .tag { font-size: 10px; padding: 1px 7px; }
     }
   </style>
 </head>
@@ -512,31 +595,38 @@
 
 <!-- APP -->
 <div id="app">
-  <header>
-    <span class="header-icon">👫</span>
-    <h1>Honeymoon</h1>
-    <span class="header-count" id="rec-count"></span>
-    <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
-  </header>
+  <!-- LEFT PANEL (desktop) / full layout (mobile) -->
+  <div id="left-panel">
+    <header>
+      <span class="header-icon">👫</span>
+      <h1>Honeymoon</h1>
+      <span class="header-count" id="rec-count"></span>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
+    </header>
 
-  <div class="tab-bar">
-    <div class="tab active" onclick="switchTab('list')" id="tab-list">List</div>
-    <div class="tab" onclick="switchTab('map')" id="tab-map">Map</div>
-  </div>
+    <div class="tab-bar">
+      <div class="tab active" onclick="switchTab('list')" id="tab-list">List</div>
+      <div class="tab" onclick="switchTab('map')" id="tab-map">Map</div>
+    </div>
 
-  <div class="filter-bar">
-    <input type="text" id="search-input" placeholder="🔍  Search places…" oninput="applyFilters()" />
-    <select id="filter-city" onchange="applyFilters()"><option value="">All cities</option></select>
-    <select id="filter-type" onchange="applyFilters()"><option value="">All types</option></select>
-    <select id="filter-person" onchange="applyFilters()"><option value="">Everyone</option></select>
-  </div>
+    <div class="filter-bar">
+      <input type="text" id="search-input" placeholder="🔍  Search places…" oninput="applyFilters()" />
+      <div class="filter-row">
+        <select id="filter-city" onchange="applyFilters()"><option value="">All cities</option></select>
+        <select id="filter-type" onchange="applyFilters()"><option value="">All types</option></select>
+        <select id="filter-person" onchange="applyFilters()"><option value="">Everyone</option></select>
+      </div>
+    </div>
 
-  <div class="main-content">
     <div id="list-view"></div>
+
+    <button class="add-btn" onclick="openAddDrawer()">+</button>
+  </div>
+
+  <!-- RIGHT PANEL: map always visible on desktop, tab-switched on mobile -->
+  <div class="main-content">
     <div id="map-view"><div id="map"></div></div>
   </div>
-
-  <button class="add-btn" onclick="openAddDrawer()">+</button>
 </div>
 
 <!-- ADD DRAWER -->
@@ -822,7 +912,10 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
 function switchTab(tab) {
+  if (isDesktop()) return; // desktop shows both panels always
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   document.getElementById('list-view').style.display = tab === 'list' ? 'block' : 'none';
@@ -1005,7 +1098,14 @@ function showToast(msg, duration = 2500) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
-switchTab('list');
+if (isDesktop()) {
+  // On desktop, show both panels; init map immediately
+  document.getElementById('list-view').style.display = 'block';
+  document.getElementById('map-view').style.display = 'block';
+  setTimeout(initMap, 100);
+} else {
+  switchTab('list');
+}
 checkSession();
 </script>
 </body>
