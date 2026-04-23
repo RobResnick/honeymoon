@@ -242,14 +242,12 @@
 
     .rec-card-top { display: flex; align-items: flex-start; gap: 12px; }
     .rec-type-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      background: var(--blue-light);
+      width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 22px;
       flex-shrink: 0;
     }
     .rec-card-info { flex: 1; min-width: 0; }
@@ -706,7 +704,7 @@ async function loadRecs(fromServer = true) {
   filtered = allRecs.filter(r => {
     if (city && (r.city || '').toLowerCase() !== city) return false;
     if (type && r.type !== type) return false;
-    if (person && (r.recommended_by || '').toLowerCase() !== person) return false;
+    if (person && !(r.recommended_by || '').toLowerCase().split(',').map(p=>p.trim()).includes(person)) return false;
     if (search) {
       const hay = [r.name, r.city, r.notes, r.recommended_by].join(' ').toLowerCase();
       if (!hay.includes(search)) return false;
@@ -773,14 +771,14 @@ function renderList() {
       <div class="rec-card-top">
         <div class="rec-type-icon" style="background:${hexToRgba(TYPE_COLORS[r.type] || '#1A73E8', 0.1)}">${TYPE_ICONS[r.type] || '📍'}</div>
         <div class="rec-card-info">
-          <div class="rec-name">${esc(r.name)}</div>
+          <div class="rec-name">${esc(r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name)}</div>
           <div class="rec-meta">${[r.city, r.neighborhood].filter(Boolean).join(' · ') || '&nbsp;'}</div>
         </div>
       </div>
       <div class="rec-tags">
         ${r.city ? `<span class="tag city">${esc(r.city)}</span>` : ''}
         ${r.type ? `<span class="tag type">${esc(r.type)}</span>` : ''}
-        ${r.recommended_by ? `<span class="tag person">from ${esc(r.recommended_by)}</span>` : ''}
+        ${r.recommended_by ? r.recommended_by.split(',').map(p => `<span class="tag person">from ${esc(p.trim())}</span>`).join('') : ''}
       </div>
       ${r.notes ? `<div class="rec-notes">${esc(r.notes)}${r.source_url ? `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:6px;display:inline-block">View source ↗</a>` : ''}</div>` : ''}
       <div class="rec-actions">
@@ -887,7 +885,7 @@ function renderParseResults(recs, rawInput) {
 
   el.innerHTML = recs.map((r, i) => `
     <div class="parse-result-item" id="result-${i}">
-      <div class="item-name">${TYPE_ICONS[r.type] || '📍'} ${esc(r.name)}</div>
+      <div class="item-name" data-name="${esc(r.name)}">${esc(r.name)}</div>
       <div class="field">
         <label>Type</label>
         <select id="r-type-${i}">${types.map(t=>`<option value="${t}"${r.type===t?' selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}</select>
@@ -911,7 +909,7 @@ async function saveParseResults() {
   const recs = [];
   for (let i = 0; i < count; i++) {
     const nameDiv = document.querySelector(`#result-${i} .item-name`);
-    const name = nameDiv ? nameDiv.textContent.trim().replace(/^.\s/, '').trim() : '';
+    const name = nameDiv ? nameDiv.dataset.name : '';
     recs.push({
       name,
       type: document.getElementById(`r-type-${i}`)?.value,

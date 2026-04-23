@@ -204,6 +204,29 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
   for (const rec of recs) {
     const { name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, latitude, longitude } = rec;
 
+    // Check for existing recommendation with same name + city
+    const existing = await pool.query(
+      `SELECT * FROM recommendations WHERE user_id=$1 AND LOWER(name)=LOWER($2) AND LOWER(COALESCE(city,''))=LOWER(COALESCE($3,''))`,
+      [req.userId, name, city || '']
+    );
+
+    if (existing.rows[0] && recommended_by) {
+      // Merge: append new recommender if not already listed
+      const current = existing.rows[0].recommended_by || '';
+      const names = current.split(',').map(n => n.trim().toLowerCase());
+      if (!names.includes(recommended_by.trim().toLowerCase())) {
+        const merged = current ? `${current}, ${recommended_by.trim()}` : recommended_by.trim();
+        const updated = await pool.query(
+          `UPDATE recommendations SET recommended_by=$1, updated_at=NOW() WHERE id=$2 RETURNING *`,
+          [merged, existing.rows[0].id]
+        );
+        saved.push(updated.rows[0]);
+      } else {
+        saved.push(existing.rows[0]);
+      }
+      continue;
+    }
+
     let lat = latitude, lon = longitude;
     if (!lat || !lon) {
       const coords = await geocode(name, address, city);
