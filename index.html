@@ -605,7 +605,7 @@
         enterkeyhint="go" inputmode="search"
         oninput="onSearchInput(this.value)"
         onkeydown="handleSearchKey(event)"
-        onfocus="showSuggestions()" />
+        onfocus="onSearchFocus()" />
       <button id="map-search-clear" onclick="clearMapSearch()" style="display:none;border:none;background:none;padding:0;cursor:pointer;color:var(--text3);line-height:1;font-size:20px;flex-shrink:0">×</button>
     </div>
     <div class="map-filter-row">
@@ -967,6 +967,22 @@ async function jumpToSearch(q) {
     const data = await res.json();
     if (data && data[0]) map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 13);
   } catch(e) {}
+}
+
+function onSearchFocus() {
+  const val = document.getElementById('map-search-input')?.value || '';
+  if (val.length > 1) showSuggestions(val);
+  if (!isDesktop()) {
+    expandSearchFilters();
+    const sheet = document.getElementById('mobile-sheet');
+    if (!sheet.classList.contains('open')) {
+      _sheetOpenedBySearch = true;
+      sheet.classList.add('open');
+      document.getElementById('nav-list').classList.add('active');
+      document.getElementById('nav-map').classList.remove('active');
+      renderList();
+    }
+  }
 }
 
 function onSearchInput(val) {
