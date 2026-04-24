@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' transform='scale(-1,1) translate(-100,0)'>👫</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -43,7 +43,7 @@
       min-height: 100vh;
     }
 
-    /* AUTH */
+    /* ── AUTH ── */
     #auth-screen {
       min-height: 100vh;
       display: flex;
@@ -62,12 +62,11 @@
       box-shadow: var(--shadow);
     }
     .auth-logo {
-      text-align: center;
-      font-size: 48px;
+      display: flex;
+      justify-content: center;
       margin-bottom: 12px;
-      display: block;
-      transform: scaleX(-1);
     }
+    .auth-logo img { width: 56px; height: 56px; }
     .auth-box h1 {
       font-family: 'Google Sans', sans-serif;
       font-size: 24px;
@@ -90,7 +89,7 @@
     }
     .auth-toggle a { color: var(--blue); cursor: pointer; text-decoration: none; }
 
-    /* FORM ELEMENTS */
+    /* ── FORMS ── */
     label {
       display: block;
       font-size: 11px;
@@ -145,7 +144,7 @@
     .btn-full { width: 100%; }
     .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 4px; }
 
-    /* APP LAYOUT */
+    /* ── APP SHELL ── */
     #app { display: none; flex-direction: column; height: 100vh; }
 
     header {
@@ -154,12 +153,12 @@
       padding: 0 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       height: 56px;
       flex-shrink: 0;
       box-shadow: 0 1px 3px rgba(60,64,67,.1);
     }
-    .header-icon { font-size: 22px; transform: scaleX(-1); display: inline-block; }
+    .header-logo { width: 28px; height: 28px; flex-shrink: 0; }
     header h1 {
       font-family: 'Google Sans', sans-serif;
       font-size: 18px;
@@ -174,37 +173,12 @@
       padding: 3px 10px;
       border-radius: 20px;
       border: 1px solid var(--border);
-      display: none; /* hidden on mobile */
+      display: none;
     }
-
-    /* View toggle in header */
-    .view-toggle {
-      display: flex;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-    .toggle-btn {
-      padding: 5px 16px;
-      font-size: 13px;
-      font-family: 'Google Sans', sans-serif;
-      border: none;
-      background: transparent;
-      color: var(--text2);
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-      font-weight: 500;
-    }
-    .toggle-btn.active { background: var(--blue); color: white; border-radius: 20px; }
-
-    /* Tab-bar hidden — replaced by toggle in header */
-    .tab-bar { display: none; }
 
     .main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 
-    /* FILTERS — floating search bar */
+    /* ── FILTER BAR ── */
     .filter-bar {
       padding: 8px 12px 6px;
       background: var(--card);
@@ -232,7 +206,8 @@
       transition: max-height 0.2s ease, opacity 0.15s ease, margin 0.2s ease;
       margin-top: 0;
     }
-    .filter-bar.filters-open .filter-row {
+    .filter-bar.filters-open .filter-row,
+    .mobile-filter-bar.filters-open .filter-row {
       max-height: 40px;
       opacity: 1;
       margin-top: 2px;
@@ -246,31 +221,28 @@
       min-width: 0;
     }
 
-    /* LIST VIEW */
+    /* ── LIST VIEW ── */
     #list-view { flex: 1; overflow-y: auto; padding: 12px 16px; }
 
+    /* ── CARDS ── */
     .rec-card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 14px;
-      margin-bottom: 6px;
+      padding: 8px 12px;
+      margin-bottom: 4px;
       cursor: pointer;
       transition: box-shadow 0.15s;
       box-shadow: var(--shadow);
+      position: relative;
     }
     .rec-card:hover { box-shadow: var(--shadow-md); }
-
     .rec-card-top { display: flex; align-items: center; gap: 10px; }
-    .rec-type-icon {
-      font-size: 20px;
-      flex-shrink: 0;
-      line-height: 1;
-    }
-    .rec-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+    .rec-type-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+    .rec-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
     .rec-name-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
     .rec-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       font-family: 'Google Sans', sans-serif;
       white-space: nowrap;
@@ -279,14 +251,12 @@
       color: var(--text);
     }
     .rec-city-text {
-      display: none; /* shown on desktop via media query */
       font-size: 12px;
       color: var(--text2);
       white-space: nowrap;
       flex-shrink: 0;
     }
     .rec-tags { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
-    .desktop-tags { display: none; }
     .tag {
       font-size: 11px;
       padding: 2px 8px;
@@ -295,9 +265,10 @@
       border: 1px solid;
       white-space: nowrap;
     }
+    /* Person tags → blue (primary color, seen most) */
+    .tag.person { background: var(--blue-light); color: var(--blue-dark); border-color: #b8cef8; }
     .tag.city { background: var(--blue-light); color: var(--blue-dark); border-color: #b8cef8; }
     .tag.type { background: var(--purple-light); color: var(--purple); border-color: #dbb8f8; }
-    .tag.person { background: var(--green-light); color: #1e7e34; border-color: #b7e0c4; }
 
     .rec-notes {
       font-size: 13px;
@@ -312,7 +283,6 @@
     .rec-actions { display: none; gap: 8px; margin-top: 10px; }
     .rec-card.expanded .rec-actions { display: flex; }
 
-    .rec-card { position: relative; }
     .rec-delete-btn {
       position: absolute;
       top: 8px; right: 10px;
@@ -334,7 +304,7 @@
     .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
     .empty-state p { font-size: 14px; line-height: 1.6; }
 
-    /* MAP VIEW */
+    /* ── MAP ── */
     #map-view { flex: 1; display: none; position: relative; }
     #map { height: 100%; width: 100%; }
 
@@ -357,35 +327,42 @@
     .leaflet-popup-tip-container { display: none; }
     .leaflet-control-attribution { font-size: 10px !important; }
 
-    /* MAP MARKER */
-    .map-marker {
-      width: 36px;
-      height: 36px;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
+    /* ── RECENTER BUTTON ── */
+    .recenter-btn {
+      position: absolute;
+      bottom: 90px;
+      right: 10px;
+      z-index: 400;
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      background: white;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-      border: 2px solid white;
+      color: var(--text2);
+      transition: box-shadow 0.15s, color 0.15s;
     }
-    .map-marker-inner { transform: rotate(45deg); font-size: 16px; }
+    .recenter-btn:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.3); color: var(--blue); }
 
-    /* ADD BUTTON */
+    /* ── ADD BUTTON ── */
     .add-btn {
-      position: fixed;
-      bottom: 28px;
-      left: 20px;
-      width: 52px;
-      height: 52px;
+      position: absolute;
+      bottom: 20px;
+      right: 16px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       background: var(--blue);
       color: white;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 300;
       border: none;
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(26,115,232,0.4), 0 4px 12px rgba(26,115,232,0.2);
+      box-shadow: 0 2px 6px rgba(60,64,67,0.35), 0 4px 12px rgba(60,64,67,0.18);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -393,9 +370,13 @@
       transition: box-shadow 0.15s, transform 0.15s;
       line-height: 1;
     }
-    .add-btn:hover { box-shadow: 0 4px 12px rgba(26,115,232,0.5); transform: translateY(-1px); }
+    .add-btn:hover { box-shadow: 0 4px 12px rgba(60,64,67,0.45); transform: translateY(-1px); }
 
-    /* DRAWER */
+    /* ── MOBILE BOTTOM SHEET & NAV (hidden by default) ── */
+    .mobile-sheet { display: none; }
+    .bottom-nav { display: none; }
+
+    /* ── DRAWER ── */
     .overlay {
       position: fixed; inset: 0;
       background: rgba(32,33,36,0.5);
@@ -426,7 +407,7 @@
       color: var(--text);
     }
 
-    /* PARSE AREA */
+    /* ── PARSE ── */
     .parse-area textarea { min-height: 100px; resize: vertical; font-size: 14px; line-height: 1.6; }
     .parse-results { margin-top: 16px; }
     .parse-result-item {
@@ -444,7 +425,7 @@
       color: var(--text);
     }
 
-    /* EDIT MODAL */
+    /* ── EDIT MODAL ── */
     .modal-overlay {
       position: fixed; inset: 0;
       background: rgba(32,33,36,0.5);
@@ -473,7 +454,7 @@
     }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 
-    /* TOAST */
+    /* ── TOAST ── */
     .toast {
       position: fixed;
       bottom: 90px;
@@ -484,7 +465,6 @@
       padding: 10px 20px;
       border-radius: 4px;
       font-size: 13px;
-      font-family: 'Roboto', sans-serif;
       z-index: 5000;
       opacity: 0;
       transition: opacity 0.2s;
@@ -504,55 +484,124 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── MOBILE: map mode — search floats over map ── */
+    /* ════════════════════════════════
+       MOBILE LAYOUT
+    ════════════════════════════════ */
     @media (hover: none) and (pointer: coarse) {
-      body.map-mode .main-content {
+      /* Hide desktop-only elements */
+      #left-panel { display: none !important; }
+
+      /* Full-screen map */
+      #app { position: fixed; inset: 0; overflow: hidden; }
+      .main-content {
         position: fixed;
-        inset: 0;
-        z-index: 10;
+        top: 0; left: 0; right: 0;
+        bottom: 58px; /* above bottom nav */
+        z-index: 1;
       }
-      body.map-mode .filter-bar {
+      #map-view { display: block !important; position: absolute; inset: 0; }
+
+      /* Recenter above bottom nav */
+      .recenter-btn { bottom: 70px; right: 10px; }
+
+      /* ── BOTTOM SHEET ── */
+      .mobile-sheet {
+        display: flex;
+        flex-direction: column;
         position: fixed;
-        top: 52px;
         left: 0; right: 0;
-        z-index: 200;
-        background: transparent;
+        bottom: 58px;
+        height: calc(100vh - 58px);
+        background: white;
+        border-radius: 16px 16px 0 0;
+        z-index: 300;
+        transform: translateY(100%);
+        transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.14);
+        overflow: hidden;
+      }
+      .mobile-sheet.open { transform: translateY(0); }
+
+      .mobile-sheet-handle {
+        width: 36px; height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin: 12px auto 6px;
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+
+      .mobile-filter-bar {
+        padding: 6px 12px 6px;
+        background: white;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .mobile-filter-bar input[type=text] {
+        padding: 9px 16px;
+        font-size: 16px;
+        border-radius: 24px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+      }
+
+      .mobile-list-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 16px 20px;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Show delete btn when card is expanded on touch */
+      .rec-card.expanded .rec-delete-btn { opacity: 1; }
+
+      /* ── BOTTOM NAV ── */
+      .bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: 58px;
+        background: white;
+        border-top: 1px solid var(--border);
+        z-index: 500;
+      }
+      .nav-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
         border: none;
-        padding: 10px 12px 8px;
-        pointer-events: none;
+        background: none;
+        color: var(--text3);
+        font-family: 'Google Sans', sans-serif;
+        cursor: pointer;
+        padding: 8px 4px 6px;
+        transition: color 0.15s;
+        -webkit-tap-highlight-color: transparent;
       }
-      body.map-mode .filter-bar > * { pointer-events: all; }
-      body.map-mode .filter-bar input[type=text] {
-        background: white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.22), 0 0 0 0.5px rgba(0,0,0,0.06);
-        border-color: transparent;
-      }
-      body.map-mode .filter-bar .filter-row select {
-        background: white;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
-        border-color: transparent;
-      }
-      body.map-mode .add-btn {
-        z-index: 200;
-      }
+      .nav-btn.active { color: var(--blue); }
+      .nav-btn svg { display: block; }
+      .nav-label { font-size: 11px; font-weight: 500; }
+
+      /* Toast above bottom nav */
+      .toast { bottom: 72px; }
+
+      /* Drawer: full mobile sheet style */
+      .drawer { border-radius: 12px 12px 0 0; }
     }
 
-    /* ── MOBILE drawer centering at wider mobile ── */
-    @media (min-width: 600px) and (hover: none) {
-      .overlay { align-items: center; justify-content: center; }
-      .drawer { border-radius: 8px; max-width: 560px; }
-    }
-
-    /* ── DESKTOP layout ── */
+    /* ════════════════════════════════
+       DESKTOP LAYOUT
+    ════════════════════════════════ */
     @media (hover: hover) and (pointer: fine) {
       body { overflow: hidden; }
+      #app { flex-direction: row; height: 100vh; }
 
-      #app {
-        flex-direction: row;
-        height: 100vh;
-      }
-
-      /* Left panel */
       #left-panel {
         display: flex;
         flex-direction: column;
@@ -566,27 +615,13 @@
         z-index: 10;
       }
 
-      header {
-        border-bottom: 1px solid var(--border);
-        box-shadow: none;
-        padding: 0 16px;
-        height: 52px;
-      }
+      header { box-shadow: none; padding: 0 16px; height: 52px; }
 
-      /* Hide mobile tabs on desktop */
-      .tab-bar { display: none; }
-
-      /* Filter bar inside left panel */
-      .filter-bar {
-        flex-direction: column;
-        gap: 6px;
-        padding: 10px 12px;
-      }
+      .filter-bar { flex-direction: column; gap: 6px; padding: 10px 12px; }
       .filter-bar input[type=text] { min-width: unset; border-radius: 20px; }
       .filter-row { display: flex; gap: 6px; }
       .filter-row select { flex: 1; font-size: 12px; }
 
-      /* List fills left panel */
       #list-view {
         display: block !important;
         flex: 1;
@@ -594,46 +629,23 @@
         padding: 8px 12px 80px;
       }
 
-      /* Map fills the rest */
-      .main-content {
-        flex: 1;
-        position: relative;
-      }
-      #map-view {
-        display: block !important;
-        position: absolute;
-        inset: 0;
-      }
+      .main-content { flex: 1; position: relative; }
+      #map-view { display: block !important; position: absolute; inset: 0; }
 
-      /* Add button fixed in left panel — right side on desktop */
-      .add-btn {
-        position: absolute;
-        bottom: 20px;
-        left: unset;
-        right: 16px;
-        width: 48px;
-        height: 48px;
-        font-size: 26px;
-      }
+      .mobile-sheet { display: none !important; }
+      .bottom-nav { display: none !important; }
 
-      /* Hide mobile view toggle on desktop */
-      .view-toggle { display: none; }
-
-      /* Drawer becomes centered modal on desktop */
       .overlay { align-items: center; justify-content: center; }
       .drawer { border-radius: 8px; max-width: 500px; }
 
-      /* Desktop card: two-row layout */
       .rec-card { padding: 8px 12px; margin-bottom: 4px; }
-      .rec-card-info { flex-direction: column; gap: 3px; }
-      .rec-name { font-size: 13px; }
-      .rec-city-text { display: block; }
-      .mobile-tags { display: none; }
-      .desktop-tags { display: flex; }
       .tag { font-size: 11px; padding: 2px 8px; }
-
-      /* Show count on desktop */
       .header-count { display: inline-block; }
+    }
+
+    @media (min-width: 600px) and (hover: none) {
+      .overlay { align-items: center; justify-content: center; }
+      .drawer { border-radius: 8px; max-width: 560px; }
     }
   </style>
 </head>
@@ -642,7 +654,7 @@
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-box">
-    <span class="auth-logo">👫</span>
+    <div class="auth-logo"><img src="icon.svg" alt="Honeymoon"></div>
     <h1>Honeymoon</h1>
     <p class="subtitle">Your Italy trip, all in one place.</p>
     <div id="auth-form">
@@ -669,39 +681,83 @@
 
 <!-- APP -->
 <div id="app">
-  <!-- LEFT PANEL (desktop) / full layout (mobile) -->
+
+  <!-- LEFT PANEL (desktop only) -->
   <div id="left-panel">
     <header>
-      <span class="header-icon">👫</span>
+      <img src="icon.svg" class="header-logo" alt="">
       <h1>Honeymoon</h1>
       <span class="header-count" id="rec-count"></span>
-      <div class="view-toggle" id="view-toggle">
-        <button class="toggle-btn active" id="toggle-list" onclick="switchTab('list')">List</button>
-        <button class="toggle-btn" id="toggle-map" onclick="switchTab('map')">Map</button>
-      </div>
     </header>
-
     <div class="filter-bar" id="filter-bar">
       <input type="text" id="search-input" placeholder="Search" oninput="applyFilters()"
         onfocus="document.getElementById('filter-bar').classList.add('filters-open')"
         onblur="setTimeout(()=>document.getElementById('filter-bar').classList.remove('filters-open'),200)" />
       <div class="filter-row">
-        <select id="filter-city" onchange="applyFilters()"><option value="">All cities</option></select>
-        <select id="filter-type" onchange="applyFilters()"><option value="">All types</option></select>
+        <select id="filter-city"   onchange="applyFilters()"><option value="">All cities</option></select>
+        <select id="filter-type"   onchange="applyFilters()"><option value="">All types</option></select>
         <select id="filter-person" onchange="applyFilters()"><option value="">Everyone</option></select>
       </div>
     </div>
-
     <div id="list-view"></div>
-
     <button class="add-btn" onclick="openAddDrawer()">+</button>
   </div>
 
-  <!-- RIGHT PANEL: map always visible on desktop, tab-switched on mobile -->
+  <!-- MAP (right on desktop, full-screen on mobile) -->
   <div class="main-content">
-    <div id="map-view"><div id="map"></div></div>
+    <div id="map-view">
+      <div id="map"></div>
+      <!-- Recenter / fit-all button -->
+      <button class="recenter-btn" onclick="recenterMap()" title="Fit all markers">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+          <line x1="21" y1="3" x2="14" y2="10"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+      </button>
+    </div>
   </div>
-</div>
+
+  <!-- MOBILE BOTTOM SHEET (list) -->
+  <div class="mobile-sheet" id="mobile-sheet">
+    <div class="mobile-sheet-handle" onclick="setMode('map')"></div>
+    <div class="mobile-filter-bar" id="mobile-filter-bar">
+      <input type="text" id="mobile-search" placeholder="Search…" oninput="applyFilters()"
+        onfocus="document.getElementById('mobile-filter-bar').classList.add('filters-open')"
+        onblur="setTimeout(()=>document.getElementById('mobile-filter-bar').classList.remove('filters-open'),200)" />
+      <div class="filter-row">
+        <select id="mobile-city"   onchange="applyFilters()"><option value="">All cities</option></select>
+        <select id="mobile-type"   onchange="applyFilters()"><option value="">All types</option></select>
+        <select id="mobile-person" onchange="applyFilters()"><option value="">Everyone</option></select>
+      </div>
+    </div>
+    <div id="mobile-list-view" class="mobile-list-body"></div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <div class="bottom-nav" id="bottom-nav">
+    <button class="nav-btn active" id="nav-map" onclick="setMode('map')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/>
+      </svg>
+      <span class="nav-label">Map</span>
+    </button>
+    <button class="nav-btn" id="nav-list" onclick="setMode('list')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+      </svg>
+      <span class="nav-label">List</span>
+    </button>
+    <button class="nav-btn" id="nav-add" onclick="setMode('add')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+      </svg>
+      <span class="nav-label">Add</span>
+    </button>
+  </div>
+
+</div><!-- end #app -->
 
 <!-- ADD DRAWER -->
 <div class="overlay" id="add-overlay" onclick="closeAddDrawer(event)">
@@ -792,7 +848,6 @@
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -812,11 +867,14 @@ let allRecs = [];
 let filtered = [];
 let map = null;
 let markers = [];
+let locationDot = null;
 let authMode = 'login';
 let pendingParseCount = 0;
 let pendingRawInput = '';
 
-// AUTH
+const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+// ── AUTH ──
 function toggleAuthMode() {
   authMode = authMode === 'login' ? 'register' : 'login';
   document.getElementById('name-field').style.display = authMode === 'register' ? 'block' : 'none';
@@ -865,7 +923,6 @@ async function showApp() {
 
 async function checkSession() {
   if (!sessionToken) return;
-  // Show app immediately, verify token in background
   showApp();
   const me = await api('/api/auth/me');
   if (!me) {
@@ -876,26 +933,38 @@ async function checkSession() {
   }
 }
 
-async function loadRecs(fromServer = true) {
-  if (fromServer) {
-    allRecs = await api('/api/recommendations') || [];
+// ── FILTER HELPERS ──
+function getFilterValues() {
+  if (isDesktop()) {
+    return {
+      search: document.getElementById('search-input').value.trim().toLowerCase(),
+      city:   document.getElementById('filter-city').value.toLowerCase(),
+      type:   document.getElementById('filter-type').value,
+      person: document.getElementById('filter-person').value.toLowerCase(),
+    };
+  } else {
+    return {
+      search: document.getElementById('mobile-search').value.trim().toLowerCase(),
+      city:   document.getElementById('mobile-city').value.toLowerCase(),
+      type:   document.getElementById('mobile-type').value,
+      person: document.getElementById('mobile-person').value.toLowerCase(),
+    };
   }
-  const search = document.getElementById('search-input').value.trim().toLowerCase();
-  const city = document.getElementById('filter-city').value.toLowerCase();
-  const type = document.getElementById('filter-type').value;
-  const person = document.getElementById('filter-person').value.toLowerCase();
+}
 
+async function loadRecs(fromServer = true) {
+  if (fromServer) allRecs = await api('/api/recommendations') || [];
+  const { search, city, type, person } = getFilterValues();
   filtered = allRecs.filter(r => {
-    if (city && (r.city || '').toLowerCase() !== city) return false;
-    if (type && r.type !== type) return false;
-    if (person && !(r.recommended_by || '').toLowerCase().split(',').map(p=>p.trim()).includes(person)) return false;
+    if (city   && (r.city||'').toLowerCase() !== city) return false;
+    if (type   && r.type !== type) return false;
+    if (person && !(r.recommended_by||'').toLowerCase().split(',').map(p=>p.trim()).includes(person)) return false;
     if (search) {
       const hay = [r.name, r.city, r.notes, r.recommended_by].join(' ').toLowerCase();
       if (!hay.includes(search)) return false;
     }
     return true;
   });
-
   renderList();
   if (map) renderMapMarkers();
   document.getElementById('rec-count').textContent = filtered.length + (filtered.length === 1 ? ' place' : ' places');
@@ -904,9 +973,15 @@ async function loadRecs(fromServer = true) {
 async function loadFilters() {
   const data = await api('/api/filters');
   if (!data) return;
+  // Desktop selects
   fillSelect('filter-city', data.cities);
   fillSelect('filter-type', data.types);
   fillSelect('filter-person', data.people);
+  // Mobile selects
+  fillSelect('mobile-city', data.cities);
+  fillSelect('mobile-type', data.types);
+  fillSelect('mobile-person', data.people);
+  // Datalists
   fillDatalist('city-suggestions', data.cities);
   fillDatalist('person-suggestions', data.people);
 }
@@ -919,23 +994,16 @@ function fillDatalist(id, items) {
 
 function fillSelect(id, items) {
   const sel = document.getElementById(id);
+  if (!sel) return;
   const current = sel.value;
   while (sel.options.length > 1) sel.remove(1);
-  items.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v.charAt(0).toUpperCase() + v.slice(1); sel.appendChild(o); });
+  items.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+    sel.appendChild(o);
+  });
   if (current) sel.value = current;
-}
-
-function buildFilterParams() {
-  const p = {};
-  const search = document.getElementById('search-input').value.trim();
-  const city = document.getElementById('filter-city').value;
-  const type = document.getElementById('filter-type').value;
-  const person = document.getElementById('filter-person').value;
-  if (search) p.search = search;
-  if (city) p.city = city;
-  if (type) p.type = type;
-  if (person) p.recommended_by = person;
-  return p;
 }
 
 let filterDebounce = null;
@@ -944,13 +1012,9 @@ function applyFilters() {
   filterDebounce = setTimeout(() => loadRecs(false), 150);
 }
 
-function renderList() {
-  const el = document.getElementById('list-view');
-  if (!allRecs.length) {
-    el.innerHTML = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+ Add place</strong> to get started.</p></div>`;
-    return;
-  }
-  el.innerHTML = filtered.map(r => `
+// ── RENDER ──
+function cardHtml(r) {
+  return `
     <div class="rec-card" id="card-${r.id}" onclick="toggleCard(${r.id})">
       <button class="rec-delete-btn" onclick="deleteRec(${r.id},event)" title="Delete">×</button>
       <div class="rec-card-top">
@@ -960,29 +1024,30 @@ function renderList() {
             <div class="rec-name">${esc(r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name)}</div>
             ${r.city ? `<div class="rec-city-text">${esc(r.city)}</div>` : ''}
           </div>
-          <div class="rec-tags mobile-tags">
-            ${r.city ? `<span class="tag city">${esc(r.city)}</span>` : ''}
-            ${r.type ? `<span class="tag type">${esc(r.type)}</span>` : ''}
-            ${r.recommended_by ? r.recommended_by.split(',').map(p => `<span class="tag person">${esc(p.trim())}</span>`).join('') : ''}
-          </div>
-          ${r.recommended_by ? `<div class="rec-tags desktop-tags">${r.recommended_by.split(',').map(p => `<span class="tag person">${esc(p.trim())}</span>`).join('')}</div>` : ''}
+          ${r.recommended_by ? `<div class="rec-tags">${r.recommended_by.split(',').map(p=>`<span class="tag person">${esc(p.trim())}</span>`).join('')}</div>` : ''}
         </div>
       </div>
       ${r.notes ? `<div class="rec-notes">${esc(r.notes)}${r.source_url ? `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:6px;display:inline-block">View source ↗</a>` : ''}</div>` : ''}
       <div class="rec-actions">
         <button class="btn btn-ghost btn-sm" onclick="openEdit(${r.id},event)">Edit</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
 }
 
-function hexToRgba(hex, alpha) {
-  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-  return `rgba(${r},${g},${b},${alpha})`;
+function emptyHtml() {
+  return `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+</strong> to get started.</p></div>`;
+}
+
+function renderList() {
+  const html = !allRecs.length ? emptyHtml() : (filtered.length ? filtered.map(cardHtml).join('') : '<div class="empty-state"><p>No matches.</p></div>');
+  const desktop = document.getElementById('list-view');
+  if (desktop) desktop.innerHTML = html;
+  const mobile = document.getElementById('mobile-list-view');
+  if (mobile) mobile.innerHTML = html;
 }
 
 function toggleCard(id) {
-  document.getElementById('card-' + id).classList.toggle('expanded');
+  document.getElementById('card-' + id)?.classList.toggle('expanded');
 }
 
 function esc(s) {
@@ -990,23 +1055,30 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+// ── MOBILE NAV ──
+function setMode(mode) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (mode !== 'add') {
+    const btn = document.getElementById('nav-' + mode);
+    if (btn) btn.classList.add('active');
+  }
 
-function switchTab(tab) {
-  // Update toggle buttons
-  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-  const toggleBtn = document.getElementById('toggle-' + tab);
-  if (toggleBtn) toggleBtn.classList.add('active');
-
-  if (isDesktop()) return; // desktop shows both panels always
-
-  const isMap = tab === 'map';
-  document.getElementById('list-view').style.display = isMap ? 'none' : 'block';
-  document.getElementById('map-view').style.display = isMap ? 'block' : 'none';
-  document.body.classList.toggle('map-mode', isMap);
-  if (isMap) initMap();
+  const sheet = document.getElementById('mobile-sheet');
+  if (mode === 'list') {
+    sheet.classList.add('open');
+    if (!map) initMap();
+  } else if (mode === 'map') {
+    sheet.classList.remove('open');
+    if (!map) initMap();
+    document.getElementById('nav-map').classList.add('active');
+  } else if (mode === 'add') {
+    sheet.classList.remove('open');
+    document.getElementById('nav-map').classList.add('active');
+    openAddDrawer();
+  }
 }
 
+// ── MAP ──
 function initMap() {
   if (map) { renderMapMarkers(); return; }
   map = L.map('map', { zoomControl: false }).setView([42.5, 12.5], 6);
@@ -1016,7 +1088,34 @@ function initMap() {
     maxZoom: 19,
     subdomains: 'abcd'
   }).addTo(map);
+
+  // Current location blue dot
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const ll = [pos.coords.latitude, pos.coords.longitude];
+      if (locationDot) map.removeLayer(locationDot);
+      locationDot = L.circleMarker(ll, {
+        radius: 9,
+        fillColor: '#4285F4',
+        color: 'white',
+        weight: 3,
+        fillOpacity: 1,
+        zIndexOffset: 1000
+      }).addTo(map).bindPopup('You are here');
+    }, () => {}, { enableHighAccuracy: true, timeout: 8000 });
+  }
+
   renderMapMarkers();
+}
+
+function recenterMap() {
+  if (!map) return;
+  if (markers.length) {
+    const group = L.featureGroup(markers);
+    map.fitBounds(group.getBounds().pad(0.3), { maxZoom: 14 });
+  } else {
+    map.setView([42.5, 12.5], 6);
+  }
 }
 
 function renderMapMarkers() {
@@ -1026,14 +1125,12 @@ function renderMapMarkers() {
     const color = TYPE_COLORS[r.type] || '#1A73E8';
     const icon = L.divIcon({
       className: '',
-      html: `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white"><span style="transform:rotate(45deg);font-size:16px;line-height:1">${TYPE_ICONS[r.type] || '📍'}</span></div>`,
-      iconSize: [36, 36],
-      iconAnchor: [18, 36],
-      popupAnchor: [0, -36]
+      html: `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white"><span style="transform:rotate(45deg);font-size:16px;line-height:1">${TYPE_ICONS[r.type]||'📍'}</span></div>`,
+      iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36]
     });
     const m = L.marker([r.latitude, r.longitude], { icon })
       .addTo(map)
-      .bindPopup(`<strong>${r.name}</strong>${r.city ? `<br><span style="color:#5f6368;font-size:12px">${r.city}</span>` : ''}${r.recommended_by ? `<br><em style="color:#5f6368;font-size:12px">Recommended by ${r.recommended_by}</em>` : ''}${r.notes ? `<br><small style="color:#5f6368">${r.notes.substring(0,100)}</small>` : ''}`, { maxWidth: 220 });
+      .bindPopup(`<strong>${r.name}</strong>${r.city?`<br><span style="color:#5f6368;font-size:12px">${r.city}</span>`:''}${r.recommended_by?`<br><em style="color:#5f6368;font-size:12px">${r.recommended_by}</em>`:''}${r.notes?`<br><small style="color:#5f6368">${r.notes.substring(0,100)}</small>`:''}`, { maxWidth: 220 });
     markers.push(m);
   });
   if (markers.length) {
@@ -1042,6 +1139,7 @@ function renderMapMarkers() {
   }
 }
 
+// ── ADD DRAWER ──
 function openAddDrawer() {
   document.getElementById('raw-input').value = '';
   document.getElementById('input-city').value = '';
@@ -1071,14 +1169,11 @@ async function parseInput() {
 
 function renderParseResults(recs, rawInput) {
   const el = document.getElementById('parse-results');
-  if (!recs.length) { el.innerHTML = '<p style="color:var(--text2);font-size:13px">No recommendations found in that text.</p>'; return; }
-
+  if (!recs.length) { el.innerHTML = '<p style="color:var(--text2);font-size:13px">No recommendations found.</p>'; return; }
   const types = ['restaurant','bar','cafe','museum','attraction','hotel','shop','market','beach','church','neighborhood','other'];
   const isSingle = recs.length === 1;
-
   pendingParseCount = recs.length;
   pendingRawInput = rawInput;
-
   el.innerHTML = recs.map((r, i) => `
     <div class="parse-result-item" id="result-${i}">
       <div class="item-name" data-name="${esc(r.name)}">${esc(r.name)}</div>
@@ -1092,8 +1187,7 @@ function renderParseResults(recs, rawInput) {
     <div style="display:flex;gap:8px;margin-top:8px;padding-bottom:8px">
       <button class="btn btn-ghost" onclick="closeAddDrawer()">Cancel</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveParseResults()">Save ${recs.length} place${recs.length>1?'s':''}</button>
-    </div>
-  `;
+    </div>`;
 }
 
 async function saveParseResults() {
@@ -1105,17 +1199,14 @@ async function saveParseResults() {
   const recs = [];
   for (let i = 0; i < count; i++) {
     const nameDiv = document.querySelector(`#result-${i} .item-name`);
-    const name = nameDiv ? nameDiv.dataset.name : '';
     recs.push({
-      name,
+      name: nameDiv ? nameDiv.dataset.name : '',
       type: document.getElementById(`r-type-${i}`)?.value,
-      city,
-      recommended_by,
+      city, recommended_by,
       notes: isSingle ? (document.getElementById(`r-notes-${i}`)?.value || '') : '',
       raw_input: rawInput,
     });
   }
-
   const btn = document.querySelector('#parse-results .btn-primary');
   if (btn) { btn.innerHTML = '<span class="spinner"></span> Saving…'; btn.disabled = true; }
   const saved = await api('/api/recommendations', 'POST', recs);
@@ -1125,6 +1216,7 @@ async function saveParseResults() {
   await loadFilters();
 }
 
+// ── EDIT ──
 function openEdit(id, e) {
   if (e) e.stopPropagation();
   const r = allRecs.find(x => x.id === id);
@@ -1182,13 +1274,15 @@ function showToast(msg, duration = 2500) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
+// ── INIT ──
 if (isDesktop()) {
-  // On desktop, show both panels; init map immediately
   document.getElementById('list-view').style.display = 'block';
   document.getElementById('map-view').style.display = 'block';
   setTimeout(initMap, 100);
 } else {
-  switchTab('list');
+  // Mobile: map always visible, start in map mode
+  setTimeout(initMap, 100);
+  document.getElementById('nav-map').classList.add('active');
 }
 checkSession();
 </script>

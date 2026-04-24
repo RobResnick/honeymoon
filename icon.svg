@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- White rounded background -->
+  <rect width="100" height="100" rx="22" fill="white"/>
+
+  <defs>
+    <!-- Outer heart clip -->
+    <clipPath id="hc">
+      <path d="M50 34 C50 21 37 9 24 9 C9 9 7 24 7 30 C7 50 29 62 50 80 C71 62 93 50 93 30 C93 24 91 9 76 9 C63 9 50 21 50 34Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Heart: 4 Google color quadrants -->
+  <g clip-path="url(#hc)">
+    <rect x="0"  y="0"  width="50" height="46" fill="#EA4335"/>
+    <rect x="50" y="0"  width="50" height="46" fill="#4285F4"/>
+    <rect x="0"  y="46" width="50" height="54" fill="#34A853"/>
+    <rect x="50" y="46" width="50" height="54" fill="#FBBC04"/>
+  </g>
+
+  <!-- White inner heart cutout -->
+  <path d="M50 43 C50 33 43 25 36 25 C27 25 25 35 25 39 C25 53 38 62 50 73 C62 62 75 53 75 39 C75 35 73 25 64 25 C57 25 50 33 50 43Z" fill="white"/>
+
+  <!-- Left person (blue) -->
+  <circle cx="34" cy="80" r="8.5" fill="#4285F4"/>
+  <path d="M21 100 C21 89 27 86 34 86 C41 86 47 89 47 100Z" fill="#4285F4"/>
+
+  <!-- Right person (yellow/gold) -->
+  <circle cx="67" cy="83" r="6.5" fill="#FBBC04"/>
+  <path d="M56 100 C56 91 61 88 67 88 C73 88 78 91 78 100Z" fill="#FBBC04"/>
+</svg>
