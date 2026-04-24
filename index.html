@@ -1077,6 +1077,7 @@ function selectCitySuggestion(city) {
   hideSuggestions();
   applyFilters();
   jumpToSearch(city);
+  if (!isDesktop()) closeSheetOnly();
 }
 
 function selectPlaceSuggestion(id) {
@@ -1088,6 +1089,7 @@ function selectPlaceSuggestion(id) {
   document.getElementById('map-search-clear').style.display = 'block';
   applyFilters();
   panToRec(id);
+  if (!isDesktop()) closeSheetOnly();
 }
 
 async function loadRecs(fromServer = true) {
@@ -1381,8 +1383,6 @@ function setMode(mode) {
     sheet.classList.remove('open');
     collapseSearchFilters();
     if (!map) initMap();
-    // Zoom to current location
-    goToCurrentLocation();
   } else if (mode === 'add') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
