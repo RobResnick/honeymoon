@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Honeymoon</title>
   <meta name="theme-color" content="#000000">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Honeymoon">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" id="ati" href="/apple-touch-icon.png">
@@ -363,8 +361,12 @@
       }
       .map-search-top input::placeholder { color: var(--text3); }
       .map-search-top input:focus { border: none; box-shadow: none; }
+      /* Filter row hidden until typing or list open */
       .map-filter-row {
-        display: flex; gap: 5px;
+        display: none; gap: 5px;
+      }
+      .map-search-bar.expanded .map-filter-row {
+        display: flex;
       }
       .map-filter-row select {
         flex: 1; padding: 5px 4px; font-size: 11px;
@@ -374,12 +376,15 @@
 
       /* Search suggestions dropdown */
       .search-suggestions {
-        position: fixed; top: 110px; left: 12px; right: 12px;
+        position: fixed; left: 12px; right: 12px; top: 70px; /* updated dynamically */
         background: white; border-radius: 12px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.18);
         z-index: 601; overflow: hidden; display: none;
       }
       .search-suggestions.visible { display: block; }
+
+      /* Push Leaflet zoom controls above the nav bar */
+      .leaflet-bottom.leaflet-right { bottom: 90px !important; }
       .suggestion-item {
         padding: 12px 16px; font-size: 14px; cursor: pointer;
         border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center;
@@ -389,6 +394,8 @@
 
       /* Recenter: above nav */
       .recenter-btn { bottom: 94px; left: 10px; }
+      .recenter-icon-fit { display: none; }    /* hide fit-all on mobile */
+      .recenter-icon-locate { display: block; } /* show locate on mobile */
 
       /* ── BOTTOM SHEET ── */
       .mobile-sheet {
@@ -499,8 +506,10 @@
       /* Header count hidden until searching */
       .header-count { display: none; }
 
-      /* Recenter on desktop: bottom-left, away from right-side zoom */
+      /* Recenter on desktop: bottom-left, fit-all icon */
       .recenter-btn { bottom: 20px; left: 10px; }
+      .recenter-icon-fit { display: block; }
+      .recenter-icon-locate { display: none; }
     }
 
     @media (min-width: 600px) and (hover: none) {
@@ -569,12 +578,18 @@
   <div class="main-content">
     <div id="map-view">
       <div id="map"></div>
-      <button class="recenter-btn" onclick="recenterMap()" title="Fit all markers">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Desktop: fit all markers. Mobile: go to current location -->
+      <button class="recenter-btn" id="recenter-btn" onclick="recenterBtnClick()" title="My location">
+        <!-- Fit-all icon (desktop) -->
+        <svg class="recenter-icon-fit" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 3 21 3 21 9"></polyline>
           <polyline points="9 21 3 21 3 15"></polyline>
           <line x1="21" y1="3" x2="14" y2="10"></line>
           <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+        <!-- Locate icon (mobile) -->
+        <svg class="recenter-icon-locate" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8" stroke-opacity=".3"/>
         </svg>
       </button>
     </div>
@@ -841,6 +856,11 @@ async function showApp() {
   document.getElementById('app').style.display = 'flex';
   await loadRecs();
   await loadFilters();
+  // Leaflet needs the container to be visible before it can measure dimensions
+  setTimeout(() => {
+    if (map) map.invalidateSize();
+    else if (!isDesktop()) initMap();
+  }, 200);
 }
 
 async function checkSession() {
@@ -873,14 +893,38 @@ function getFilterValues() {
   };
 }
 
+function recenterBtnClick() {
+  if (isDesktop()) recenterMap();
+  else goToCurrentLocation();
+}
+
+function expandSearchFilters() {
+  document.getElementById('map-search-bar')?.classList.add('expanded');
+  // Suggestions need repositioning
+  const bar = document.getElementById('map-search-bar');
+  const sugg = document.getElementById('search-suggestions');
+  if (bar && sugg) sugg.style.top = (12 + bar.offsetHeight + 4) + 'px';
+}
+
+function collapseSearchFilters() {
+  const sheet = document.getElementById('mobile-sheet');
+  const hasSearch = document.getElementById('map-search-input')?.value.trim();
+  if (!hasSearch && !sheet?.classList.contains('open')) {
+    document.getElementById('map-search-bar')?.classList.remove('expanded');
+  }
+}
+
 function clearMapSearch() {
   const inp = document.getElementById('map-search-input');
   inp.value = '';
   document.getElementById('map-search-clear').style.display = 'none';
   hideSuggestions();
+  collapseSearchFilters();
   applyFilters();
   inp.focus();
 }
+
+let _sheetOpenedBySearch = false;
 
 function handleSearchKey(e) {
   if (e.key === 'Enter') {
@@ -890,6 +934,14 @@ function handleSearchKey(e) {
     const q = e.target.value.trim();
     if (q) jumpToSearch(q);
     e.target.blur();
+    // If search auto-opened the sheet, close it on Enter
+    if (_sheetOpenedBySearch) {
+      _sheetOpenedBySearch = false;
+      const sheet = document.getElementById('mobile-sheet');
+      sheet.classList.remove('open');
+      document.getElementById('nav-list').classList.remove('active');
+      document.getElementById('nav-map').classList.add('active');
+    }
   }
 }
 
@@ -919,6 +971,29 @@ async function jumpToSearch(q) {
 function onSearchInput(val) {
   document.getElementById('map-search-clear').style.display = val ? 'block' : 'none';
   applyFilters();
+  if (val.length > 0) {
+    expandSearchFilters();
+    // Auto-open list sheet while typing (on mobile, map view only)
+    if (!isDesktop()) {
+      const sheet = document.getElementById('mobile-sheet');
+      if (!sheet.classList.contains('open')) {
+        _sheetOpenedBySearch = true;
+        sheet.classList.add('open');
+        document.getElementById('nav-list').classList.add('active');
+        document.getElementById('nav-map').classList.remove('active');
+      }
+    }
+  } else {
+    hideSuggestions();
+    collapseSearchFilters();
+    if (_sheetOpenedBySearch) {
+      _sheetOpenedBySearch = false;
+      const sheet = document.getElementById('mobile-sheet');
+      sheet.classList.remove('open');
+      document.getElementById('nav-list').classList.remove('active');
+      document.getElementById('nav-map').classList.add('active');
+    }
+  }
   if (val.length > 1) showSuggestions(val);
   else hideSuggestions();
 }
@@ -928,6 +1003,9 @@ function showSuggestions(q) {
   const lq = q.toLowerCase();
   const box = document.getElementById('search-suggestions');
   if (!box) return;
+  // Position just below the search bar
+  const bar = document.getElementById('map-search-bar');
+  if (bar) box.style.top = (12 + bar.offsetHeight + 4) + 'px';
 
   // Match place names and cities
   const placeMatches = allRecs
@@ -1055,14 +1133,44 @@ function cardHtml(r) {
     </div>`;
 }
 
+function getInBoundsRecs() {
+  if (!map) return filtered;
+  const bounds = map.getBounds();
+  return filtered.filter(r => r.latitude && r.longitude && bounds.contains([r.latitude, r.longitude]));
+}
+
 function renderList() {
-  const html = !allRecs.length
-    ? `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+</strong> to get started.</p></div>`
-    : (filtered.length ? filtered.map(cardHtml).join('') : '<div class="empty-state"><p>No matches.</p></div>');
-  ['list-view','mobile-list-view'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
-  });
+  const noRecs = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+</strong> to get started.</p></div>`;
+  const noMatch = '<div class="empty-state"><p>No matches.</p></div>';
+
+  // Desktop list
+  const desktopHtml = !allRecs.length ? noRecs : (filtered.length ? filtered.map(cardHtml).join('') : noMatch);
+  const lv = document.getElementById('list-view');
+  if (lv) lv.innerHTML = desktopHtml;
+
+  // Mobile list: show only places in current map viewport; fallback to recently added
+  let mobileHtml;
+  if (!allRecs.length) {
+    mobileHtml = noRecs;
+  } else if (map) {
+    const inBounds = getInBoundsRecs();
+    if (inBounds.length) {
+      mobileHtml = inBounds.map(cardHtml).join('');
+    } else {
+      // Fallback: recently added from all filtered results
+      const recent = [...filtered].sort((a, b) => b.id - a.id).slice(0, 12);
+      if (recent.length) {
+        mobileHtml = `<div style="padding:8px 14px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Recently added</div>` + recent.map(cardHtml).join('');
+      } else {
+        mobileHtml = noMatch;
+      }
+    }
+  } else {
+    mobileHtml = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
+  }
+  const mlv = document.getElementById('mobile-list-view');
+  if (mlv) mlv.innerHTML = mobileHtml;
+
   if (!isDesktop()) initSwipeDelete();
 }
 
@@ -1087,12 +1195,18 @@ function handleCardTap(id) {
   }
 }
 
+// Close sheet + update nav WITHOUT triggering geolocation
+function closeSheetOnly() {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-map').classList.add('active');
+  document.getElementById('mobile-sheet').classList.remove('open');
+  collapseSearchFilters();
+}
+
 function panToRec(id) {
   const r = allRecs.find(x => x.id === id);
   if (!r) return;
-  if (!isDesktop()) {
-    setMode('map'); // close sheet, show map
-  }
+  if (!isDesktop()) closeSheetOnly();
   if (map && r.latitude && r.longitude) {
     map.setView([r.latitude, r.longitude], 16);
   }
@@ -1214,10 +1328,12 @@ function setMode(mode) {
   if (mode === 'list') {
     document.getElementById('nav-list').classList.add('active');
     sheet.classList.add('open');
+    expandSearchFilters();
     if (!map) initMap();
   } else if (mode === 'map') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
+    collapseSearchFilters();
     if (!map) initMap();
     // Zoom to current location
     goToCurrentLocation();
@@ -1366,6 +1482,13 @@ function initMap() {
   renderMapMarkers();
   // If no geolocation and we have markers, fit them
   if (!navigator.geolocation && markers.length) recenterMap();
+  // Re-render mobile list when map moves to reflect current viewport
+  map.on('moveend', () => {
+    if (!isDesktop()) {
+      const sheet = document.getElementById('mobile-sheet');
+      if (sheet && sheet.classList.contains('open')) renderList();
+    }
+  });
 }
 
 function recenterMap() {
