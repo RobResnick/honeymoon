@@ -980,7 +980,7 @@ function onSearchFocus() {
       sheet.classList.add('open');
       document.getElementById('nav-list').classList.add('active');
       document.getElementById('nav-map').classList.remove('active');
-      renderList();
+      renderMobileList();
     }
   }
 }
@@ -1094,6 +1094,7 @@ async function loadRecs(fromServer = true) {
   });
   renderList();
   if (map) renderMapMarkers();
+  renderMobileList();
   document.getElementById('rec-count').textContent = filtered.length + (filtered.length === 1 ? ' place' : ' places');
 }
 
@@ -1150,45 +1151,48 @@ function cardHtml(r) {
     </div>`;
 }
 
-function getInBoundsRecs() {
-  if (!map) return filtered;
-  const bounds = map.getBounds();
-  return filtered.filter(r => r.latitude && r.longitude && bounds.contains([r.latitude, r.longitude]));
+function renderList() {
+  // Simple, safe render — used by both desktop and mobile
+  const noRecs = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+</strong> to get started.</p></div>`;
+  const html = !allRecs.length ? noRecs
+    : (filtered.length ? filtered.map(cardHtml).join('') : '<div class="empty-state"><p>No matches.</p></div>');
+  ['list-view', 'mobile-list-view'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
+  if (!isDesktop()) initSwipeDelete();
 }
 
-function renderList() {
-  const noRecs = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+</strong> to get started.</p></div>`;
-  const noMatch = '<div class="empty-state"><p>No matches.</p></div>';
-
-  // Desktop list
-  const desktopHtml = !allRecs.length ? noRecs : (filtered.length ? filtered.map(cardHtml).join('') : noMatch);
-  const lv = document.getElementById('list-view');
-  if (lv) lv.innerHTML = desktopHtml;
-
-  // Mobile list: show only places in current map viewport; fallback to recently added
-  let mobileHtml;
-  if (!allRecs.length) {
-    mobileHtml = noRecs;
-  } else if (map) {
-    const inBounds = getInBoundsRecs();
-    if (inBounds.length) {
-      mobileHtml = inBounds.map(cardHtml).join('');
-    } else {
-      // Fallback: recently added from all recs (ignore search filter so list is never empty)
-      const recent = [...allRecs].sort((a, b) => b.id - a.id).slice(0, 12);
-      if (recent.length) {
-        mobileHtml = `<div style="padding:8px 14px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Recently added</div>` + recent.map(cardHtml).join('');
+// Mobile-only: viewport-filtered list with "recently added" fallback
+// Called AFTER renderMapMarkers so it never blocks marker rendering
+function renderMobileList() {
+  if (isDesktop()) return;
+  try {
+    const mlv = document.getElementById('mobile-list-view');
+    if (!mlv) return;
+    const noMatch = '<div class="empty-state"><p>No matches.</p></div>';
+    let html;
+    if (!allRecs.length) {
+      html = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+</strong> to get started.</p></div>`;
+    } else if (map) {
+      const bounds = map.getBounds();
+      const inBounds = filtered.filter(r => r.latitude && r.longitude && bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
+      if (inBounds.length) {
+        html = inBounds.map(cardHtml).join('');
       } else {
-        mobileHtml = noMatch;
+        const recent = [...allRecs].sort((a, b) => b.id - a.id).slice(0, 12);
+        html = recent.length
+          ? `<div style="padding:8px 14px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Recently added</div>` + recent.map(cardHtml).join('')
+          : noMatch;
       }
+    } else {
+      html = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
     }
-  } else {
-    mobileHtml = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
+    mlv.innerHTML = html;
+    initSwipeDelete();
+  } catch(e) {
+    console.error('renderMobileList error:', e);
   }
-  const mlv = document.getElementById('mobile-list-view');
-  if (mlv) mlv.innerHTML = mobileHtml;
-
-  if (!isDesktop()) initSwipeDelete();
 }
 
 // ── CARD INTERACTIONS ──
@@ -1347,7 +1351,7 @@ function setMode(mode) {
     sheet.classList.add('open');
     expandSearchFilters();
     if (!map) initMap();
-    renderList(); // re-render with current map viewport bounds
+    renderMobileList(); // re-render with current map viewport bounds
   } else if (mode === 'map') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
@@ -1504,7 +1508,7 @@ function initMap() {
   map.on('moveend', () => {
     if (!isDesktop()) {
       const sheet = document.getElementById('mobile-sheet');
-      if (sheet && sheet.classList.contains('open')) renderList();
+      if (sheet && sheet.classList.contains('open')) renderMobileList();
     }
   });
 }
