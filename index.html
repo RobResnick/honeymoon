@@ -981,6 +981,7 @@ async function jumpToSearch(q) {
 
 function onSearchFocus() {
   const val = document.getElementById('map-search-input')?.value || '';
+  document.getElementById('map-search-clear').style.display = val ? 'block' : 'none';
   if (val.length > 1) showSuggestions(val);
   if (!isDesktop()) {
     expandSearchFilters();
