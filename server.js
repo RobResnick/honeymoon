@@ -58,10 +58,13 @@ async function initDb() {
       notes TEXT,
       source_url VARCHAR(1000),
       raw_input TEXT,
+      phone VARCHAR(50),
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     )
   `);
+  // Add phone to existing tables that predate this column
+  await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS phone VARCHAR(50)`);
 }
 
 // Auth routes
@@ -123,18 +126,19 @@ app.post('/api/parse', requireAuth, async (req, res) => {
         max_tokens: 2048,
         messages: [{
           role: 'user',
-          content: `You are helping parse Italy travel recommendations. Extract all recommendations from the following input and return them as a JSON array. Each recommendation should have these fields:
+          content: `You are helping parse travel recommendations. Extract all recommendations from the following input and return them as a JSON array. Each recommendation should have these fields:
 - name: the place name (required)
 - type: one of "restaurant", "bar", "cafe", "museum", "attraction", "hotel", "shop", "market", "beach", "church", "neighborhood", "other"
-- city: city in Italy (e.g. Rome, Florence, Venice, Naples, Amalfi, etc.)
+- city: the city (e.g. Rome, Florence, Venice, Paris, etc.)
 - neighborhood: neighborhood or area within the city (if mentioned)
 - address: street address if mentioned
 - recommended_by: who recommended it (if mentioned in the text)
 - notes: any additional details, descriptions, or context about the place
 - source_url: any URL associated with this place (if present)
+- phone: the phone number of the place if you have reliable knowledge of it (e.g. for famous/well-known restaurants you may know it), otherwise empty string
 
 Return ONLY a valid JSON array, no other text. If the input has multiple places, return multiple objects. If something is unclear, make your best guess. Example:
-[{"name":"Trattoria da Mario","type":"restaurant","city":"Florence","neighborhood":"Santa Croce","address":"","recommended_by":"John","notes":"Amazing pasta, cash only","source_url":""}]
+[{"name":"Trattoria da Mario","type":"restaurant","city":"Florence","neighborhood":"Santa Croce","address":"","recommended_by":"John","notes":"Amazing pasta, cash only","source_url":"","phone":""}]
 
 Input to parse:
 ${input}`
@@ -202,7 +206,7 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
   const saved = [];
 
   for (const rec of recs) {
-    const { name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, latitude, longitude } = rec;
+    const { name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, latitude, longitude, phone } = rec;
 
     // Check for existing recommendation with same name + city
     const existing = await pool.query(
@@ -236,9 +240,9 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO recommendations (user_id, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, latitude, longitude)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
-      [req.userId, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, lat, lon]
+      `INSERT INTO recommendations (user_id, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, latitude, longitude, phone)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+      [req.userId, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, lat, lon, phone || null]
     );
     saved.push(result.rows[0]);
   }
@@ -247,7 +251,7 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
 });
 
 app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
-  const { name, type, city, neighborhood, address, recommended_by, notes, source_url } = req.body;
+  const { name, type, city, neighborhood, address, recommended_by, notes, source_url, phone } = req.body;
 
   let { latitude, longitude } = req.body;
   if (!latitude || !longitude) {
@@ -257,9 +261,9 @@ app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
   }
 
   const result = await pool.query(
-    `UPDATE recommendations SET name=$1, type=$2, city=$3, neighborhood=$4, address=$5, recommended_by=$6, notes=$7, source_url=$8, latitude=$9, longitude=$10, updated_at=NOW()
-     WHERE id=$11 AND user_id=$12 RETURNING *`,
-    [name, type, city, neighborhood, address, recommended_by, notes, source_url, latitude, longitude, req.params.id, req.userId]
+    `UPDATE recommendations SET name=$1, type=$2, city=$3, neighborhood=$4, address=$5, recommended_by=$6, notes=$7, source_url=$8, latitude=$9, longitude=$10, phone=$11, updated_at=NOW()
+     WHERE id=$12 AND user_id=$13 RETURNING *`,
+    [name, type, city, neighborhood, address, recommended_by, notes, source_url, latitude, longitude, phone || null, req.params.id, req.userId]
   );
   if (!result.rows[0]) return res.status(404).json({ error: 'Not found' });
   res.json(result.rows[0]);

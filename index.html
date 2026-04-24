@@ -4,13 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Honeymoon</title>
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -21,9 +23,6 @@
       --red: #EA4335;
       --red-light: #fce8e6;
       --green: #34A853;
-      --green-light: #e6f4ea;
-      --yellow: #FBBC05;
-      --yellow-light: #fef7e0;
       --purple: #9334E6;
       --purple-light: #f3e8fd;
       --text: #202124;
@@ -61,54 +60,28 @@
       max-width: 400px;
       box-shadow: var(--shadow);
     }
-    .auth-logo {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 12px;
-    }
+    .auth-logo { display: flex; justify-content: center; margin-bottom: 12px; }
     .auth-logo img { width: 56px; height: 56px; }
     .auth-box h1 {
       font-family: 'Google Sans', sans-serif;
-      font-size: 24px;
-      font-weight: 400;
-      text-align: center;
-      color: var(--text);
-      margin-bottom: 6px;
+      font-size: 24px; font-weight: 400;
+      text-align: center; color: var(--text); margin-bottom: 6px;
     }
-    .auth-box p.subtitle {
-      color: var(--text2);
-      font-size: 14px;
-      margin-bottom: 28px;
-      text-align: center;
-    }
-    .auth-toggle {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 13px;
-      color: var(--text2);
-    }
+    .auth-box p.subtitle { color: var(--text2); font-size: 14px; margin-bottom: 28px; text-align: center; }
+    .auth-toggle { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text2); }
     .auth-toggle a { color: var(--blue); cursor: pointer; text-decoration: none; }
 
     /* ── FORMS ── */
     label {
-      display: block;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text2);
-      margin-bottom: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+      display: block; font-size: 11px; font-weight: 500;
+      color: var(--text2); margin-bottom: 4px;
+      text-transform: uppercase; letter-spacing: 0.06em;
     }
     input[type=text], input[type=email], input[type=password], select, textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      font-size: 14px;
-      background: var(--card);
-      color: var(--text);
-      outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      width: 100%; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: 4px;
+      font-size: 14px; background: var(--card); color: var(--text);
+      outline: none; transition: border-color 0.15s, box-shadow 0.15s;
       font-family: 'Roboto', Arial, sans-serif;
     }
     input:focus, select:focus, textarea:focus {
@@ -119,30 +92,19 @@
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 10px 20px;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 20px; border-radius: 4px; font-size: 14px; font-weight: 500;
+      cursor: pointer; border: none;
       transition: box-shadow 0.15s, background 0.15s, opacity 0.15s;
-      font-family: 'Google Sans', sans-serif;
-      letter-spacing: 0.01em;
+      font-family: 'Google Sans', sans-serif; letter-spacing: 0.01em;
     }
     .btn-primary { background: var(--blue); color: white; }
-    .btn-primary:hover { box-shadow: 0 1px 3px rgba(26,115,232,0.4); opacity: 0.92; }
-    .btn-secondary { background: var(--bg); color: var(--blue); border: 1px solid var(--border); }
-    .btn-secondary:hover { background: var(--blue-light); }
+    .btn-primary:hover { opacity: 0.92; }
     .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
     .btn-ghost:hover { background: var(--bg); }
-    .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid #f5c6c2; }
-    .btn-danger:hover { background: #fad2cf; }
+    .btn-danger { background: #fce8e6; color: var(--red); border: 1px solid #f5c6c2; }
     .btn-full { width: 100%; }
-    .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 4px; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
 
     /* ── APP SHELL ── */
     #app { display: none; flex-direction: column; height: 100vh; }
@@ -150,91 +112,56 @@
     header {
       background: var(--card);
       border-bottom: 1px solid var(--border);
-      padding: 0 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      height: 56px;
-      flex-shrink: 0;
+      padding: 0 16px;
+      display: flex; align-items: center; gap: 10px;
+      height: 52px; flex-shrink: 0;
       box-shadow: 0 1px 3px rgba(60,64,67,.1);
     }
     .header-logo { width: 28px; height: 28px; flex-shrink: 0; }
     header h1 {
       font-family: 'Google Sans', sans-serif;
-      font-size: 18px;
-      font-weight: 400;
-      color: var(--text);
-      flex: 1;
+      font-size: 18px; font-weight: 400; color: var(--text); flex: 1;
     }
     .header-count {
-      font-size: 12px;
-      color: var(--text3);
-      background: var(--bg);
-      padding: 3px 10px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      display: none;
+      font-size: 12px; color: var(--text3);
+      background: var(--bg); padding: 3px 10px;
+      border-radius: 20px; border: 1px solid var(--border); display: none;
     }
 
     .main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 
     /* ── FILTER BAR ── */
     .filter-bar {
-      padding: 8px 12px 6px;
-      background: var(--card);
+      padding: 8px 12px 6px; background: var(--card);
       border-bottom: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      position: relative;
-      z-index: 100;
+      display: flex; flex-direction: column; gap: 6px;
+      position: relative; z-index: 100;
     }
     .filter-bar input[type=text] {
-      width: 100%;
-      padding: 9px 16px;
-      font-size: 16px;
-      border-radius: 24px;
-      background: var(--bg);
-      border: 1px solid var(--border);
+      padding: 9px 16px; font-size: 16px;
+      border-radius: 24px; background: var(--bg); border: 1px solid var(--border);
     }
     .filter-row {
-      display: flex;
-      gap: 5px;
-      overflow: hidden;
-      max-height: 0;
-      opacity: 0;
+      display: flex; gap: 5px; overflow: hidden;
+      max-height: 0; opacity: 0;
       transition: max-height 0.2s ease, opacity 0.15s ease, margin 0.2s ease;
-      margin-top: 0;
     }
     .filter-bar.filters-open .filter-row,
-    .mobile-filter-bar.filters-open .filter-row {
-      max-height: 40px;
-      opacity: 1;
-      margin-top: 2px;
-    }
+    .mobile-filter-bar.filters-open .filter-row { max-height: 40px; opacity: 1; margin-top: 2px; }
     .filter-row select {
-      flex: 1;
-      padding: 5px 4px;
-      font-size: 11px;
-      border-radius: 20px;
-      background: var(--bg);
-      min-width: 0;
+      flex: 1; padding: 5px 4px; font-size: 11px;
+      border-radius: 20px; background: var(--bg); min-width: 0;
     }
 
-    /* ── LIST VIEW ── */
+    /* ── LIST ── */
     #list-view { flex: 1; overflow-y: auto; padding: 12px 16px; }
 
     /* ── CARDS ── */
     .rec-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 12px;
-      margin-bottom: 4px;
-      cursor: pointer;
-      transition: box-shadow 0.15s;
-      box-shadow: var(--shadow);
-      position: relative;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; margin-bottom: 4px;
+      cursor: pointer; transition: box-shadow 0.15s;
+      box-shadow: var(--shadow); position: relative;
     }
     .rec-card:hover { box-shadow: var(--shadow-md); }
     .rec-card-top { display: flex; align-items: center; gap: 10px; }
@@ -242,60 +169,25 @@
     .rec-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
     .rec-name-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
     .rec-name {
-      font-size: 13px;
-      font-weight: 500;
+      font-size: 13px; font-weight: 500;
       font-family: 'Google Sans', sans-serif;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text);
     }
-    .rec-city-text {
-      font-size: 12px;
-      color: var(--text2);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
+    .rec-city-text { font-size: 12px; color: var(--text2); white-space: nowrap; flex-shrink: 0; }
     .rec-tags { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
     .tag {
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 20px;
-      font-weight: 500;
-      border: 1px solid;
-      white-space: nowrap;
+      font-size: 11px; padding: 2px 8px; border-radius: 20px;
+      font-weight: 500; border: 1px solid; white-space: nowrap;
     }
-    /* Person tags → blue (primary color, seen most) */
     .tag.person { background: var(--blue-light); color: var(--blue-dark); border-color: #b8cef8; }
-    .tag.city { background: var(--blue-light); color: var(--blue-dark); border-color: #b8cef8; }
-    .tag.type { background: var(--purple-light); color: var(--purple); border-color: #dbb8f8; }
-
-    .rec-notes {
-      font-size: 13px;
-      color: var(--text2);
-      margin-top: 10px;
-      line-height: 1.5;
-      display: none;
-      padding-top: 10px;
-      border-top: 1px solid var(--border);
-    }
-    .rec-card.expanded .rec-notes { display: block; }
-    .rec-actions { display: none; gap: 8px; margin-top: 10px; }
-    .rec-card.expanded .rec-actions { display: flex; }
+    .tag.city   { background: var(--blue-light); color: var(--blue-dark); border-color: #b8cef8; }
+    .tag.type   { background: var(--purple-light); color: var(--purple); border-color: #dbb8f8; }
 
     .rec-delete-btn {
-      position: absolute;
-      top: 8px; right: 10px;
-      border: none;
-      background: none;
-      color: var(--text3);
-      font-size: 18px;
-      line-height: 1;
-      cursor: pointer;
-      opacity: 0;
-      transition: opacity 0.15s, color 0.15s;
-      z-index: 2;
-      padding: 2px 4px;
+      position: absolute; top: 8px; right: 10px;
+      border: none; background: none; color: var(--text3);
+      font-size: 18px; line-height: 1; cursor: pointer;
+      opacity: 0; transition: opacity 0.15s, color 0.15s; z-index: 2; padding: 2px 4px;
     }
     .rec-card:hover .rec-delete-btn { opacity: 1; }
     .rec-delete-btn:hover { color: var(--red); }
@@ -309,178 +201,126 @@
     #map { height: 100%; width: 100%; }
 
     .leaflet-popup-content-wrapper {
-      border-radius: 8px !important;
-      box-shadow: var(--shadow-md) !important;
-      border: 1px solid var(--border);
-      font-family: 'Roboto', Arial, sans-serif;
+      border-radius: 8px !important; box-shadow: var(--shadow-md) !important;
+      border: 1px solid var(--border); font-family: 'Roboto', Arial, sans-serif;
     }
     .leaflet-popup-content { font-size: 13px; margin: 12px 16px !important; }
     .leaflet-popup-content strong {
-      font-family: 'Google Sans', sans-serif;
-      font-size: 14px;
-      display: block;
-      margin-bottom: 4px;
-      color: var(--text);
+      font-family: 'Google Sans', sans-serif; font-size: 14px;
+      display: block; margin-bottom: 4px; color: var(--text);
     }
     .leaflet-popup-content em { color: var(--text2); font-style: normal; }
-    .leaflet-popup-content small { color: var(--text2); }
     .leaflet-popup-tip-container { display: none; }
     .leaflet-control-attribution { font-size: 10px !important; }
 
-    /* ── RECENTER BUTTON ── */
+    /* ── RECENTER BUTTON — left side, above zoom ── */
     .recenter-btn {
       position: absolute;
-      bottom: 90px;
-      right: 10px;
-      z-index: 400;
-      width: 40px;
-      height: 40px;
-      border-radius: 4px;
-      background: white;
-      border: none;
-      cursor: pointer;
+      bottom: 140px; left: 10px;
+      z-index: 400; width: 40px; height: 40px;
+      border-radius: 4px; background: white; border: none; cursor: pointer;
       box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text2);
-      transition: box-shadow 0.15s, color 0.15s;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text2); transition: box-shadow 0.15s, color 0.15s;
     }
     .recenter-btn:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.3); color: var(--blue); }
 
-    /* ── ADD BUTTON ── */
+    /* ── ADD BUTTON (desktop) ── */
     .add-btn {
-      position: absolute;
-      bottom: 20px;
-      right: 16px;
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: var(--blue);
-      color: white;
-      font-size: 26px;
-      font-weight: 300;
-      border: none;
-      cursor: pointer;
+      position: absolute; bottom: 20px; right: 16px;
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--blue); color: white;
+      font-size: 26px; font-weight: 300; border: none; cursor: pointer;
       box-shadow: 0 2px 6px rgba(60,64,67,0.35), 0 4px 12px rgba(60,64,67,0.18);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      transition: box-shadow 0.15s, transform 0.15s;
-      line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; transition: box-shadow 0.15s, transform 0.15s; line-height: 1;
     }
     .add-btn:hover { box-shadow: 0 4px 12px rgba(60,64,67,0.45); transform: translateY(-1px); }
 
-    /* ── MOBILE BOTTOM SHEET & NAV (hidden by default) ── */
+    /* Mobile-only elements hidden by default */
     .mobile-sheet { display: none; }
     .bottom-nav { display: none; }
 
     /* ── DRAWER ── */
     .overlay {
-      position: fixed; inset: 0;
-      background: rgba(32,33,36,0.5);
-      z-index: 2000;
-      display: none;
-      align-items: flex-end;
+      position: fixed; inset: 0; background: rgba(32,33,36,0.5);
+      z-index: 2000; display: none; align-items: flex-end;
     }
     .overlay.open { display: flex; }
     .drawer {
-      background: var(--card);
-      border-radius: 12px 12px 0 0;
-      width: 100%;
-      max-height: 92vh;
-      overflow-y: auto;
-      padding: 8px 20px 32px;
+      background: var(--card); border-radius: 12px 12px 0 0;
+      width: 100%; max-height: 92vh; overflow-y: auto; padding: 8px 20px 32px;
     }
     .drawer-handle {
-      width: 36px; height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      margin: 12px auto 20px;
+      width: 36px; height: 4px; background: var(--border);
+      border-radius: 2px; margin: 12px auto 20px;
     }
     .drawer h2 {
-      font-family: 'Google Sans', sans-serif;
-      font-size: 18px;
-      font-weight: 400;
-      margin-bottom: 20px;
-      color: var(--text);
+      font-family: 'Google Sans', sans-serif; font-size: 18px;
+      font-weight: 400; margin-bottom: 20px; color: var(--text);
     }
 
     /* ── PARSE ── */
     .parse-area textarea { min-height: 100px; resize: vertical; font-size: 14px; line-height: 1.6; }
     .parse-results { margin-top: 16px; }
     .parse-result-item {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px;
-      margin-bottom: 8px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px; margin-bottom: 8px;
     }
     .parse-result-item .item-name {
-      font-family: 'Google Sans', sans-serif;
-      font-weight: 500;
-      font-size: 15px;
-      margin-bottom: 10px;
-      color: var(--text);
+      font-family: 'Google Sans', sans-serif; font-weight: 500;
+      font-size: 15px; margin-bottom: 10px; color: var(--text);
     }
 
-    /* ── EDIT MODAL ── */
+    /* ── MODALS ── */
     .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(32,33,36,0.5);
-      z-index: 3000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      position: fixed; inset: 0; background: rgba(32,33,36,0.5);
+      z-index: 3000; display: none;
+      align-items: center; justify-content: center; padding: 20px;
     }
     .modal-overlay.open { display: flex; }
     .modal {
-      background: var(--card);
-      border-radius: 8px;
-      width: 100%;
-      max-width: 480px;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 24px;
+      background: var(--card); border-radius: 8px;
+      width: 100%; max-width: 480px; max-height: 90vh;
+      overflow-y: auto; padding: 24px;
       box-shadow: 0 8px 24px rgba(60,64,67,.25);
     }
     .modal h2 {
       font-family: 'Google Sans', sans-serif;
-      font-size: 18px;
-      font-weight: 400;
-      margin-bottom: 20px;
+      font-size: 18px; font-weight: 400; margin-bottom: 20px;
     }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 
+    /* Detail modal specifics */
+    .detail-header { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 20px; }
+    .detail-icon { font-size: 36px; line-height: 1; flex-shrink: 0; padding-top: 2px; }
+    .detail-name {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 20px; font-weight: 500; color: var(--text); margin-bottom: 4px;
+    }
+    .detail-meta { font-size: 13px; color: var(--text2); }
+    .detail-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 0; border-top: 1px solid var(--border); font-size: 14px;
+    }
+    .detail-row-icon { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+    .detail-row a { color: var(--blue); text-decoration: none; }
+    .detail-row a:hover { text-decoration: underline; }
+
     /* ── TOAST ── */
     .toast {
-      position: fixed;
-      bottom: 90px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--text);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 4px;
-      font-size: 13px;
-      z-index: 5000;
-      opacity: 0;
-      transition: opacity 0.2s;
-      pointer-events: none;
-      white-space: nowrap;
-      box-shadow: var(--shadow-md);
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+      background: var(--text); color: white; padding: 10px 20px;
+      border-radius: 4px; font-size: 13px; z-index: 5000;
+      opacity: 0; transition: opacity 0.2s; pointer-events: none;
+      white-space: nowrap; box-shadow: var(--shadow-md);
     }
     .toast.show { opacity: 1; }
 
     .spinner {
-      display: inline-block;
-      width: 14px; height: 14px;
-      border: 2px solid rgba(255,255,255,0.4);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.4); border-top-color: white;
+      border-radius: 50%; animation: spin 0.6s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -488,110 +328,94 @@
        MOBILE LAYOUT
     ════════════════════════════════ */
     @media (hover: none) and (pointer: coarse) {
-      /* Hide desktop-only elements */
+      body { background: #000; }
+
       #left-panel { display: none !important; }
 
-      /* Full-screen map */
-      #app { position: fixed; inset: 0; overflow: hidden; }
+      #app { position: fixed; inset: 0; overflow: hidden; background: #000; }
+
+      /* Map fills from top to just above bottom nav */
       .main-content {
-        position: fixed;
-        top: 0; left: 0; right: 0;
-        bottom: 58px; /* above bottom nav */
-        z-index: 1;
+        position: fixed; top: 0; left: 0; right: 0;
+        bottom: 72px; z-index: 1;
       }
       #map-view { display: block !important; position: absolute; inset: 0; }
 
-      /* Recenter above bottom nav */
-      .recenter-btn { bottom: 70px; right: 10px; }
+      /* Recenter: bottom-left above the nav */
+      .recenter-btn { bottom: 84px; left: 10px; }
 
       /* ── BOTTOM SHEET ── */
       .mobile-sheet {
-        display: flex;
-        flex-direction: column;
-        position: fixed;
-        left: 0; right: 0;
-        bottom: 58px;
-        height: calc(100vh - 58px);
-        background: white;
-        border-radius: 16px 16px 0 0;
+        display: flex; flex-direction: column;
+        position: fixed; left: 0; right: 0; bottom: 72px;
+        height: calc(100vh - 72px);
+        background: white; border-radius: 16px 16px 0 0;
         z-index: 300;
         transform: translateY(100%);
         transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 -4px 24px rgba(0,0,0,0.14);
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
         overflow: hidden;
+        will-change: transform;
       }
       .mobile-sheet.open { transform: translateY(0); }
 
       .mobile-sheet-handle {
-        width: 36px; height: 4px;
-        background: var(--border);
-        border-radius: 2px;
-        margin: 12px auto 6px;
-        flex-shrink: 0;
-        cursor: pointer;
+        width: 36px; height: 4px; background: var(--border);
+        border-radius: 2px; margin: 12px auto 6px; flex-shrink: 0; cursor: pointer;
       }
 
       .mobile-filter-bar {
-        padding: 6px 12px 6px;
-        background: white;
-        border-bottom: 1px solid var(--border);
-        flex-shrink: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+        padding: 6px 12px; background: white;
+        border-bottom: 1px solid var(--border); flex-shrink: 0;
+        display: flex; flex-direction: column; gap: 6px;
       }
       .mobile-filter-bar input[type=text] {
-        padding: 9px 16px;
-        font-size: 16px;
-        border-radius: 24px;
-        background: var(--bg);
-        border: 1px solid var(--border);
+        padding: 9px 16px; font-size: 16px;
+        border-radius: 24px; background: var(--bg); border: 1px solid var(--border);
       }
 
       .mobile-list-body {
-        flex: 1;
-        overflow-y: auto;
+        flex: 1; overflow-y: auto;
         padding: 8px 16px 20px;
         -webkit-overflow-scrolling: touch;
       }
 
-      /* Show delete btn when card is expanded on touch */
+      /* Show delete btn when expanded on touch */
       .rec-card.expanded .rec-delete-btn { opacity: 1; }
 
       /* ── BOTTOM NAV ── */
       .bottom-nav {
-        display: flex;
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
-        height: 58px;
-        background: white;
-        border-top: 1px solid var(--border);
-        z-index: 500;
+        display: flex; position: fixed;
+        bottom: 0; left: 0; right: 0; height: 72px;
+        background: white; border-top: 1px solid var(--border); z-index: 500;
       }
       .nav-btn {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-        border: none;
-        background: none;
-        color: var(--text3);
-        font-family: 'Google Sans', sans-serif;
-        cursor: pointer;
-        padding: 8px 4px 6px;
-        transition: color 0.15s;
+        flex: 1; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 0;
+        border: none; background: none; color: var(--text);
+        font-family: 'Google Sans', sans-serif; cursor: pointer;
+        padding: 8px 4px 10px; transition: color 0.15s;
         -webkit-tap-highlight-color: transparent;
       }
+      .nav-pill {
+        padding: 4px 18px; border-radius: 16px; margin-bottom: 3px;
+        transition: background 0.2s;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .nav-btn.active .nav-pill { background: var(--blue-light); }
       .nav-btn.active { color: var(--blue); }
       .nav-btn svg { display: block; }
+      .nav-icon-img { width: 24px; height: 24px; display: block; }
       .nav-label { font-size: 11px; font-weight: 500; }
 
       /* Toast above bottom nav */
-      .toast { bottom: 72px; }
+      .toast { bottom: 84px; }
 
-      /* Drawer: full mobile sheet style */
+      /* Modals on mobile: slide up from bottom */
+      .modal-overlay { align-items: flex-end; padding: 0; }
+      .modal { border-radius: 16px 16px 0 0; max-width: 100%; padding: 20px 20px 40px; }
+
+      /* Drawer stays as-is */
       .drawer { border-radius: 12px 12px 0 0; }
     }
 
@@ -603,31 +427,18 @@
       #app { flex-direction: row; height: 100vh; }
 
       #left-panel {
-        display: flex;
-        flex-direction: column;
-        width: 380px;
-        min-width: 320px;
-        flex-shrink: 0;
-        height: 100vh;
-        border-right: 1px solid var(--border);
-        background: var(--card);
-        position: relative;
-        z-index: 10;
+        display: flex; flex-direction: column;
+        width: 380px; min-width: 320px; flex-shrink: 0;
+        height: 100vh; border-right: 1px solid var(--border);
+        background: var(--card); position: relative; z-index: 10;
       }
-
-      header { box-shadow: none; padding: 0 16px; height: 52px; }
 
       .filter-bar { flex-direction: column; gap: 6px; padding: 10px 12px; }
       .filter-bar input[type=text] { min-width: unset; border-radius: 20px; }
       .filter-row { display: flex; gap: 6px; }
       .filter-row select { flex: 1; font-size: 12px; }
 
-      #list-view {
-        display: block !important;
-        flex: 1;
-        overflow-y: auto;
-        padding: 8px 12px 80px;
-      }
+      #list-view { display: block !important; flex: 1; overflow-y: auto; padding: 8px 12px 80px; }
 
       .main-content { flex: 1; position: relative; }
       #map-view { display: block !important; position: absolute; inset: 0; }
@@ -641,11 +452,16 @@
       .rec-card { padding: 8px 12px; margin-bottom: 4px; }
       .tag { font-size: 11px; padding: 2px 8px; }
       .header-count { display: inline-block; }
+
+      /* Recenter on desktop: left side, above zoom controls */
+      .recenter-btn { bottom: 140px; left: 10px; }
     }
 
     @media (min-width: 600px) and (hover: none) {
-      .overlay { align-items: center; justify-content: center; }
+      .overlay { align-items: center; justify-content: center; padding: 20px; }
       .drawer { border-radius: 8px; max-width: 560px; }
+      .modal-overlay { align-items: center; padding: 20px; }
+      .modal { border-radius: 8px; }
     }
   </style>
 </head>
@@ -654,7 +470,7 @@
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-box">
-    <div class="auth-logo"><img src="icon.svg" alt="Honeymoon"></div>
+    <div class="auth-logo"><img src="/icon.svg" alt="Honeymoon"></div>
     <h1>Honeymoon</h1>
     <p class="subtitle">Your Italy trip, all in one place.</p>
     <div id="auth-form">
@@ -685,12 +501,14 @@
   <!-- LEFT PANEL (desktop only) -->
   <div id="left-panel">
     <header>
-      <img src="icon.svg" class="header-logo" alt="">
+      <img src="/icon.svg" class="header-logo" alt="" onerror="this.style.display='none'">
       <h1>Honeymoon</h1>
       <span class="header-count" id="rec-count"></span>
     </header>
     <div class="filter-bar" id="filter-bar">
-      <input type="text" id="search-input" placeholder="Search" oninput="applyFilters()"
+      <input type="text" id="search-input" placeholder="Search"
+        enterkeyhint="search" inputmode="search"
+        oninput="applyFilters()" onkeydown="handleSearchKey(event)"
         onfocus="document.getElementById('filter-bar').classList.add('filters-open')"
         onblur="setTimeout(()=>document.getElementById('filter-bar').classList.remove('filters-open'),200)" />
       <div class="filter-row">
@@ -703,11 +521,10 @@
     <button class="add-btn" onclick="openAddDrawer()">+</button>
   </div>
 
-  <!-- MAP (right on desktop, full-screen on mobile) -->
+  <!-- MAP -->
   <div class="main-content">
     <div id="map-view">
       <div id="map"></div>
-      <!-- Recenter / fit-all button -->
       <button class="recenter-btn" onclick="recenterMap()" title="Fit all markers">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 3 21 3 21 9"></polyline>
@@ -719,11 +536,13 @@
     </div>
   </div>
 
-  <!-- MOBILE BOTTOM SHEET (list) -->
+  <!-- MOBILE BOTTOM SHEET -->
   <div class="mobile-sheet" id="mobile-sheet">
-    <div class="mobile-sheet-handle" onclick="setMode('map')"></div>
+    <div class="mobile-sheet-handle" id="sheet-handle"></div>
     <div class="mobile-filter-bar" id="mobile-filter-bar">
-      <input type="text" id="mobile-search" placeholder="Search…" oninput="applyFilters()"
+      <input type="text" id="mobile-search" placeholder="Search…"
+        enterkeyhint="search" inputmode="search"
+        oninput="applyFilters()" onkeydown="handleSearchKey(event)"
         onfocus="document.getElementById('mobile-filter-bar').classList.add('filters-open')"
         onblur="setTimeout(()=>document.getElementById('mobile-filter-bar').classList.remove('filters-open'),200)" />
       <div class="filter-row">
@@ -738,31 +557,35 @@
   <!-- MOBILE BOTTOM NAV -->
   <div class="bottom-nav" id="bottom-nav">
     <button class="nav-btn active" id="nav-map" onclick="setMode('map')">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/>
-      </svg>
+      <div class="nav-pill">
+        <img src="/icon.svg" class="nav-icon-img" alt="Map">
+      </div>
       <span class="nav-label">Map</span>
     </button>
     <button class="nav-btn" id="nav-list" onclick="setMode('list')">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-      </svg>
+      <div class="nav-pill">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+      </div>
       <span class="nav-label">List</span>
     </button>
     <button class="nav-btn" id="nav-add" onclick="setMode('add')">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-      </svg>
+      <div class="nav-pill">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </svg>
+      </div>
       <span class="nav-label">Add</span>
     </button>
   </div>
 
-</div><!-- end #app -->
+</div><!-- #app -->
 
 <!-- ADD DRAWER -->
 <div class="overlay" id="add-overlay" onclick="closeAddDrawer(event)">
-  <div class="drawer">
-    <div class="drawer-handle"></div>
+  <div class="drawer" id="add-drawer">
+    <div class="drawer-handle" id="drawer-handle"></div>
     <h2>Add recommendations</h2>
     <div class="parse-area">
       <div class="field-row">
@@ -784,6 +607,44 @@
       <button class="btn btn-primary btn-full" onclick="parseInput()" id="parse-btn">Add</button>
     </div>
     <div id="parse-results" class="parse-results"></div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-overlay" onclick="closeDetailModal(event)">
+  <div class="modal">
+    <div class="detail-header">
+      <div class="detail-icon" id="detail-icon"></div>
+      <div>
+        <div class="detail-name" id="detail-name"></div>
+        <div class="detail-meta" id="detail-meta"></div>
+      </div>
+    </div>
+
+    <div class="detail-row" id="detail-phone-row" style="display:none">
+      <div class="detail-row-icon">📞</div>
+      <a id="detail-phone-link" href=""></a>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-row-icon">📍</div>
+      <a id="detail-maps-link" href="" target="_blank">View on Google Maps</a>
+    </div>
+
+    <div class="detail-row" id="detail-people-row" style="display:none">
+      <div class="detail-row-icon">👤</div>
+      <div id="detail-people"></div>
+    </div>
+
+    <div class="detail-row" id="detail-notes-row" style="display:none">
+      <div class="detail-row-icon">📝</div>
+      <div id="detail-notes-text" style="line-height:1.5"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeDetailModal()">Close</button>
+      <button class="btn btn-primary" id="detail-edit-btn">Edit</button>
+    </div>
   </div>
 </div>
 
@@ -829,9 +690,15 @@
         <input type="text" id="edit-recommended-by" />
       </div>
     </div>
-    <div class="field">
-      <label>Address</label>
-      <input type="text" id="edit-address" />
+    <div class="field-row">
+      <div class="field">
+        <label>Phone</label>
+        <input type="text" id="edit-phone" placeholder="+39 06 123 4567" />
+      </div>
+      <div class="field">
+        <label>Address</label>
+        <input type="text" id="edit-address" />
+      </div>
     </div>
     <div class="field">
       <label>Notes</label>
@@ -852,7 +719,7 @@
 
 <script>
 const TYPE_ICONS = {
-  restaurant: '🍽️', bar: '🍷', cafe: '☕', museum: '🏛️',
+  restaurant: '🍴', bar: '🍷', cafe: '☕', museum: '🏛️',
   attraction: '🎯', hotel: '🏨', shop: '🛍️', market: '🥬',
   beach: '🏖️', church: '⛪', neighborhood: '🗺️', other: '📍'
 };
@@ -863,14 +730,10 @@ const TYPE_COLORS = {
 };
 
 let sessionToken = localStorage.getItem('hm_token') || null;
-let allRecs = [];
-let filtered = [];
-let map = null;
-let markers = [];
-let locationDot = null;
+let allRecs = [], filtered = [];
+let map = null, markers = [], locationDot = null;
 let authMode = 'login';
-let pendingParseCount = 0;
-let pendingRawInput = '';
+let pendingParseCount = 0, pendingRawInput = '';
 
 const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
@@ -933,7 +796,7 @@ async function checkSession() {
   }
 }
 
-// ── FILTER HELPERS ──
+// ── FILTERS ──
 function getFilterValues() {
   if (isDesktop()) {
     return {
@@ -942,13 +805,20 @@ function getFilterValues() {
       type:   document.getElementById('filter-type').value,
       person: document.getElementById('filter-person').value.toLowerCase(),
     };
-  } else {
-    return {
-      search: document.getElementById('mobile-search').value.trim().toLowerCase(),
-      city:   document.getElementById('mobile-city').value.toLowerCase(),
-      type:   document.getElementById('mobile-type').value,
-      person: document.getElementById('mobile-person').value.toLowerCase(),
-    };
+  }
+  return {
+    search: document.getElementById('mobile-search').value.trim().toLowerCase(),
+    city:   document.getElementById('mobile-city').value.toLowerCase(),
+    type:   document.getElementById('mobile-type').value,
+    person: document.getElementById('mobile-person').value.toLowerCase(),
+  };
+}
+
+function handleSearchKey(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    applyFilters();
+    e.target.blur();
   }
 }
 
@@ -973,15 +843,9 @@ async function loadRecs(fromServer = true) {
 async function loadFilters() {
   const data = await api('/api/filters');
   if (!data) return;
-  // Desktop selects
-  fillSelect('filter-city', data.cities);
-  fillSelect('filter-type', data.types);
-  fillSelect('filter-person', data.people);
-  // Mobile selects
-  fillSelect('mobile-city', data.cities);
-  fillSelect('mobile-type', data.types);
-  fillSelect('mobile-person', data.people);
-  // Datalists
+  ['filter-city','mobile-city'].forEach(id => fillSelect(id, data.cities));
+  ['filter-type','mobile-type'].forEach(id => fillSelect(id, data.types));
+  ['filter-person','mobile-person'].forEach(id => fillSelect(id, data.people));
   fillDatalist('city-suggestions', data.cities);
   fillDatalist('person-suggestions', data.people);
 }
@@ -999,8 +863,7 @@ function fillSelect(id, items) {
   while (sel.options.length > 1) sel.remove(1);
   items.forEach(v => {
     const o = document.createElement('option');
-    o.value = v;
-    o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+    o.value = v; o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
     sel.appendChild(o);
   });
   if (current) sel.value = current;
@@ -1015,7 +878,7 @@ function applyFilters() {
 // ── RENDER ──
 function cardHtml(r) {
   return `
-    <div class="rec-card" id="card-${r.id}" onclick="toggleCard(${r.id})">
+    <div class="rec-card" id="card-${r.id}" onclick="openDetail(${r.id})">
       <button class="rec-delete-btn" onclick="deleteRec(${r.id},event)" title="Delete">×</button>
       <div class="rec-card-top">
         <div class="rec-type-icon">${TYPE_ICONS[r.type] || '📍'}</div>
@@ -1027,27 +890,17 @@ function cardHtml(r) {
           ${r.recommended_by ? `<div class="rec-tags">${r.recommended_by.split(',').map(p=>`<span class="tag person">${esc(p.trim())}</span>`).join('')}</div>` : ''}
         </div>
       </div>
-      ${r.notes ? `<div class="rec-notes">${esc(r.notes)}${r.source_url ? `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:6px;display:inline-block">View source ↗</a>` : ''}</div>` : ''}
-      <div class="rec-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openEdit(${r.id},event)">Edit</button>
-      </div>
     </div>`;
 }
 
-function emptyHtml() {
-  return `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+</strong> to get started.</p></div>`;
-}
-
 function renderList() {
-  const html = !allRecs.length ? emptyHtml() : (filtered.length ? filtered.map(cardHtml).join('') : '<div class="empty-state"><p>No matches.</p></div>');
-  const desktop = document.getElementById('list-view');
-  if (desktop) desktop.innerHTML = html;
-  const mobile = document.getElementById('mobile-list-view');
-  if (mobile) mobile.innerHTML = html;
-}
-
-function toggleCard(id) {
-  document.getElementById('card-' + id)?.classList.toggle('expanded');
+  const html = !allRecs.length
+    ? `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+</strong> to get started.</p></div>`
+    : (filtered.length ? filtered.map(cardHtml).join('') : '<div class="empty-state"><p>No matches.</p></div>');
+  ['list-view','mobile-list-view'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
 }
 
 function esc(s) {
@@ -1055,27 +908,164 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── MOBILE NAV ──
-function setMode(mode) {
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  if (mode !== 'add') {
-    const btn = document.getElementById('nav-' + mode);
-    if (btn) btn.classList.add('active');
+// ── DETAIL MODAL ──
+function mapsUrl(r) {
+  if (r.latitude && r.longitude) {
+    return `https://www.google.com/maps/search/?api=1&query=${r.latitude},${r.longitude}`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((r.name||'')+' '+(r.city||''))}`;
+}
+
+function openDetail(id) {
+  const r = allRecs.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('detail-icon').textContent = TYPE_ICONS[r.type] || '📍';
+  document.getElementById('detail-name').textContent = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
+  document.getElementById('detail-meta').textContent = [r.city, r.type ? r.type.charAt(0).toUpperCase()+r.type.slice(1) : ''].filter(Boolean).join(' · ');
+
+  const phoneRow = document.getElementById('detail-phone-row');
+  if (r.phone) {
+    phoneRow.style.display = 'flex';
+    const link = document.getElementById('detail-phone-link');
+    link.textContent = r.phone;
+    link.href = 'tel:' + r.phone.replace(/[^\d+]/g, '');
+  } else {
+    phoneRow.style.display = 'none';
   }
 
+  document.getElementById('detail-maps-link').href = mapsUrl(r);
+
+  const peopleRow = document.getElementById('detail-people-row');
+  if (r.recommended_by) {
+    peopleRow.style.display = 'flex';
+    document.getElementById('detail-people').innerHTML =
+      r.recommended_by.split(',').map(p => `<span class="tag person" style="margin-right:4px">${esc(p.trim())}</span>`).join('');
+  } else {
+    peopleRow.style.display = 'none';
+  }
+
+  const notesRow = document.getElementById('detail-notes-row');
+  if (r.notes) {
+    notesRow.style.display = 'flex';
+    let notesHtml = esc(r.notes);
+    if (r.source_url) notesHtml += `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:4px;display:inline-block">View source ↗</a>`;
+    document.getElementById('detail-notes-text').innerHTML = notesHtml;
+  } else {
+    notesRow.style.display = 'none';
+  }
+
+  document.getElementById('detail-edit-btn').onclick = () => { closeDetailModal(); openEdit(id); };
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetailModal(e) {
+  if (!e || e.target === document.getElementById('detail-overlay')) {
+    document.getElementById('detail-overlay').classList.remove('open');
+  }
+}
+
+// ── MOBILE NAV + SWIPE ──
+function setMode(mode) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   const sheet = document.getElementById('mobile-sheet');
+
   if (mode === 'list') {
+    document.getElementById('nav-list').classList.add('active');
     sheet.classList.add('open');
     if (!map) initMap();
   } else if (mode === 'map') {
+    document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
     if (!map) initMap();
-    document.getElementById('nav-map').classList.add('active');
+    // Zoom to current location
+    goToCurrentLocation();
   } else if (mode === 'add') {
-    sheet.classList.remove('open');
     document.getElementById('nav-map').classList.add('active');
+    sheet.classList.remove('open');
     openAddDrawer();
   }
+}
+
+function goToCurrentLocation() {
+  if (!map) return;
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      map.setView([pos.coords.latitude, pos.coords.longitude], 14);
+    }, () => {
+      // No location — fit all markers instead
+      if (markers.length) recenterMap();
+    }, { enableHighAccuracy: true, timeout: 6000 });
+  }
+}
+
+// Swipe-to-dismiss for mobile sheet
+function initSheetSwipe() {
+  const sheet = document.getElementById('mobile-sheet');
+  const handle = document.getElementById('sheet-handle');
+  const listBody = document.getElementById('mobile-list-view');
+  let startY = 0, isDragging = false;
+
+  function onTouchStart(e) {
+    startY = e.touches[0].clientY;
+    isDragging = true;
+    sheet.style.transition = 'none';
+  }
+  function onTouchMove(e) {
+    if (!isDragging) return;
+    const delta = e.touches[0].clientY - startY;
+    if (delta > 0) {
+      sheet.style.transform = `translateY(${delta}px)`;
+    }
+  }
+  function onTouchEnd(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    sheet.style.transition = '';
+    const delta = e.changedTouches[0].clientY - startY;
+    sheet.style.transform = '';
+    if (delta > 80) setMode('map');
+  }
+
+  // Allow swipe from handle always
+  handle.addEventListener('touchstart', onTouchStart, { passive: true });
+  handle.addEventListener('touchmove', onTouchMove, { passive: true });
+  handle.addEventListener('touchend', onTouchEnd, { passive: true });
+
+  // Allow swipe from list body only when scrolled to top
+  listBody.addEventListener('touchstart', e => {
+    if (listBody.scrollTop <= 0) onTouchStart(e);
+  }, { passive: true });
+  listBody.addEventListener('touchmove', e => {
+    if (isDragging) onTouchMove(e);
+  }, { passive: true });
+  listBody.addEventListener('touchend', e => {
+    if (isDragging) onTouchEnd(e);
+  }, { passive: true });
+}
+
+// Swipe-to-dismiss for add drawer
+function initDrawerSwipe() {
+  const overlay = document.getElementById('add-overlay');
+  const drawer = document.getElementById('add-drawer');
+  const handle = document.getElementById('drawer-handle');
+  let startY = 0, isDragging = false;
+
+  handle.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY; isDragging = true;
+    drawer.style.transition = 'none';
+  }, { passive: true });
+  handle.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const delta = e.touches[0].clientY - startY;
+    if (delta > 0) drawer.style.transform = `translateY(${delta}px)`;
+  }, { passive: true });
+  handle.addEventListener('touchend', e => {
+    if (!isDragging) return;
+    isDragging = false; drawer.style.transition = '';
+    const delta = e.changedTouches[0].clientY - startY;
+    drawer.style.transform = '';
+    if (delta > 80) closeAddDrawer();
+  }, { passive: true });
 }
 
 // ── MAP ──
@@ -1085,34 +1075,36 @@ function initMap() {
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-    maxZoom: 19,
-    subdomains: 'abcd'
+    maxZoom: 19, subdomains: 'abcd'
   }).addTo(map);
 
-  // Current location blue dot
+  // Blue dot for current location
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
-      const ll = [pos.coords.latitude, pos.coords.longitude];
       if (locationDot) map.removeLayer(locationDot);
-      locationDot = L.circleMarker(ll, {
-        radius: 9,
-        fillColor: '#4285F4',
-        color: 'white',
-        weight: 3,
-        fillOpacity: 1,
-        zIndexOffset: 1000
+      locationDot = L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
+        radius: 9, fillColor: '#4285F4', color: 'white',
+        weight: 3, fillOpacity: 1, zIndexOffset: 1000
       }).addTo(map).bindPopup('You are here');
-    }, () => {}, { enableHighAccuracy: true, timeout: 8000 });
+      // On mobile: zoom to current location on first load
+      if (!isDesktop()) {
+        map.setView([pos.coords.latitude, pos.coords.longitude], 14);
+      }
+    }, () => {
+      // No location — fit all markers
+      if (markers.length) recenterMap();
+    }, { enableHighAccuracy: true, timeout: 8000 });
   }
 
   renderMapMarkers();
+  // If no geolocation and we have markers, fit them
+  if (!navigator.geolocation && markers.length) recenterMap();
 }
 
 function recenterMap() {
   if (!map) return;
   if (markers.length) {
-    const group = L.featureGroup(markers);
-    map.fitBounds(group.getBounds().pad(0.3), { maxZoom: 14 });
+    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.3), { maxZoom: 14 });
   } else {
     map.setView([42.5, 12.5], 6);
   }
@@ -1126,17 +1118,12 @@ function renderMapMarkers() {
     const icon = L.divIcon({
       className: '',
       html: `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white"><span style="transform:rotate(45deg);font-size:16px;line-height:1">${TYPE_ICONS[r.type]||'📍'}</span></div>`,
-      iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36]
+      iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0,-36]
     });
-    const m = L.marker([r.latitude, r.longitude], { icon })
-      .addTo(map)
-      .bindPopup(`<strong>${r.name}</strong>${r.city?`<br><span style="color:#5f6368;font-size:12px">${r.city}</span>`:''}${r.recommended_by?`<br><em style="color:#5f6368;font-size:12px">${r.recommended_by}</em>`:''}${r.notes?`<br><small style="color:#5f6368">${r.notes.substring(0,100)}</small>`:''}`, { maxWidth: 220 });
+    const m = L.marker([r.latitude, r.longitude], { icon }).addTo(map);
+    m.on('click', () => openDetail(r.id));
     markers.push(m);
   });
-  if (markers.length) {
-    const group = L.featureGroup(markers);
-    map.fitBounds(group.getBounds().pad(0.3), { maxZoom: 14 });
-  }
 }
 
 // ── ADD DRAWER ──
@@ -1191,8 +1178,7 @@ function renderParseResults(recs, rawInput) {
 }
 
 async function saveParseResults() {
-  const count = pendingParseCount;
-  const rawInput = pendingRawInput;
+  const count = pendingParseCount, rawInput = pendingRawInput;
   const city = document.getElementById('input-city').value.trim();
   const recommended_by = document.getElementById('input-person').value.trim();
   const isSingle = count === 1;
@@ -1212,8 +1198,7 @@ async function saveParseResults() {
   const saved = await api('/api/recommendations', 'POST', recs);
   closeAddDrawer();
   showToast(`Saved ${saved?.length || count} place${count>1?'s':''}!`);
-  await loadRecs();
-  await loadFilters();
+  await loadRecs(); await loadFilters();
 }
 
 // ── EDIT ──
@@ -1227,6 +1212,7 @@ function openEdit(id, e) {
   document.getElementById('edit-city').value = r.city || '';
   document.getElementById('edit-neighborhood').value = r.neighborhood || '';
   document.getElementById('edit-recommended-by').value = r.recommended_by || '';
+  document.getElementById('edit-phone').value = r.phone || '';
   document.getElementById('edit-address').value = r.address || '';
   document.getElementById('edit-notes').value = r.notes || '';
   document.getElementById('edit-source-url').value = r.source_url || '';
@@ -1247,6 +1233,7 @@ async function saveEdit() {
     city: document.getElementById('edit-city').value,
     neighborhood: document.getElementById('edit-neighborhood').value,
     recommended_by: document.getElementById('edit-recommended-by').value,
+    phone: document.getElementById('edit-phone').value,
     address: document.getElementById('edit-address').value,
     notes: document.getElementById('edit-notes').value,
     source_url: document.getElementById('edit-source-url').value,
@@ -1254,8 +1241,7 @@ async function saveEdit() {
   await api('/api/recommendations/' + id, 'PUT', body);
   closeEditModal();
   showToast('Saved!');
-  await loadRecs();
-  await loadFilters();
+  await loadRecs(); await loadFilters();
 }
 
 async function deleteRec(id, e) {
@@ -1263,8 +1249,7 @@ async function deleteRec(id, e) {
   if (!confirm('Delete this recommendation?')) return;
   await api('/api/recommendations/' + id, 'DELETE');
   showToast('Deleted');
-  await loadRecs();
-  await loadFilters();
+  await loadRecs(); await loadFilters();
 }
 
 function showToast(msg, duration = 2500) {
@@ -1280,8 +1265,7 @@ if (isDesktop()) {
   document.getElementById('map-view').style.display = 'block';
   setTimeout(initMap, 100);
 } else {
-  // Mobile: map always visible, start in map mode
-  setTimeout(initMap, 100);
+  setTimeout(() => { initMap(); initSheetSwipe(); initDrawerSwipe(); }, 100);
   document.getElementById('nav-map').classList.add('active');
 }
 checkSession();
