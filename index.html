@@ -941,6 +941,7 @@ function handleSearchKey(e) {
       sheet.classList.remove('open');
       document.getElementById('nav-list').classList.remove('active');
       document.getElementById('nav-map').classList.add('active');
+      document.getElementById('map-search-bar')?.classList.remove('expanded');
     }
   }
 }
@@ -1157,8 +1158,8 @@ function renderList() {
     if (inBounds.length) {
       mobileHtml = inBounds.map(cardHtml).join('');
     } else {
-      // Fallback: recently added from all filtered results
-      const recent = [...filtered].sort((a, b) => b.id - a.id).slice(0, 12);
+      // Fallback: recently added from all recs (ignore search filter so list is never empty)
+      const recent = [...allRecs].sort((a, b) => b.id - a.id).slice(0, 12);
       if (recent.length) {
         mobileHtml = `<div style="padding:8px 14px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Recently added</div>` + recent.map(cardHtml).join('');
       } else {
@@ -1330,6 +1331,7 @@ function setMode(mode) {
     sheet.classList.add('open');
     expandSearchFilters();
     if (!map) initMap();
+    renderList(); // re-render with current map viewport bounds
   } else if (mode === 'map') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
