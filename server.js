@@ -65,6 +65,19 @@ async function initDb() {
   `);
   // Add phone to existing tables that predate this column
   await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS phone VARCHAR(50)`);
+
+  // Deleted items log (for future "deleted" section)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS deleted_recommendations (
+      id INTEGER, user_id INTEGER,
+      name VARCHAR(500), type VARCHAR(100), city VARCHAR(255),
+      neighborhood VARCHAR(255), address VARCHAR(500), country VARCHAR(255),
+      latitude DECIMAL(10,8), longitude DECIMAL(11,8),
+      recommended_by VARCHAR(255), notes TEXT, source_url VARCHAR(1000),
+      raw_input TEXT, phone VARCHAR(50),
+      created_at TIMESTAMP, deleted_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
 }
 
 // Auth routes
@@ -270,6 +283,16 @@ app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
 });
 
 app.delete('/api/recommendations/:id', requireAuth, async (req, res) => {
+  // Log before deleting
+  const rec = await pool.query('SELECT * FROM recommendations WHERE id=$1 AND user_id=$2', [req.params.id, req.userId]);
+  if (rec.rows[0]) {
+    const r = rec.rows[0];
+    await pool.query(
+      `INSERT INTO deleted_recommendations (id,user_id,name,type,city,neighborhood,address,country,latitude,longitude,recommended_by,notes,source_url,raw_input,phone,created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+      [r.id,r.user_id,r.name,r.type,r.city,r.neighborhood,r.address,r.country,r.latitude,r.longitude,r.recommended_by,r.notes,r.source_url,r.raw_input,r.phone,r.created_at]
+    );
+  }
   await pool.query('DELETE FROM recommendations WHERE id=$1 AND user_id=$2', [req.params.id, req.userId]);
   res.json({ ok: true });
 });
