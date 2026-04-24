@@ -7,6 +7,9 @@
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Honeymoon">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" id="ati" href="/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
@@ -348,7 +351,7 @@
       .mobile-sheet {
         display: flex; flex-direction: column;
         position: fixed; left: 0; right: 0; bottom: 82px;
-        height: calc(100vh - 82px);
+        top: 10vh;
         background: white; border-radius: 16px 16px 0 0;
         z-index: 300;
         transform: translateY(100%);
@@ -558,13 +561,15 @@
   <div class="bottom-nav" id="bottom-nav">
     <button class="nav-btn active" id="nav-map" onclick="setMode('map')">
       <div class="nav-pill">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="26" height="26"><rect width="100" height="100" rx="22" fill="white"/><defs><clipPath id="ic_n"><path d="M50 34 C50 21 37 9 24 9 C9 9 7 24 7 30 C7 50 29 62 50 80 C71 62 93 50 93 30 C93 24 91 9 76 9 C63 9 50 21 50 34Z"/></clipPath></defs><g clip-path="url(#ic_n)"><rect x="0" y="0" width="50" height="46" fill="#EA4335"/><rect x="50" y="0" width="50" height="46" fill="#4285F4"/><rect x="0" y="46" width="50" height="54" fill="#34A853"/><rect x="50" y="46" width="50" height="54" fill="#FBBC04"/></g><path d="M50 43 C50 33 43 25 36 25 C27 25 25 35 25 39 C25 53 38 62 50 73 C62 62 75 53 75 39 C75 35 73 25 64 25 C57 25 50 33 50 43Z" fill="white"/><circle cx="34" cy="80" r="8.5" fill="#4285F4"/><path d="M21 100 C21 89 27 86 34 86 C41 86 47 89 47 100Z" fill="#4285F4"/><circle cx="67" cy="83" r="6.5" fill="#FBBC04"/><path d="M56 100 C56 91 61 88 67 88 C73 88 78 91 78 100Z" fill="#FBBC04"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="28" height="28">
+          <path d="M50 34 C50 21 37 9 24 9 C9 9 7 24 7 30 C7 50 29 62 50 80 C71 62 93 50 93 30 C93 24 91 9 76 9 C63 9 50 21 50 34Z" fill="currentColor"/>
+        </svg>
       </div>
       <span class="nav-label">Map</span>
     </button>
     <button class="nav-btn" id="nav-list" onclick="setMode('list')">
       <div class="nav-pill">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
           <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
         </svg>
       </div>
@@ -572,7 +577,7 @@
     </button>
     <button class="nav-btn" id="nav-add" onclick="setMode('add')">
       <div class="nav-pill">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
           <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
         </svg>
       </div>
@@ -1002,10 +1007,14 @@ function goToCurrentLocation() {
 function initSheetSwipe() {
   const sheet = document.getElementById('mobile-sheet');
   const handle = document.getElementById('sheet-handle');
+  const filterBar = document.getElementById('mobile-filter-bar');
   const listBody = document.getElementById('mobile-list-view');
   let startY = 0, isDragging = false;
 
   function onTouchStart(e) {
+    // Don't capture touches on interactive form elements
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
     startY = e.touches[0].clientY;
     isDragging = true;
     sheet.style.transition = 'none';
@@ -1013,9 +1022,7 @@ function initSheetSwipe() {
   function onTouchMove(e) {
     if (!isDragging) return;
     const delta = e.touches[0].clientY - startY;
-    if (delta > 0) {
-      sheet.style.transform = `translateY(${delta}px)`;
-    }
+    if (delta > 0) sheet.style.transform = `translateY(${delta}px)`;
   }
   function onTouchEnd(e) {
     if (!isDragging) return;
@@ -1026,12 +1033,17 @@ function initSheetSwipe() {
     if (delta > 80) setMode('map');
   }
 
-  // Allow swipe from handle always
+  // Swipe from handle
   handle.addEventListener('touchstart', onTouchStart, { passive: true });
   handle.addEventListener('touchmove', onTouchMove, { passive: true });
   handle.addEventListener('touchend', onTouchEnd, { passive: true });
 
-  // Allow swipe from list body only when scrolled to top
+  // Swipe from filter bar area (top of sheet), skip form elements
+  filterBar.addEventListener('touchstart', onTouchStart, { passive: true });
+  filterBar.addEventListener('touchmove', onTouchMove, { passive: true });
+  filterBar.addEventListener('touchend', onTouchEnd, { passive: true });
+
+  // Swipe from list body only when scrolled to top
   listBody.addEventListener('touchstart', e => {
     if (listBody.scrollTop <= 0) onTouchStart(e);
   }, { passive: true });
@@ -1043,29 +1055,45 @@ function initSheetSwipe() {
   }, { passive: true });
 }
 
-// Swipe-to-dismiss for add drawer
+// Swipe-to-dismiss for add drawer — full drawer, scroll-aware
 function initDrawerSwipe() {
-  const overlay = document.getElementById('add-overlay');
   const drawer = document.getElementById('add-drawer');
-  const handle = document.getElementById('drawer-handle');
   let startY = 0, isDragging = false;
 
-  handle.addEventListener('touchstart', e => {
-    startY = e.touches[0].clientY; isDragging = true;
+  function onTouchStart(e) {
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+    if (drawer.scrollTop > 0) return; // only allow swipe when at top
+    startY = e.touches[0].clientY;
+    isDragging = true;
     drawer.style.transition = 'none';
-  }, { passive: true });
-  handle.addEventListener('touchmove', e => {
+  }
+  function onTouchMove(e) {
     if (!isDragging) return;
     const delta = e.touches[0].clientY - startY;
     if (delta > 0) drawer.style.transform = `translateY(${delta}px)`;
-  }, { passive: true });
-  handle.addEventListener('touchend', e => {
+  }
+  function onTouchEnd(e) {
     if (!isDragging) return;
-    isDragging = false; drawer.style.transition = '';
+    isDragging = false;
     const delta = e.changedTouches[0].clientY - startY;
-    drawer.style.transform = '';
-    if (delta > 80) closeAddDrawer();
-  }, { passive: true });
+    if (delta > 80) {
+      drawer.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
+      drawer.style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        drawer.style.transition = '';
+        drawer.style.transform = '';
+        document.getElementById('add-overlay').classList.remove('open');
+      }, 300);
+    } else {
+      drawer.style.transition = '';
+      drawer.style.transform = '';
+    }
+  }
+
+  drawer.addEventListener('touchstart', onTouchStart, { passive: true });
+  drawer.addEventListener('touchmove', onTouchMove, { passive: true });
+  drawer.addEventListener('touchend', onTouchEnd, { passive: true });
 }
 
 // ── MAP ──
@@ -1258,6 +1286,23 @@ function showToast(msg, duration = 2500) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), duration);
 }
+
+// ── PWA ICON: generate apple-touch-icon PNG from SVG via canvas ──
+(function() {
+  const svgSrc = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="white"/><defs><clipPath id="pwa_c"><path d="M50 34 C50 21 37 9 24 9 C9 9 7 24 7 30 C7 50 29 62 50 80 C71 62 93 50 93 30 C93 24 91 9 76 9 C63 9 50 21 50 34Z"/></clipPath></defs><g clip-path="url(#pwa_c)"><rect x="0" y="0" width="50" height="46" fill="#EA4335"/><rect x="50" y="0" width="50" height="46" fill="#4285F4"/><rect x="0" y="46" width="50" height="54" fill="#34A853"/><rect x="50" y="46" width="50" height="54" fill="#FBBC04"/></g><path d="M50 43 C50 33 43 25 36 25 C27 25 25 35 25 39 C25 53 38 62 50 73 C62 62 75 53 75 39 C75 35 73 25 64 25 C57 25 50 33 50 43Z" fill="white"/><circle cx="34" cy="80" r="8.5" fill="#4285F4"/><path d="M21 100 C21 89 27 86 34 86 C41 86 47 89 47 100Z" fill="#4285F4"/><circle cx="67" cy="83" r="6.5" fill="#FBBC04"/><path d="M56 100 C56 91 61 88 67 88 C73 88 78 91 78 100Z" fill="#FBBC04"/></svg>`;
+  const blob = new Blob([svgSrc], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 180;
+    canvas.getContext('2d').drawImage(img, 0, 0, 180, 180);
+    URL.revokeObjectURL(url);
+    const link = document.getElementById('ati');
+    if (link) link.href = canvas.toDataURL('image/png');
+  };
+  img.src = url;
+})();
 
 // ── INIT ──
 if (isDesktop()) {
