@@ -419,12 +419,21 @@
 
       .mobile-list-body {
         flex: 1; overflow-y: auto;
-        padding: 8px 16px 20px;
+        padding: 0;
         -webkit-overflow-scrolling: touch;
       }
 
+      /* Mobile list: full-width rows with dividers, no card styling */
+      .mobile-list-body .rec-card {
+        background: transparent; border: none; border-radius: 0;
+        border-bottom: 1px solid var(--border); margin-bottom: 0;
+        box-shadow: none; padding: 13px 16px;
+      }
+      .mobile-list-body .rec-card:last-child { border-bottom: none; }
+      .mobile-list-body .rec-name { font-size: 14px; }
+
       /* Swipe-to-delete card styles */
-      .rec-card { transition: transform 0.15s ease, opacity 0.15s ease; }
+      .mobile-list-body .rec-card { transition: transform 0.15s ease, opacity 0.15s ease; }
 
       /* ── BOTTOM NAV ── */
       .bottom-nav {
@@ -603,6 +612,7 @@
       </svg>
       <input type="text" id="map-search-input" placeholder="Search places, cities…"
         enterkeyhint="go" inputmode="search"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
         oninput="onSearchInput(this.value)"
         onkeydown="handleSearchKey(event)"
         onfocus="onSearchFocus()" />
@@ -1174,19 +1184,32 @@ function renderMobileList() {
     let html;
     if (!allRecs.length) {
       html = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+</strong> to get started.</p></div>`;
-    } else if (map) {
-      const bounds = map.getBounds();
-      const inBounds = filtered.filter(r => r.latitude && r.longitude && bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
-      if (inBounds.length) {
-        html = inBounds.map(cardHtml).join('');
-      } else {
-        const recent = [...allRecs].sort((a, b) => b.id - a.id).slice(0, 12);
-        html = recent.length
-          ? `<div style="padding:8px 14px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Recently added</div>` + recent.map(cardHtml).join('')
-          : noMatch;
-      }
     } else {
-      html = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
+      // If search/filter is active → show ALL matches, no viewport clipping
+      // (avoids city results flashing then disappearing after map pans)
+      const hasFilter = (document.getElementById('map-search-input')?.value.trim() || '')
+        || document.getElementById('mobile-city')?.value
+        || document.getElementById('mobile-type')?.value
+        || document.getElementById('mobile-person')?.value;
+      if (hasFilter) {
+        html = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
+      } else if (map) {
+        // No filter → show only places in current map viewport
+        const bounds = map.getBounds();
+        const inBounds = filtered.filter(r => r.latitude && r.longitude
+          && bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
+        if (inBounds.length) {
+          html = inBounds.map(cardHtml).join('');
+        } else {
+          // Nothing in viewport → recently added fallback
+          const recent = [...allRecs].sort((a, b) => b.id - a.id).slice(0, 12);
+          html = recent.length
+            ? `<div style="padding:10px 16px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Recently added</div>` + recent.map(cardHtml).join('')
+            : noMatch;
+        }
+      } else {
+        html = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
+      }
     }
     mlv.innerHTML = html;
     initSwipeDelete();
