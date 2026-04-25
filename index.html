@@ -975,6 +975,7 @@ let _buddyFolders = JSON.parse(localStorage.getItem('hm_buddy_folders') || '{"fr
 let _folderStates = JSON.parse(localStorage.getItem('hm_folder_states') || '{"friends":true,"internet":true,"other":true}');
 let _folderExpanded = JSON.parse(localStorage.getItem('hm_folder_expanded') || '{"friends":true,"internet":true,"other":true}');
 let _meVisible = JSON.parse(localStorage.getItem('hm_me_visible') || 'true');
+let _hiddenPeople = new Set(JSON.parse(localStorage.getItem('hm_hidden_people') || '[]'));
 let _draggingPerson = null;
 
 function getPersonFolder(name) {
@@ -2094,8 +2095,6 @@ function showToast(msg, duration = 2500) {
 })();
 
 // ── BUDDY LIST ──
-let _hiddenPeople = new Set(JSON.parse(localStorage.getItem('hm_hidden_people') || '[]'));
-
 // Buddy drag/drop
 function buddyDragStart(e, name) {
   _draggingPerson = name;
