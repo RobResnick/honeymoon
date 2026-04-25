@@ -314,7 +314,7 @@
 
     /* Detail modal specifics */
     .detail-header { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 20px; }
-    .detail-icon { font-size: 36px; line-height: 1; flex-shrink: 0; padding-top: 2px; }
+    .detail-icon { flex-shrink: 0; }
     .detail-name {
       font-family: 'Google Sans', sans-serif;
       font-size: 20px; font-weight: 500; color: var(--text); margin-bottom: 4px;
@@ -1488,7 +1488,7 @@ function mapsUrl(r) {
 function openDetail(id) {
   const r = allRecs.find(x => x.id === id);
   if (!r) return;
-  document.getElementById('detail-icon').textContent = TYPE_ICONS[r.type] || '📍';
+  document.getElementById('detail-icon').innerHTML = typeIconHtml(r.type, 40);
   document.getElementById('detail-name').textContent = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
   document.getElementById('detail-meta').textContent = [r.city, r.type ? r.type.charAt(0).toUpperCase()+r.type.slice(1) : ''].filter(Boolean).join(' · ');
 
