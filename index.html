@@ -1937,35 +1937,45 @@ function toggleBuddy() {
   else openBuddy();
 }
 
-async function openBuddy() {
-  // Always refresh from server; fall back to deriving from allRecs
-  const fresh = await api('/api/people');
-  if (Array.isArray(fresh) && fresh.length) {
-    allPeople = fresh;
-  } else if (!allPeople.length) {
-    // Derive from existing recs if API returned nothing
-    allPeople = [...new Set(
-      allRecs.flatMap(r => r.recommended_by ? r.recommended_by.split(',').map(p => p.trim()).filter(Boolean) : [])
-    )].sort((a, b) => a.localeCompare(b));
-    if (allPeople.length) api('/api/people', 'POST', { people: allPeople }); // persist
-  }
-  const namesEl = document.getElementById('buddy-names');
-  if (!allPeople.length) {
-    namesEl.innerHTML = '<div style="padding:16px 14px;font-size:12px;color:#555">No people yet — add recommendations with a name.</div>';
-  } else {
-    namesEl.innerHTML = allPeople.map(p => {
-      const muted = _hiddenPeople.has(p);
-      const count = allRecs.filter(r => r.recommended_by && r.recommended_by.split(',').map(x=>x.trim()).includes(p)).length;
-      return `<div class="buddy-item${muted ? ' muted' : ''}" onclick="toggleBuddyPerson('${p.replace(/'/g,"\\'")}')">
-        <div class="buddy-dot ${muted ? 'offline' : 'online'}"></div>
-        <span class="buddy-name">${esc(p)}</span>
-        <span style="margin-left:auto;font-size:10px;color:${muted?'#3a5070':'#5a7090'}">${count}</span>
-      </div>`;
-    }).join('');
-  }
+function openBuddy() {
+  // Open panel immediately — don't block on async
   document.getElementById('buddy-panel').classList.add('open');
   document.getElementById('buddy-backdrop').style.display = 'block';
   document.getElementById('buddy-settings-popup').classList.remove('visible');
+  renderBuddyNames();
+
+  // Refresh from server in background, re-render if new data
+  api('/api/people').then(fresh => {
+    if (Array.isArray(fresh) && fresh.length) {
+      allPeople = fresh;
+      renderBuddyNames();
+    }
+  }).catch(() => {});
+}
+
+function renderBuddyNames() {
+  // Fall back to deriving from allRecs if allPeople still empty
+  if (!allPeople.length) {
+    allPeople = [...new Set(
+      allRecs.flatMap(r => r.recommended_by ? r.recommended_by.split(',').map(p => p.trim()).filter(Boolean) : [])
+    )].sort((a, b) => a.localeCompare(b));
+    if (allPeople.length) api('/api/people', 'POST', { people: allPeople }).catch(() => {});
+  }
+  const namesEl = document.getElementById('buddy-names');
+  if (!namesEl) return;
+  if (!allPeople.length) {
+    namesEl.innerHTML = '<div style="padding:16px 14px;font-size:12px;color:#555">No people yet.</div>';
+    return;
+  }
+  namesEl.innerHTML = allPeople.map(p => {
+    const muted = _hiddenPeople.has(p);
+    const count = allRecs.filter(r => r.recommended_by && r.recommended_by.split(',').map(x => x.trim()).includes(p)).length;
+    return `<div class="buddy-item${muted ? ' muted' : ''}" onclick="toggleBuddyPerson('${p.replace(/'/g,"\\'")}')">
+      <div class="buddy-dot ${muted ? 'offline' : 'online'}"></div>
+      <span class="buddy-name">${esc(p)}</span>
+      <span style="margin-left:auto;font-size:10px;color:${muted ? '#444' : '#666'}">${count}</span>
+    </div>`;
+  }).join('');
 }
 
 function closeBuddy() {
