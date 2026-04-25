@@ -368,7 +368,7 @@
         display: flex; flex-direction: column; gap: 6px;
         background: white; border-radius: 28px;
         padding: 14px 14px 10px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+        box-shadow: 0 2px 12px rgba(26,115,232,0.28), 0 1px 4px rgba(26,115,232,0.15);
         z-index: 600; /* above sheet (300) and nav (500) */
       }
       .map-search-top {
@@ -401,10 +401,17 @@
       .suggestion-item:last-child { border-bottom: none; }
       .suggestion-item:active { background: var(--bg); }
 
-      /* Recenter: above zoom controls, right-aligned */
-      .recenter-btn { bottom: 186px; right: 10px; left: auto; width: 26px; height: 26px; border-radius: 2px; }
-      .recenter-icon-fit { display: none; }    /* hide fit-all on mobile */
-      .recenter-icon-locate { display: block; } /* show locate on mobile */
+      /* Recenter: injected into Leaflet zoom bar via JS; hide the fixed button */
+      .recenter-btn { display: none !important; }
+
+      /* Leaflet recenter button inside zoom bar */
+      .leaflet-recenter-btn {
+        display: flex !important; align-items: center; justify-content: center;
+        border-top: 1px solid #ccc !important;
+      }
+      .leaflet-recenter-btn:hover { color: var(--blue); }
+      .recenter-icon-fit { display: none; }
+      .recenter-icon-locate { display: block; }
 
       /* ── BOTTOM SHEET ── */
       .mobile-sheet {
@@ -489,10 +496,10 @@
       #buddy-btn {
         position: fixed; top: 70px; left: 16px; z-index: 599;
         width: 36px; height: 36px; border-radius: 18px;
-        background: white; border: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+        background: #000; border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         display: flex; align-items: center; justify-content: center;
-        cursor: pointer; color: #3c4043;
+        cursor: pointer; color: #fff;
         -webkit-tap-highlight-color: transparent;
       }
       #buddy-panel {
@@ -525,6 +532,22 @@
       .buddy-item:active { background: rgba(255,255,255,0.08); }
       .buddy-item.muted { color: #555; font-style: italic; }
       .buddy-item.muted .buddy-name { text-decoration: none; }
+      .buddy-folder-header {
+        display: flex; align-items: center; gap: 8px;
+        padding: 10px 14px 6px; cursor: pointer;
+        border-top: 1px solid #1a1a1a;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .buddy-folder-header:active { background: rgba(255,255,255,0.05); }
+      .buddy-me-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 14px; cursor: pointer;
+        font-size: 13px; color: #d0daf0;
+        border-bottom: 1px solid #1a1a1a;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .buddy-me-row:active { background: rgba(255,255,255,0.08); }
+      .buddy-me-row.muted { color: #555; font-style: italic; }
       #buddy-footer {
         padding: 12px 14px 28px; border-top: 1px solid #222; flex-shrink: 0;
         display: flex; align-items: center; justify-content: flex-end;
@@ -752,7 +775,7 @@
 </button>
 <div id="buddy-backdrop" onclick="closeBuddy()"></div>
 <div id="buddy-panel">
-  <div id="buddy-header">Recommendations:</div>
+  <div id="buddy-header">People</div>
   <div id="buddy-names"></div>
   <div id="buddy-footer" style="position:relative">
     <button id="buddy-settings-btn" onclick="toggleBuddySettings()" title="Settings">
@@ -795,10 +818,17 @@
 <!-- DETAIL MODAL -->
 <div class="modal-overlay" id="detail-overlay" onclick="closeDetailModal(event)">
   <div class="modal" style="position:relative">
-    <div style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:6px">
-      <div id="detail-person-tags"></div>
+    <!-- Top-right: edit (for my items) + maps icons -->
+    <div style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:10px">
+      <button id="detail-edit-btn" style="display:none;background:none;border:none;cursor:pointer;padding:4px;color:var(--text3);font-size:16px" onclick="openEditFromDetail()">✏️</button>
+      <a id="detail-apple-maps-link" href="" target="_blank" title="Open in Apple Maps" style="display:flex;align-items:center">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none"><rect width="24" height="24" rx="5" fill="#fff"/><rect width="24" height="24" rx="5" fill="url(#amg)" opacity=".9"/><defs><linearGradient id="amg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#3fc3f7"/><stop offset="1" stop-color="#2d7cf6"/></linearGradient></defs><path d="M12 4.5C8 4.5 4.5 8 4.5 12S8 19.5 12 19.5 19.5 16 19.5 12 16 4.5 12 4.5z" fill="white" opacity=".35"/><path d="M12 7l1.5 3.5H17l-2.8 2 1.1 3.3L12 14l-3.3 1.8 1.1-3.3L7 10.5h3.5z" fill="white"/></svg>
+      </a>
+      <a id="detail-google-maps-link" href="" target="_blank" title="Open in Google Maps" style="display:flex;align-items:center">
+        <svg viewBox="0 0 24 24" width="22" height="22"><rect width="24" height="24" rx="5" fill="#fff"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#EA4335"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>
+      </a>
     </div>
-    <div class="detail-header" style="padding-right:52px">
+    <div class="detail-header" style="padding-right:72px">
       <div class="detail-icon" id="detail-icon"></div>
       <div>
         <div class="detail-name" id="detail-name"></div>
@@ -811,14 +841,14 @@
       <a id="detail-phone-link" href=""></a>
     </div>
 
-    <div class="detail-row">
+    <div class="detail-row" id="detail-address-row">
       <div class="detail-row-icon">📍</div>
-      <a id="detail-maps-link" href="" target="_blank">Open in Google Maps</a>
+      <div id="detail-address-text" style="color:var(--text2);font-size:13px"></div>
     </div>
 
-    <div class="detail-row" id="detail-people-row" style="display:none !important">
-      <div class="detail-row-icon">👤</div>
-      <div id="detail-people"></div>
+    <div class="detail-row" id="detail-recommended-row" style="display:none">
+      <div class="detail-row-icon" style="font-size:14px">👤</div>
+      <div id="detail-recommended-people" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"></div>
     </div>
 
     <div class="detail-row" id="detail-notes-row" style="display:none; flex-direction: column; align-items: flex-start">
@@ -924,10 +954,10 @@ const TYPE_PATHS = {
   other: '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>'
 };
 
-function typeIconHtml(type, size = 26) {
-  const color = TYPE_COLORS[type] || '#5f6368';
+function typeIconHtml(type, size = 26, overrideColor) {
+  const color = overrideColor || TYPE_COLORS[type] || '#5f6368';
   const path = TYPE_PATHS[type] || TYPE_PATHS.other;
-  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" width="${Math.round(size*0.55)}" height="${Math.round(size*0.55)}" fill="white">${path}</svg></div>`;
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:0"><svg viewBox="0 0 24 24" width="${Math.round(size*0.54)}" height="${Math.round(size*0.54)}" fill="white" style="display:block">${path}</svg></div>`;
 }
 
 let sessionToken = localStorage.getItem('hm_token') || null;
@@ -936,6 +966,42 @@ let _addSelectedPeople = new Set(), _editSelectedPeople = new Set();
 let map = null, markers = [], locationDot = null;
 let authMode = 'login';
 let pendingParseCount = 0, pendingRawInput = '';
+
+// ── SOURCE / FOLDER COLOR SYSTEM ──
+let _currentUser = null;
+const FOLDER_COLORS = { me: '#1A73E8', friends: '#e8453c', internet: '#34A853', other: '#f29900' };
+const FOLDER_LABELS = { me: 'Me', friends: 'Friends', internet: 'Internet', other: 'Other' };
+let _buddyFolders = JSON.parse(localStorage.getItem('hm_buddy_folders') || '{"friends":[],"internet":[],"other":[]}');
+let _folderStates = JSON.parse(localStorage.getItem('hm_folder_states') || '{"friends":true,"internet":true,"other":true}');
+let _folderExpanded = JSON.parse(localStorage.getItem('hm_folder_expanded') || '{"friends":true,"internet":true,"other":true}');
+let _meVisible = JSON.parse(localStorage.getItem('hm_me_visible') || 'true');
+let _draggingPerson = null;
+
+function getPersonFolder(name) {
+  if (!name) return 'other';
+  if (_currentUser && (name === _currentUser.name || name.toLowerCase() === (_currentUser.name||'').toLowerCase() || name.toLowerCase() === 'me')) return 'me';
+  for (const fid of ['friends','internet','other']) {
+    if ((_buddyFolders[fid] || []).includes(name)) return fid;
+  }
+  return 'other';
+}
+
+function getRecSourceColor(rec) {
+  if (_currentUser && rec.user_id === _currentUser.id) return FOLDER_COLORS.me;
+  if (!rec.recommended_by) return FOLDER_COLORS.other;
+  const people = rec.recommended_by.split(',').map(p => p.trim()).filter(Boolean);
+  if (!people.length) return FOLDER_COLORS.other;
+  return FOLDER_COLORS[getPersonFolder(people[0])] || FOLDER_COLORS.other;
+}
+
+function isPersonVisible(name) {
+  if (!name) return true;
+  if (_currentUser && (name === _currentUser.name || name.toLowerCase() === (_currentUser.name||'').toLowerCase() || name.toLowerCase() === 'me')) return _meVisible;
+  if (_hiddenPeople.has(name)) return false;
+  const folder = getPersonFolder(name);
+  if (_folderStates[folder] === false) return false;
+  return true;
+}
 
 const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
@@ -960,6 +1026,7 @@ async function submitAuth() {
   if (!res.ok) return showToast(data.error || 'Error');
   sessionToken = data.token;
   localStorage.setItem('hm_token', sessionToken);
+  _currentUser = data.user;
   showApp();
 }
 
@@ -1005,6 +1072,8 @@ async function checkSession() {
     sessionToken = null;
     document.getElementById('app').style.display = 'none';
     document.getElementById('auth-screen').style.display = 'flex';
+  } else {
+    _currentUser = me;
   }
 }
 
@@ -1053,8 +1122,16 @@ function clearMapSearch() {
   document.getElementById('map-search-clear').style.display = 'none';
   hideSuggestions();
   collapseSearchFilters();
+  if (_sheetOpenedBySearch) {
+    _sheetOpenedBySearch = false;
+    const sheet = document.getElementById('mobile-sheet');
+    sheet.classList.remove('open');
+    document.getElementById('nav-list').classList.remove('active');
+    document.getElementById('nav-map').classList.add('active');
+    enableMapInteraction();
+  }
   applyFilters();
-  inp.focus();
+  inp.blur();
 }
 
 let _sheetOpenedBySearch = false;
@@ -1144,6 +1221,7 @@ function onSearchInput(val) {
       sheet.classList.remove('open');
       document.getElementById('nav-list').classList.remove('active');
       document.getElementById('nav-map').classList.add('active');
+      enableMapInteraction();
     }
   }
   if (val.length > 1) showSuggestions(val);
@@ -1216,6 +1294,17 @@ function applyRecentSearch(q) {
   renderMobileList();
 }
 
+function selectCityInList(city) {
+  const inp = document.getElementById('map-search-input');
+  if (inp) inp.value = city;
+  document.getElementById('map-search-clear').style.display = 'block';
+  hideSuggestions();
+  saveRecentSearch(city);
+  jumpToSearch(city);
+  applyFilters();
+  // Keep list open so user sees filtered results
+}
+
 function selectCitySuggestion(city) {
   const inp = document.getElementById('map-search-input');
   if (inp) inp.value = city;
@@ -1250,10 +1339,11 @@ async function loadRecs(fromServer = true) {
       const hay = [r.name, r.city, r.notes, r.recommended_by].join(' ').toLowerCase();
       if (!hay.includes(search)) return false;
     }
-    // If person has hidden buddies, exclude recs where all recommenders are hidden
-    if (_hiddenPeople.size > 0 && r.recommended_by) {
+    // Filter by buddy visibility (individual + folder + me)
+    if (!_meVisible && _currentUser && r.user_id === _currentUser.id) return false;
+    if (r.recommended_by) {
       const people = r.recommended_by.split(',').map(p => p.trim()).filter(Boolean);
-      if (people.length > 0 && people.every(p => _hiddenPeople.has(p))) return false;
+      if (people.length > 0 && people.every(p => !isPersonVisible(p))) return false;
     }
     return true;
   });
@@ -1302,15 +1392,17 @@ function applyFilters() {
 function cardHtml(r) {
   const cleanName = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
   const person = r.recommended_by ? r.recommended_by.split(',')[0].trim() : '';
+  const srcColor = getRecSourceColor(r);
+  const tagStyle = `background:${srcColor}22;color:${srcColor};border:1px solid ${srcColor}55;`;
   return `
     <div class="rec-card" id="card-${r.id}" data-id="${r.id}" onclick="handleCardTap(${r.id})">
       <div class="rec-card-top">
-        ${typeIconHtml(r.type, 28)}
+        ${typeIconHtml(r.type, 28, srcColor)}
         <div class="rec-card-info">
           <div class="rec-name-line">
             <div class="rec-name">${esc(cleanName)}</div>
             ${r.city ? `<div class="rec-city-text">· ${esc(r.city)}</div>` : ''}
-            ${person ? `<div class="rec-person-tag">${esc(person)}</div>` : ''}
+            ${person ? `<div class="rec-person-tag" style="${tagStyle}">${esc(person)}</div>` : ''}
           </div>
         </div>
       </div>
@@ -1348,7 +1440,24 @@ function renderMobileList() {
         || document.getElementById('mobile-type')?.value
         || document.getElementById('mobile-person')?.value;
       if (hasFilter) {
-        html = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
+        // City suggestion rows at top
+        const searchVal = (document.getElementById('map-search-input')?.value.trim() || '').toLowerCase();
+        let cityHtml = '';
+        if (searchVal) {
+          const matchingCities = [...new Set(
+            allRecs.filter(r => r.city && r.city.toLowerCase().includes(searchVal)).map(r => r.city)
+          )];
+          if (matchingCities.length) {
+            cityHtml = matchingCities.map(c =>
+              `<div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;background:var(--bg)" onclick="selectCityInList('${esc(c)}')">
+                <span style="font-size:16px">📍</span>
+                <span style="font-size:14px;font-weight:500;font-family:'Google Sans',sans-serif">${esc(c)}</span>
+                <span style="font-size:12px;color:var(--text3);margin-left:auto">city →</span>
+              </div>`
+            ).join('');
+          }
+        }
+        html = cityHtml + (filtered.length ? filtered.map(cardHtml).join('') : noMatch);
       } else if (map) {
         // No filter → show only places in current map viewport
         const bounds = map.getBounds();
@@ -1479,19 +1588,45 @@ function esc(s) {
 }
 
 // ── DETAIL MODAL ──
+function mapsQuery(r) {
+  return [r.name, r.neighborhood, r.city, 'Italy'].filter(Boolean).join(', ');
+}
 function mapsUrl(r) {
-  // Always use name+city search so it opens the actual business listing
-  const q = [r.name, r.neighborhood, r.city, 'Italy'].filter(Boolean).join(', ');
-  return `https://www.google.com/maps/search/${encodeURIComponent(q)}`;
+  return `https://www.google.com/maps/search/${encodeURIComponent(mapsQuery(r))}`;
+}
+function appleMapsUrl(r) {
+  return `https://maps.apple.com/?q=${encodeURIComponent(mapsQuery(r))}`;
 }
 
 function openDetail(id) {
   const r = allRecs.find(x => x.id === id);
   if (!r) return;
-  document.getElementById('detail-icon').innerHTML = typeIconHtml(r.type, 40);
-  document.getElementById('detail-name').textContent = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
-  document.getElementById('detail-meta').textContent = [r.city, r.type ? r.type.charAt(0).toUpperCase()+r.type.slice(1) : ''].filter(Boolean).join(' · ');
 
+  const srcColor = getRecSourceColor(r);
+  document.getElementById('detail-icon').innerHTML = typeIconHtml(r.type, 40, srcColor);
+  document.getElementById('detail-name').textContent = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
+  const metaParts = [r.city, r.neighborhood, r.type ? r.type.charAt(0).toUpperCase()+r.type.slice(1) : ''].filter(Boolean);
+  document.getElementById('detail-meta').textContent = metaParts.join(' · ');
+
+  // Edit button (only for items I added)
+  const editBtn = document.getElementById('detail-edit-btn');
+  if (_currentUser && r.user_id === _currentUser.id) {
+    editBtn.style.display = 'inline-flex';
+    editBtn.dataset.recId = r.id;
+  } else {
+    editBtn.style.display = 'none';
+  }
+
+  // Maps links (top-right)
+  document.getElementById('detail-google-maps-link').href = mapsUrl(r);
+  document.getElementById('detail-apple-maps-link').href = appleMapsUrl(r);
+
+  // Address row
+  const addrEl = document.getElementById('detail-address-text');
+  const addrParts = [r.address, r.neighborhood, r.city].filter(Boolean);
+  addrEl.textContent = addrParts.join(', ') || 'No address on file';
+
+  // Phone
   const phoneRow = document.getElementById('detail-phone-row');
   if (r.phone) {
     phoneRow.style.display = 'flex';
@@ -1502,22 +1637,29 @@ function openDetail(id) {
     phoneRow.style.display = 'none';
   }
 
-  document.getElementById('detail-maps-link').href = mapsUrl(r);
-
+  // Recommended by (under address)
+  const recRow = document.getElementById('detail-recommended-row');
+  const recPeople = document.getElementById('detail-recommended-people');
   if (r.recommended_by) {
-    const firstPerson = r.recommended_by.split(',')[0].trim();
-    document.getElementById('detail-person-tags').innerHTML = `<span class="tag person">${esc(firstPerson)}</span>`;
+    recRow.style.display = 'flex';
+    const people = r.recommended_by.split(',').map(p => p.trim()).filter(Boolean);
+    recPeople.innerHTML = people.map(p => {
+      const col = FOLDER_COLORS[getPersonFolder(p)] || FOLDER_COLORS.other;
+      return `<span style="font-size:12px;padding:2px 10px;border-radius:20px;background:${col}22;color:${col};border:1px solid ${col}55;font-weight:500">${esc(p)}</span>`;
+    }).join('');
   } else {
-    document.getElementById('detail-person-tags').innerHTML = '';
+    recRow.style.display = 'none';
   }
 
+  // Notes
   const notesRow = document.getElementById('detail-notes-row');
-  notesRow.style.display = 'flex'; // always visible
+  notesRow.style.display = 'flex';
   let notesHtml = r.notes ? esc(r.notes) : '<span style="color:var(--text3);font-style:italic">No notes yet</span>';
   if (r.source_url) notesHtml += `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:4px;display:inline-block">View source ↗</a>`;
   const notesEl = document.getElementById('detail-notes-text');
   notesEl.innerHTML = notesHtml;
   notesEl._recId = r.id;
+  notesEl.contentEditable = (_currentUser && r.user_id === _currentUser.id) ? 'true' : 'false';
   notesEl.onblur = async function() {
     const newNotes = this.innerText.trim();
     const rec = allRecs.find(x => x.id === this._recId);
@@ -1528,6 +1670,12 @@ function openDetail(id) {
   };
 
   document.getElementById('detail-overlay').classList.add('open');
+}
+
+function openEditFromDetail() {
+  const id = parseInt(document.getElementById('detail-edit-btn').dataset.recId);
+  document.getElementById('detail-overlay').classList.remove('open');
+  openEdit(id);
 }
 
 function closeDetailModal(e) {
@@ -1701,19 +1849,32 @@ function initMap() {
         radius: 9, fillColor: '#4285F4', color: 'white',
         weight: 3, fillOpacity: 1, zIndexOffset: 1000
       }).addTo(map).bindPopup('You are here');
-      // On mobile: zoom to current location on first load
-      if (!isDesktop()) {
-        map.setView([pos.coords.latitude, pos.coords.longitude], 14);
-      }
+      // On mobile, don't override marker-fitted view — just add the dot
     }, () => {
-      // No location — fit all markers
-      if (markers.length) recenterMap();
+      // No location — fit all markers if not already done
     }, { enableHighAccuracy: true, timeout: 8000 });
   }
 
   renderMapMarkers();
-  // If no geolocation and we have markers, fit them
-  if (!navigator.geolocation && markers.length) recenterMap();
+  // On load: fit to show recommendations (mobile + desktop)
+  if (markers.length) recenterMap();
+
+  // Inject recenter into Leaflet zoom control (mobile only)
+  if (!isDesktop()) {
+    setTimeout(() => {
+      const zoomBar = document.querySelector('.leaflet-control-zoom');
+      if (zoomBar && !zoomBar.querySelector('.leaflet-recenter-btn')) {
+        const btn = document.createElement('a');
+        btn.href = '#';
+        btn.className = 'leaflet-control-zoom-out leaflet-recenter-btn';
+        btn.title = 'Recenter';
+        btn.setAttribute('role', 'button');
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>`;
+        btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); recenterBtnClick(); };
+        zoomBar.appendChild(btn);
+      }
+    }, 300);
+  }
   // Re-render mobile list when map moves to reflect current viewport
   map.on('moveend', () => {
     if (!isDesktop()) {
@@ -1742,9 +1903,10 @@ function renderMapMarkers() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
   filtered.filter(r => r.latitude && r.longitude).forEach(r => {
+    const srcColor = getRecSourceColor(r);
     const icon = L.divIcon({
       className: '',
-      html: typeIconHtml(r.type, 32),
+      html: typeIconHtml(r.type, 32, srcColor),
       iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -16]
     });
     const m = L.marker([parseFloat(r.latitude), parseFloat(r.longitude)], { icon }).addTo(map);
@@ -1757,7 +1919,17 @@ function renderMapMarkers() {
 function openAddDrawer() {
   document.getElementById('raw-input').value = '';
   document.getElementById('input-city').value = '';
-  document.getElementById('input-person').value = '';
+  const personInp = document.getElementById('input-person');
+  const defaultName = _currentUser?.name || '';
+  personInp.value = defaultName;
+  personInp.dataset.defaultVal = defaultName;
+  personInp.style.color = defaultName ? 'var(--text3)' : '';
+  personInp.onfocus = function() {
+    if (this.value === this.dataset.defaultVal) { this.value = ''; this.style.color = ''; }
+  };
+  personInp.onblur = function() {
+    if (!this.value.trim()) { this.value = this.dataset.defaultVal; this.style.color = this.dataset.defaultVal ? 'var(--text3)' : ''; }
+  };
   document.getElementById('parse-results').innerHTML = '';
   document.getElementById('add-overlay').classList.add('open');
 }
@@ -1804,8 +1976,9 @@ function renderParseResults(recs, rawInput) {
   pendingParseCount = recs.length;
   pendingRawInput = rawInput;
   el.innerHTML = recs.map((r, i) => `
-    <div class="parse-result-item" id="result-${i}">
+    <div class="parse-result-item" id="result-${i}" data-neighborhood="${esc(r.neighborhood||'')}">
       <div class="item-name" data-name="${esc(r.name)}">${esc(r.name)}</div>
+      ${(r.neighborhood || r.city) ? `<div style="font-size:12px;color:var(--text2);margin:-4px 0 8px">📍 ${[r.neighborhood, r.city].filter(Boolean).map(s=>esc(s)).join(', ')}</div>` : ''}
       <div class="field">
         <label>Type</label>
         <select id="r-type-${i}">${types.map(t=>`<option value="${t}"${r.type===t?' selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}</select>
@@ -1827,10 +2000,12 @@ async function saveParseResults() {
   const recs = [];
   for (let i = 0; i < count; i++) {
     const nameDiv = document.querySelector(`#result-${i} .item-name`);
+    const resultEl = document.getElementById(`result-${i}`);
     recs.push({
       name: nameDiv ? nameDiv.dataset.name : '',
       type: document.getElementById(`r-type-${i}`)?.value,
       city, recommended_by,
+      neighborhood: resultEl?.dataset.neighborhood || '',
       notes: isSingle ? (document.getElementById(`r-notes-${i}`)?.value || '') : '',
       raw_input: rawInput,
     });
@@ -1921,6 +2096,49 @@ function showToast(msg, duration = 2500) {
 // ── BUDDY LIST ──
 let _hiddenPeople = new Set(JSON.parse(localStorage.getItem('hm_hidden_people') || '[]'));
 
+// Buddy drag/drop
+function buddyDragStart(e, name) {
+  _draggingPerson = name;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', name);
+}
+function buddyDrop(e, targetFolder) {
+  e.preventDefault(); e.stopPropagation();
+  const name = _draggingPerson || e.dataTransfer.getData('text/plain');
+  if (!name) return;
+  // Remove from all folders
+  for (const fid of Object.keys(_buddyFolders)) {
+    _buddyFolders[fid] = (_buddyFolders[fid] || []).filter(p => p !== name);
+  }
+  // Add to target folder
+  if (!_buddyFolders[targetFolder]) _buddyFolders[targetFolder] = [];
+  _buddyFolders[targetFolder].push(name);
+  localStorage.setItem('hm_buddy_folders', JSON.stringify(_buddyFolders));
+  _draggingPerson = null;
+  renderBuddyNames();
+  applyFilters();
+}
+
+function toggleFolder(fid) {
+  _folderStates[fid] = (_folderStates[fid] === false) ? true : false;
+  localStorage.setItem('hm_folder_states', JSON.stringify(_folderStates));
+  renderBuddyNames();
+  applyFilters();
+}
+
+function toggleFolderExpand(fid) {
+  _folderExpanded[fid] = (_folderExpanded[fid] === false) ? true : false;
+  localStorage.setItem('hm_folder_expanded', JSON.stringify(_folderExpanded));
+  renderBuddyNames();
+}
+
+function toggleMe() {
+  _meVisible = !_meVisible;
+  localStorage.setItem('hm_me_visible', JSON.stringify(_meVisible));
+  renderBuddyNames();
+  applyFilters();
+}
+
 // ── PEOPLE PICKER ──
 function renderPeoplePicker(pickerId, selectedSet) {
   const el = document.getElementById(pickerId);
@@ -2006,18 +2224,77 @@ function renderBuddyNames() {
   }
   const namesEl = document.getElementById('buddy-names');
   if (!namesEl) return;
-  if (!allPeople.length) {
-    namesEl.innerHTML = '<div style="padding:16px 14px;font-size:12px;color:#555">No people yet.</div>';
-    return;
+
+  function countRecs(p) {
+    return allRecs.filter(r => r.recommended_by && r.recommended_by.split(',').map(x=>x.trim()).includes(p)).length;
   }
-  namesEl.innerHTML = allPeople.map(p => {
+  function dot(color, muted) {
+    return `<div style="width:8px;height:8px;border-radius:50%;background:${muted?'#444':color};flex-shrink:0"></div>`;
+  }
+  function personRow(p, color) {
     const muted = _hiddenPeople.has(p);
-    const count = allRecs.filter(r => r.recommended_by && r.recommended_by.split(',').map(x => x.trim()).includes(p)).length;
-    return `<div class="buddy-item${muted ? ' muted' : ''}" onclick="toggleBuddyPerson('${p.replace(/'/g,"\\'")}')">
+    const cnt = countRecs(p);
+    return `<div class="buddy-item${muted?' muted':''}" draggable="true"
+      ondragstart="buddyDragStart(event,'${p.replace(/'/g,"\\'")}' )"
+      onclick="toggleBuddyPerson('${p.replace(/'/g,"\\'")}')">
+      ${dot(color, muted)}
       <span class="buddy-name">${esc(p)}</span>
-      <span style="margin-left:auto;font-size:10px;color:${muted ? '#444' : '#666'}">${count}</span>
+      <span style="margin-left:auto;font-size:10px;color:${muted?'#444':'#666'}">${cnt}</span>
     </div>`;
-  }).join('');
+  }
+
+  // ── Me row ──
+  const myName = _currentUser?.name || 'Me';
+  const meCount = _currentUser ? allRecs.filter(r => r.user_id === _currentUser.id).length : 0;
+  let html = `<div class="buddy-me-row${!_meVisible?' muted':''}" onclick="toggleMe()">
+    ${dot(FOLDER_COLORS.me, !_meVisible)}
+    <span class="buddy-name">${esc(myName)} <span style="font-size:10px;color:#666">(me)</span></span>
+    <span style="margin-left:auto;font-size:10px;color:${!_meVisible?'#444':'#666'}">${meCount}</span>
+  </div>`;
+
+  // ── Folders ──
+  const folderDefs = [
+    { id: 'friends', label: 'Friends', color: FOLDER_COLORS.friends },
+    { id: 'internet', label: 'Internet', color: FOLDER_COLORS.internet },
+    { id: 'other', label: 'Other', color: FOLDER_COLORS.other }
+  ];
+  const assignedPeople = new Set(Object.values(_buddyFolders).flat());
+
+  for (const { id: fid, label, color } of folderDefs) {
+    const members = (_buddyFolders[fid] || []).filter(p => allPeople.includes(p));
+    const folderOn = _folderStates[fid] !== false;
+    const expanded = _folderExpanded[fid] !== false;
+    html += `<div class="buddy-folder-header"
+      ondragover="event.preventDefault()"
+      ondrop="buddyDrop(event,'${fid}')"
+      onclick="toggleFolderExpand('${fid}')">
+      ${dot(color, !folderOn)}
+      <span style="flex:1;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${folderOn?'#aaa':'#555'}">${esc(label)}</span>
+      <button onclick="event.stopPropagation();toggleFolder('${fid}')"
+        style="background:none;border:none;color:${folderOn?color:'#555'};padding:0 4px;cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.04em">
+        ${folderOn?'ON':'OFF'}
+      </button>
+      <span style="color:#555;font-size:10px;margin-left:2px">${expanded?'▾':'▸'}</span>
+    </div>`;
+    if (expanded) {
+      for (const p of members) html += personRow(p, color);
+      if (!members.length) {
+        html += `<div style="padding:6px 14px 6px 28px;font-size:11px;color:#444;font-style:italic"
+          ondragover="event.preventDefault()" ondrop="buddyDrop(event,'${fid}')">drop people here</div>`;
+      }
+    }
+  }
+
+  // ── Unassigned ──
+  const unassigned = allPeople.filter(p => !assignedPeople.has(p));
+  if (unassigned.length) {
+    html += `<div style="padding:8px 14px 2px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;border-top:1px solid #1a1a1a">Unassigned</div>`;
+    for (const p of unassigned) html += personRow(p, FOLDER_COLORS.other);
+  } else if (!allPeople.length) {
+    html += '<div style="padding:16px 14px;font-size:12px;color:#555">No people yet.</div>';
+  }
+
+  namesEl.innerHTML = html;
 }
 
 function closeBuddy() {
@@ -2030,7 +2307,7 @@ function toggleBuddyPerson(name) {
   if (_hiddenPeople.has(name)) _hiddenPeople.delete(name);
   else _hiddenPeople.add(name);
   localStorage.setItem('hm_hidden_people', JSON.stringify([..._hiddenPeople]));
-  openBuddy(); // re-render
+  renderBuddyNames();
   applyFilters();
 }
 
@@ -2041,6 +2318,10 @@ function toggleBuddySettings() {
 function resetBuddyList() {
   _hiddenPeople.clear();
   localStorage.removeItem('hm_hidden_people');
+  _meVisible = true;
+  localStorage.setItem('hm_me_visible', 'true');
+  _folderStates = { friends: true, internet: true, other: true };
+  localStorage.setItem('hm_folder_states', JSON.stringify(_folderStates));
   closeBuddy();
   applyFilters();
 }
