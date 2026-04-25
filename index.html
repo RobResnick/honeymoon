@@ -569,7 +569,7 @@
         border: none; border-radius: 8px; font-size: 13px; cursor: pointer;
       }
       #buddy-backdrop {
-        display: none; position: fixed; inset: 0; z-index: 799;
+        display: none; /* not used — map stays interactive while buddy is open */
       }
       #buddy-btn { display: flex; }
       #buddy-panel { display: flex; }
@@ -775,7 +775,7 @@
 </button>
 <div id="buddy-backdrop" onclick="closeBuddy()"></div>
 <div id="buddy-panel">
-  <div id="buddy-header">People</div>
+  <div id="buddy-header">Filter</div>
   <div id="buddy-names"></div>
   <div id="buddy-footer" style="position:relative">
     <button id="buddy-settings-btn" onclick="toggleBuddySettings()" title="Settings">
@@ -818,19 +818,18 @@
 <!-- DETAIL MODAL -->
 <div class="modal-overlay" id="detail-overlay" onclick="closeDetailModal(event)">
   <div class="modal" style="position:relative">
-    <!-- Top-right: edit (for my items) + maps icons -->
+    <!-- Top-right: maps icons -->
     <div style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:10px">
-      <button id="detail-edit-btn" style="display:none;background:none;border:none;cursor:pointer;padding:4px;color:var(--text3);font-size:16px" onclick="openEditFromDetail()">✏️</button>
       <a id="detail-apple-maps-link" href="" target="_blank" title="Open in Apple Maps" style="display:flex;align-items:center">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none"><rect width="24" height="24" rx="5" fill="#fff"/><rect width="24" height="24" rx="5" fill="url(#amg)" opacity=".9"/><defs><linearGradient id="amg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#3fc3f7"/><stop offset="1" stop-color="#2d7cf6"/></linearGradient></defs><path d="M12 4.5C8 4.5 4.5 8 4.5 12S8 19.5 12 19.5 19.5 16 19.5 12 16 4.5 12 4.5z" fill="white" opacity=".35"/><path d="M12 7l1.5 3.5H17l-2.8 2 1.1 3.3L12 14l-3.3 1.8 1.1-3.3L7 10.5h3.5z" fill="white"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect width="24" height="24" rx="5" fill="#1C86EE"/><path d="M12 4C8.13 4 5 7.13 5 11c0 3.5 4 9 7 11 3-2 7-7.5 7-11 0-3.87-3.13-7-7-7z" fill="white" opacity=".9"/><circle cx="12" cy="11" r="2.5" fill="#1C86EE"/></svg>
       </a>
       <a id="detail-google-maps-link" href="" target="_blank" title="Open in Google Maps" style="display:flex;align-items:center">
-        <svg viewBox="0 0 24 24" width="22" height="22"><rect width="24" height="24" rx="5" fill="#fff"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#EA4335"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24"><rect width="24" height="24" rx="5" fill="#fff"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#EA4335"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>
       </a>
     </div>
-    <div class="detail-header" style="padding-right:72px">
+    <div class="detail-header" style="padding-right:64px">
       <div class="detail-icon" id="detail-icon"></div>
-      <div>
+      <div style="flex:1;min-width:0">
         <div class="detail-name" id="detail-name"></div>
         <div class="detail-meta" id="detail-meta"></div>
       </div>
@@ -841,13 +840,7 @@
       <a id="detail-phone-link" href=""></a>
     </div>
 
-    <div class="detail-row" id="detail-address-row">
-      <div class="detail-row-icon">📍</div>
-      <div id="detail-address-text" style="color:var(--text2);font-size:13px"></div>
-    </div>
-
     <div class="detail-row" id="detail-recommended-row" style="display:none">
-      <div class="detail-row-icon" style="font-size:14px">👤</div>
       <div id="detail-recommended-people" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"></div>
     </div>
 
@@ -974,13 +967,17 @@ const FOLDER_LABELS = { me: 'Me', friends: 'Friends', internet: 'Internet', othe
 let _buddyFolders = JSON.parse(localStorage.getItem('hm_buddy_folders') || '{"friends":[],"internet":[],"other":[]}');
 let _folderStates = JSON.parse(localStorage.getItem('hm_folder_states') || '{"friends":true,"internet":true,"other":true}');
 let _folderExpanded = JSON.parse(localStorage.getItem('hm_folder_expanded') || '{"friends":true,"internet":true,"other":true}');
-let _meVisible = JSON.parse(localStorage.getItem('hm_me_visible') || 'true');
 let _hiddenPeople = new Set(JSON.parse(localStorage.getItem('hm_hidden_people') || '[]'));
 let _draggingPerson = null;
+let _userLocation = null; // { lat, lng } set when geolocation resolves
+
+function isMe(name) {
+  return !!(name && _currentUser && (name === _currentUser.name || name.toLowerCase() === (_currentUser.name||'').toLowerCase()));
+}
 
 function getPersonFolder(name) {
   if (!name) return 'other';
-  if (_currentUser && (name === _currentUser.name || name.toLowerCase() === (_currentUser.name||'').toLowerCase() || name.toLowerCase() === 'me')) return 'me';
+  if (isMe(name)) return 'me';
   for (const fid of ['friends','internet','other']) {
     if ((_buddyFolders[fid] || []).includes(name)) return fid;
   }
@@ -997,7 +994,7 @@ function getRecSourceColor(rec) {
 
 function isPersonVisible(name) {
   if (!name) return true;
-  if (_currentUser && (name === _currentUser.name || name.toLowerCase() === (_currentUser.name||'').toLowerCase() || name.toLowerCase() === 'me')) return _meVisible;
+  if (isMe(name)) return !_hiddenPeople.has(name); // me: controlled by own hidden state
   if (_hiddenPeople.has(name)) return false;
   const folder = getPersonFolder(name);
   if (_folderStates[folder] === false) return false;
@@ -1296,14 +1293,23 @@ function applyRecentSearch(q) {
 }
 
 function selectCityInList(city) {
-  const inp = document.getElementById('map-search-input');
-  if (inp) inp.value = city;
-  document.getElementById('map-search-clear').style.display = 'block';
+  // Jump to city, clear search, close list → land on the map
   hideSuggestions();
   saveRecentSearch(city);
   jumpToSearch(city);
+  // Clear the search and close the list
+  const inp = document.getElementById('map-search-input');
+  if (inp) { inp.value = ''; inp.blur(); }
+  document.getElementById('map-search-clear').style.display = 'none';
+  _sheetOpenedBySearch = false;
   applyFilters();
-  // Keep list open so user sees filtered results
+  if (!isDesktop()) {
+    const sheet = document.getElementById('mobile-sheet');
+    sheet.classList.remove('open');
+    document.getElementById('nav-list').classList.remove('active');
+    document.getElementById('nav-map').classList.add('active');
+    enableMapInteraction();
+  }
 }
 
 function selectCitySuggestion(city) {
@@ -1340,10 +1346,11 @@ async function loadRecs(fromServer = true) {
       const hay = [r.name, r.city, r.notes, r.recommended_by].join(' ').toLowerCase();
       if (!hay.includes(search)) return false;
     }
-    // Filter by buddy visibility (individual + folder + me)
-    if (!_meVisible && _currentUser && r.user_id === _currentUser.id) return false;
+    // Filter by buddy visibility
+    if (_currentUser && r.user_id === _currentUser.id && _hiddenPeople.has(_currentUser.name)) return false;
     if (r.recommended_by) {
-      const people = r.recommended_by.split(',').map(p => p.trim()).filter(Boolean);
+      const people = r.recommended_by.split(',').map(p => p.trim()).filter(Boolean)
+        .filter(p => !isMe(p)); // exclude current user from rec-by check (handled above)
       if (people.length > 0 && people.every(p => !isPersonVisible(p))) return false;
     }
     return true;
@@ -1472,7 +1479,26 @@ function renderMobileList() {
             recentSearches.map(s => `<button onclick="applyRecentSearch(this.dataset.q)" data-q="${esc(s)}" style="border:1px solid var(--border);background:var(--card);border-radius:20px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--text);font-family:inherit">${esc(s)}</button>`).join('') +
             `</div>`
           : '';
-        if (inBounds.length) {
+        // Nearby section (within ~8km / 5 miles of user location)
+        let nearbyHtml = '';
+        if (_userLocation) {
+          function haversineKm(lat1, lng1, lat2, lng2) {
+            const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          }
+          const nearby = filtered.filter(r => r.latitude && r.longitude &&
+            haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) < 8)
+            .sort((a,b) => haversineKm(_userLocation.lat, _userLocation.lng, a.latitude, a.longitude) -
+                           haversineKm(_userLocation.lat, _userLocation.lng, b.latitude, b.longitude));
+          if (nearby.length) {
+            nearbyHtml = sectionLabel('Nearby') + nearby.map(cardHtml).join('');
+          }
+        }
+
+        if (nearbyHtml) {
+          html = recentSearchHtml + nearbyHtml;
+        } else if (inBounds.length) {
           html = recentSearchHtml + inBounds.map(cardHtml).join('');
         } else {
           // Nothing in viewport → recently added fallback
@@ -1495,20 +1521,9 @@ let _lastTapId = null, _lastTapTime = 0, _swipeBlocking = false;
 
 function handleCardTap(id) {
   if (_swipeBlocking) return;
-  const now = Date.now();
-  if (_lastTapId === id && now - _lastTapTime < 350) {
-    // Double tap → details
-    _lastTapTime = 0; _lastTapId = null;
-    openDetail(id);
-  } else {
-    _lastTapId = id; _lastTapTime = now;
-    // Single tap → pan map to place (after slight delay to detect double)
-    setTimeout(() => {
-      if (_lastTapId === id && Date.now() - _lastTapTime >= 340) {
-        panToRec(id);
-      }
-    }, 360);
-  }
+  // Single tap → pan to rec and open detail
+  panToRec(id);
+  openDetail(id);
 }
 
 // Close sheet + update nav WITHOUT triggering geolocation
@@ -1609,23 +1624,9 @@ function openDetail(id) {
   const metaParts = [r.city, r.neighborhood, r.type ? r.type.charAt(0).toUpperCase()+r.type.slice(1) : ''].filter(Boolean);
   document.getElementById('detail-meta').textContent = metaParts.join(' · ');
 
-  // Edit button (only for items I added)
-  const editBtn = document.getElementById('detail-edit-btn');
-  if (_currentUser && r.user_id === _currentUser.id) {
-    editBtn.style.display = 'inline-flex';
-    editBtn.dataset.recId = r.id;
-  } else {
-    editBtn.style.display = 'none';
-  }
-
   // Maps links (top-right)
   document.getElementById('detail-google-maps-link').href = mapsUrl(r);
   document.getElementById('detail-apple-maps-link').href = appleMapsUrl(r);
-
-  // Address row
-  const addrEl = document.getElementById('detail-address-text');
-  const addrParts = [r.address, r.neighborhood, r.city].filter(Boolean);
-  addrEl.textContent = addrParts.join(', ') || 'No address on file';
 
   // Phone
   const phoneRow = document.getElementById('detail-phone-row');
@@ -1660,7 +1661,7 @@ function openDetail(id) {
   const notesEl = document.getElementById('detail-notes-text');
   notesEl.innerHTML = notesHtml;
   notesEl._recId = r.id;
-  notesEl.contentEditable = (_currentUser && r.user_id === _currentUser.id) ? 'true' : 'false';
+  notesEl.contentEditable = 'true'; // always editable for now
   notesEl.onblur = async function() {
     const newNotes = this.innerText.trim();
     const rec = allRecs.find(x => x.id === this._recId);
@@ -1673,11 +1674,6 @@ function openDetail(id) {
   document.getElementById('detail-overlay').classList.add('open');
 }
 
-function openEditFromDetail() {
-  const id = parseInt(document.getElementById('detail-edit-btn').dataset.recId);
-  document.getElementById('detail-overlay').classList.remove('open');
-  openEdit(id);
-}
 
 function closeDetailModal(e) {
   if (!e || e.target === document.getElementById('detail-overlay')) {
@@ -1845,6 +1841,7 @@ function initMap() {
   // Blue dot for current location
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
+      _userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       if (locationDot) map.removeLayer(locationDot);
       locationDot = L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
         radius: 9, fillColor: '#4285F4', color: 'white',
@@ -1887,6 +1884,8 @@ function initMap() {
     if (!isDesktop()) {
       const sheet = document.getElementById('mobile-sheet');
       if (sheet && sheet.classList.contains('open')) closeSheetOnly();
+      const buddy = document.getElementById('buddy-panel');
+      if (buddy && buddy.classList.contains('open')) closeBuddy();
     }
   });
 }
@@ -2105,17 +2104,30 @@ function buddyDrop(e, targetFolder) {
   e.preventDefault(); e.stopPropagation();
   const name = _draggingPerson || e.dataTransfer.getData('text/plain');
   if (!name) return;
-  // Remove from all folders
   for (const fid of Object.keys(_buddyFolders)) {
     _buddyFolders[fid] = (_buddyFolders[fid] || []).filter(p => p !== name);
   }
-  // Add to target folder
   if (!_buddyFolders[targetFolder]) _buddyFolders[targetFolder] = [];
   _buddyFolders[targetFolder].push(name);
   localStorage.setItem('hm_buddy_folders', JSON.stringify(_buddyFolders));
   _draggingPerson = null;
-  renderBuddyNames();
-  applyFilters();
+  renderBuddyNames(); applyFilters();
+}
+
+function buddyDropOnPerson(e, targetFolder, beforePerson) {
+  e.preventDefault(); e.stopPropagation();
+  const name = _draggingPerson || e.dataTransfer.getData('text/plain');
+  if (!name || name === beforePerson) return;
+  for (const fid of Object.keys(_buddyFolders)) {
+    _buddyFolders[fid] = (_buddyFolders[fid] || []).filter(p => p !== name);
+  }
+  if (!_buddyFolders[targetFolder]) _buddyFolders[targetFolder] = [];
+  const idx = _buddyFolders[targetFolder].indexOf(beforePerson);
+  if (idx >= 0) _buddyFolders[targetFolder].splice(idx, 0, name);
+  else _buddyFolders[targetFolder].push(name);
+  localStorage.setItem('hm_buddy_folders', JSON.stringify(_buddyFolders));
+  _draggingPerson = null;
+  renderBuddyNames(); applyFilters();
 }
 
 function toggleFolder(fid) {
@@ -2131,12 +2143,6 @@ function toggleFolderExpand(fid) {
   renderBuddyNames();
 }
 
-function toggleMe() {
-  _meVisible = !_meVisible;
-  localStorage.setItem('hm_me_visible', JSON.stringify(_meVisible));
-  renderBuddyNames();
-  applyFilters();
-}
 
 // ── PEOPLE PICKER ──
 function renderPeoplePicker(pickerId, selectedSet) {
@@ -2198,10 +2204,11 @@ function toggleBuddy() {
 }
 
 function openBuddy() {
-  // Open panel immediately — don't block on async
   document.getElementById('buddy-panel').classList.add('open');
-  document.getElementById('buddy-backdrop').style.display = 'block';
   document.getElementById('buddy-settings-popup').classList.remove('visible');
+  // Gray out search shadow while buddy open
+  const bar = document.getElementById('map-search-bar');
+  if (bar) bar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)';
   renderBuddyNames();
 
   // Refresh from server in background, re-render if new data
@@ -2230,26 +2237,33 @@ function renderBuddyNames() {
   function dot(color, muted) {
     return `<div style="width:8px;height:8px;border-radius:50%;background:${muted?'#444':color};flex-shrink:0"></div>`;
   }
-  function personRow(p, color) {
+  function personRow(p, color, fid, insertIdx) {
     const muted = _hiddenPeople.has(p);
     const cnt = countRecs(p);
+    const escapedP = p.replace(/'/g,"\\'");
     return `<div class="buddy-item${muted?' muted':''}" draggable="true"
-      ondragstart="buddyDragStart(event,'${p.replace(/'/g,"\\'")}' )"
-      onclick="toggleBuddyPerson('${p.replace(/'/g,"\\'")}')">
+      ondragstart="buddyDragStart(event,'${escapedP}')"
+      ondragover="event.preventDefault()"
+      ondrop="buddyDropOnPerson(event,'${fid||''}','${escapedP}')"
+      onclick="toggleBuddyPerson('${escapedP}')">
       ${dot(color, muted)}
       <span class="buddy-name">${esc(p)}</span>
       <span style="margin-left:auto;font-size:10px;color:${muted?'#444':'#666'}">${cnt}</span>
     </div>`;
   }
 
-  // ── Me row ──
-  const myName = _currentUser?.name || 'Me';
-  const meCount = _currentUser ? allRecs.filter(r => r.user_id === _currentUser.id).length : 0;
-  let html = `<div class="buddy-me-row${!_meVisible?' muted':''}" onclick="toggleMe()">
-    ${dot(FOLDER_COLORS.me, !_meVisible)}
-    <span class="buddy-name">${esc(myName)} <span style="font-size:10px;color:#666">(me)</span></span>
-    <span style="margin-left:auto;font-size:10px;color:${!_meVisible?'#444':'#666'}">${meCount}</span>
-  </div>`;
+  // ── Current user row (always at top) ──
+  const myName = _currentUser?.name || '';
+  let html = '';
+  if (myName) {
+    const meMuted = _hiddenPeople.has(myName);
+    const meCount = allRecs.filter(r => r.user_id === _currentUser.id).length;
+    html = `<div class="buddy-me-row${meMuted?' muted':''}" onclick="toggleBuddyPerson('${myName.replace(/'/g,"\\'")}')">
+      ${dot(FOLDER_COLORS.me, meMuted)}
+      <span class="buddy-name">${esc(myName)}</span>
+      <span style="margin-left:auto;font-size:10px;color:${meMuted?'#444':'#666'}">${meCount}</span>
+    </div>`;
+  }
 
   // ── Folders ──
   const folderDefs = [
@@ -2276,7 +2290,7 @@ function renderBuddyNames() {
       <span style="color:#555;font-size:10px;margin-left:2px">${expanded?'▾':'▸'}</span>
     </div>`;
     if (expanded) {
-      for (const p of members) html += personRow(p, color);
+      for (const p of members) html += personRow(p, color, fid);
       if (!members.length) {
         html += `<div style="padding:6px 14px 6px 28px;font-size:11px;color:#444;font-style:italic"
           ondragover="event.preventDefault()" ondrop="buddyDrop(event,'${fid}')">drop people here</div>`;
@@ -2298,8 +2312,10 @@ function renderBuddyNames() {
 
 function closeBuddy() {
   document.getElementById('buddy-panel').classList.remove('open');
-  document.getElementById('buddy-backdrop').style.display = 'none';
   document.getElementById('buddy-settings-popup').classList.remove('visible');
+  // Restore blue search shadow
+  const bar = document.getElementById('map-search-bar');
+  if (bar) bar.style.boxShadow = '';
 }
 
 function toggleBuddyPerson(name) {
@@ -2317,8 +2333,6 @@ function toggleBuddySettings() {
 function resetBuddyList() {
   _hiddenPeople.clear();
   localStorage.removeItem('hm_hidden_people');
-  _meVisible = true;
-  localStorage.setItem('hm_me_visible', 'true');
   _folderStates = { friends: true, internet: true, other: true };
   localStorage.setItem('hm_folder_states', JSON.stringify(_folderStates));
   closeBuddy();
