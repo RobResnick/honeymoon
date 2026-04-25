@@ -497,7 +497,7 @@
       #buddy-panel {
         position: fixed; top: 0; bottom: 0;
         left: 0; width: 32%; min-width: 180px;
-        background: #1a2744; color: white;
+        background: #111; color: white;
         z-index: 800;
         transform: translateX(-100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -508,12 +508,11 @@
       #buddy-panel.open { transform: translateX(0); }
       #buddy-header {
         padding: 52px 12px 10px;
-        background: #0f1a2e;
-        font-size: 13px; font-weight: 700; letter-spacing: .05em;
-        color: #f9ab00; text-transform: uppercase;
+        background: #000;
+        font-size: 12px; font-weight: 600; letter-spacing: .04em;
+        color: #aaa; text-transform: uppercase;
         flex-shrink: 0;
       }
-      #buddy-header .buddy-subtitle { color: #8ca0c0; font-size: 10px; font-weight: 400; margin-top: 2px; letter-spacing: 0; text-transform: none; }
       #buddy-names { flex: 1; overflow-y: auto; padding: 8px 0; }
       .buddy-item {
         display: flex; align-items: center; gap: 10px;
@@ -528,11 +527,11 @@
       }
       .buddy-dot.online { background: #34a853; box-shadow: 0 0 4px #34a853; }
       .buddy-dot.offline { background: #5a6a7a; }
-      .buddy-item.muted { color: #4a5a70; }
+      .buddy-item.muted { color: #444; }
       .buddy-item.muted .buddy-name { text-decoration: line-through; }
       #buddy-footer {
-        padding: 12px 14px 28px; border-top: 1px solid #243050; flex-shrink: 0;
-        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 14px 28px; border-top: 1px solid #222; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: flex-end;
       }
       #buddy-settings-btn {
         background: none; border: none; color: #5a7090; cursor: pointer;
@@ -760,17 +759,15 @@
 </button>
 <div id="buddy-backdrop" onclick="closeBuddy()"></div>
 <div id="buddy-panel">
-  <div id="buddy-header">
-    Buddy List
-    <div class="buddy-subtitle">tap to mute</div>
-  </div>
+  <div id="buddy-header">Recommendations:</div>
   <div id="buddy-names"></div>
   <div id="buddy-footer" style="position:relative">
-    <span style="font-size:11px;color:#3a5070">honeymoon.robresnick.com</span>
-    <button id="buddy-settings-btn" onclick="toggleBuddySettings()" title="Settings">⚙️</button>
+    <button id="buddy-settings-btn" onclick="toggleBuddySettings()" title="Settings">
+      <svg viewBox="0 0 24 24" fill="#555" width="18" height="18"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    </button>
     <div id="buddy-settings-popup">
-      <p>Reset all hidden buddies?</p>
-      <button id="buddy-reset-btn" onclick="resetBuddyList()">Reset Buddy List</button>
+      <p>Reset all hidden people?</p>
+      <button id="buddy-reset-btn" onclick="resetBuddyList()">Reset</button>
     </div>
   </div>
 </div>
@@ -789,9 +786,7 @@
         </div>
         <div class="field">
           <label>Recommended by</label>
-          <div class="people-picker" id="add-person-picker"></div>
-          <input class="people-add-input" id="add-person-new" placeholder="+ new person" autocomplete="off" autocorrect="off" autocapitalize="words" onkeydown="handleNewPersonKey(event,'add')" />
-          <input type="hidden" id="input-person" />
+          <input type="text" id="input-person" placeholder="Jake" autocomplete="off" autocorrect="off" />
         </div>
       </div>
       <div class="field">
@@ -878,9 +873,7 @@
       </div>
       <div class="field">
         <label>Recommended by</label>
-        <div class="people-picker" id="edit-person-picker"></div>
-        <input class="people-add-input" id="edit-person-new" placeholder="+ new person" autocomplete="off" autocorrect="off" autocapitalize="words" onkeydown="handleNewPersonKey(event,'edit')" />
-        <input type="hidden" id="edit-recommended-by" />
+        <input type="text" id="edit-recommended-by" autocomplete="off" autocorrect="off" />
       </div>
     </div>
     <div class="field-row">
@@ -1721,8 +1714,8 @@ function renderMapMarkers() {
 function openAddDrawer() {
   document.getElementById('raw-input').value = '';
   document.getElementById('input-city').value = '';
+  document.getElementById('input-person').value = '';
   document.getElementById('parse-results').innerHTML = '';
-  initAddPersonPicker();
   document.getElementById('add-overlay').classList.add('open');
 }
 
@@ -1817,7 +1810,7 @@ function openEdit(id, e) {
   document.getElementById('edit-type').value = r.type || 'other';
   document.getElementById('edit-city').value = r.city || '';
   document.getElementById('edit-neighborhood').value = r.neighborhood || '';
-  initEditPersonPicker(r.recommended_by || '');
+  document.getElementById('edit-recommended-by').value = r.recommended_by || '';
   document.getElementById('edit-phone').value = r.phone || '';
   document.getElementById('edit-address').value = r.address || '';
   document.getElementById('edit-notes').value = r.notes || '';
@@ -1944,10 +1937,21 @@ function toggleBuddy() {
   else openBuddy();
 }
 
-function openBuddy() {
+async function openBuddy() {
+  // Always refresh from server; fall back to deriving from allRecs
+  const fresh = await api('/api/people');
+  if (Array.isArray(fresh) && fresh.length) {
+    allPeople = fresh;
+  } else if (!allPeople.length) {
+    // Derive from existing recs if API returned nothing
+    allPeople = [...new Set(
+      allRecs.flatMap(r => r.recommended_by ? r.recommended_by.split(',').map(p => p.trim()).filter(Boolean) : [])
+    )].sort((a, b) => a.localeCompare(b));
+    if (allPeople.length) api('/api/people', 'POST', { people: allPeople }); // persist
+  }
   const namesEl = document.getElementById('buddy-names');
   if (!allPeople.length) {
-    namesEl.innerHTML = '<div style="padding:16px 14px;font-size:12px;color:#4a5a70">No buddies yet — add places with a "recommended by" name to see them here.</div>';
+    namesEl.innerHTML = '<div style="padding:16px 14px;font-size:12px;color:#555">No people yet — add recommendations with a name.</div>';
   } else {
     namesEl.innerHTML = allPeople.map(p => {
       const muted = _hiddenPeople.has(p);
