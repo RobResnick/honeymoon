@@ -215,7 +215,8 @@
 
     /* ── MAP ── */
     #map-view { flex: 1; display: none; position: relative; }
-    #map { height: 100%; width: 100%; filter: grayscale(1) brightness(1.05); }
+    #map { height: 100%; width: 100%; }
+    #map .leaflet-tile-pane { filter: grayscale(1) brightness(1.05); }
 
     .leaflet-popup-content-wrapper {
       border-radius: 8px !important; box-shadow: var(--shadow-md) !important;
