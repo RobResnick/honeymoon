@@ -168,7 +168,8 @@
     .rec-card-top { display: flex; align-items: center; gap: 10px; }
     .rec-type-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
     .rec-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-    .rec-name-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+    .rec-name-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; flex: 1; }
+    .rec-person-tag { margin-left: auto; font-size: 11px; color: var(--text3); flex-shrink: 0; padding-left: 6px; }
     .rec-name {
       font-size: 13px; font-weight: 500;
       font-family: 'Google Sans', sans-serif;
@@ -612,16 +613,16 @@
       </svg>
       <input type="text" id="map-search-input" placeholder="Search places, cities…"
         enterkeyhint="go" inputmode="search"
-        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"
         oninput="onSearchInput(this.value)"
         onkeydown="handleSearchKey(event)"
         onfocus="onSearchFocus()" />
       <button id="map-search-clear" onclick="clearMapSearch()" style="display:none;border:none;background:none;padding:0;cursor:pointer;color:var(--text3);line-height:1;font-size:20px;flex-shrink:0">×</button>
     </div>
     <div class="map-filter-row">
-      <select id="mobile-city"   onchange="applyFilters()"><option value="">All cities</option></select>
-      <select id="mobile-type"   onchange="applyFilters()"><option value="">All types</option></select>
-      <select id="mobile-person" onchange="applyFilters()"><option value="">Everyone</option></select>
+      <select id="mobile-city"   onchange="applyFilters()" autocomplete="off"><option value="">All cities</option></select>
+      <select id="mobile-type"   onchange="applyFilters()" autocomplete="off"><option value="">All types</option></select>
+      <select id="mobile-person" onchange="applyFilters()" autocomplete="off"><option value="">Everyone</option></select>
     </div>
   </div>
   <!-- Autocomplete suggestions -->
@@ -1028,6 +1029,10 @@ function onSearchInput(val) {
 
 function showSuggestions(q) {
   if (!q) { hideSuggestions(); return; }
+  // Don't show dropdown when list sheet is already showing filtered results
+  if (!isDesktop() && document.getElementById('mobile-sheet')?.classList.contains('open')) {
+    hideSuggestions(); return;
+  }
   const lq = q.toLowerCase();
   const box = document.getElementById('search-suggestions');
   if (!box) return;
@@ -1149,6 +1154,7 @@ function applyFilters() {
 // ── RENDER ──
 function cardHtml(r) {
   const cleanName = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
+  const person = r.recommended_by ? r.recommended_by.split(',')[0].trim() : '';
   return `
     <div class="rec-card" id="card-${r.id}" data-id="${r.id}" onclick="handleCardTap(${r.id})">
       <div class="rec-card-top">
@@ -1157,8 +1163,8 @@ function cardHtml(r) {
           <div class="rec-name-line">
             <div class="rec-name">${esc(cleanName)}</div>
             ${r.city ? `<div class="rec-city-text">${esc(r.city)}</div>` : ''}
+            ${person ? `<div class="rec-person-tag">${esc(person)}</div>` : ''}
           </div>
-          ${r.recommended_by ? `<div class="rec-tags">${r.recommended_by.split(',').map(p=>`<span class="tag person">${esc(p.trim())}</span>`).join('')}</div>` : ''}
         </div>
       </div>
     </div>`;
