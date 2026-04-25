@@ -348,7 +348,7 @@
         position: fixed; top: 12px; left: 12px; right: 12px;
         display: flex; flex-direction: column; gap: 6px;
         background: white; border-radius: 16px;
-        padding: 10px 14px 8px;
+        padding: 14px 14px 10px;
         box-shadow: 0 2px 12px rgba(0,0,0,0.25);
         z-index: 600; /* above sheet (300) and nav (500) */
       }
@@ -366,10 +366,14 @@
       .map-search-top input[type="search"]::-webkit-search-decoration { display: none; }
       /* Filter row hidden until typing or list open */
       .map-filter-row {
-        display: none; gap: 5px;
+        display: flex; gap: 5px;
+        max-height: 0; overflow: hidden;
+        opacity: 0;
+        transition: max-height 0.25s ease, opacity 0.2s ease;
       }
       .map-search-bar.expanded .map-filter-row {
-        display: flex;
+        max-height: 60px;
+        opacity: 1;
       }
       .map-filter-row select {
         flex: 1; padding: 5px 4px; font-size: 11px;
@@ -463,12 +467,19 @@
       .nav-icon-img { width: 24px; height: 24px; display: block; }
       .nav-label { font-size: 11px; font-weight: 500; }
 
+      .nav-btn.active svg path, .nav-btn.active svg circle { fill: var(--blue); }
+      #nav-map:not(.active) svg path { fill: #e8453c; }
+      #nav-map:not(.active) svg circle { fill: #e8453c; }
+      #nav-list:not(.active) svg path { fill: #34a853; }
+      #nav-add:not(.active) svg path { fill: #f29900; }
+
       /* Toast above bottom nav */
       .toast { bottom: 94px; }
 
       /* Modals on mobile: slide up from bottom */
       .modal-overlay { align-items: flex-end; padding: 0; }
       .modal { border-radius: 16px 16px 0 0; max-width: 100%; padding: 20px 20px 40px; }
+      #detail-overlay.open { background: transparent; }
 
       /* Drawer stays as-is */
       .drawer { border-radius: 12px 12px 0 0; }
@@ -609,18 +620,19 @@
 
   <!-- FLOATING SEARCH BAR (mobile only, fixed above everything) -->
   <div class="map-search-bar" id="map-search-bar">
-    <div class="map-search-top">
+    <form class="map-search-top" autocomplete="off" onsubmit="return false">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text2)">
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
-      <input type="search" id="map-search-input" placeholder="Search places, cities…"
+      <input type="search" id="map-search-input" placeholder="Search places, cities, people…"
         enterkeyhint="go" inputmode="search"
         autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        data-form-type="other"
         oninput="onSearchInput(this.value)"
         onkeydown="handleSearchKey(event)"
         onfocus="onSearchFocus()" />
       <button id="map-search-clear" onclick="clearMapSearch()" style="display:none;border:none;background:none;padding:0;cursor:pointer;color:var(--text3);line-height:1;font-size:20px;flex-shrink:0">×</button>
-    </div>
+    </form>
     <div class="map-filter-row">
       <select id="mobile-city"   onchange="applyFilters()" autocomplete="off"><option value="">All cities</option></select>
       <select id="mobile-type"   onchange="applyFilters()" autocomplete="off"><option value="">All types</option></select>
@@ -704,7 +716,10 @@
 <!-- DETAIL MODAL -->
 <div class="modal-overlay" id="detail-overlay" onclick="closeDetailModal(event)">
   <div class="modal" style="position:relative">
-    <button class="btn btn-ghost btn-sm" id="detail-edit-btn" style="position:absolute;top:12px;right:12px;font-size:12px;padding:4px 12px">Edit</button>
+    <div style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:6px">
+      <div id="detail-person-tags"></div>
+      <button class="btn btn-ghost btn-sm" id="detail-edit-btn" style="font-size:12px;padding:4px 12px">Edit</button>
+    </div>
     <div class="detail-header" style="padding-right:52px">
       <div class="detail-icon" id="detail-icon"></div>
       <div>
@@ -723,19 +738,13 @@
       <a id="detail-maps-link" href="" target="_blank">Open in Google Maps</a>
     </div>
 
-    <div class="detail-row" id="detail-people-row" style="display:none">
+    <div class="detail-row" id="detail-people-row" style="display:none !important">
       <div class="detail-row-icon">👤</div>
       <div id="detail-people"></div>
     </div>
 
-    <div class="detail-row" id="detail-added-by-row" style="display:none">
-      <div class="detail-row-icon">✍️</div>
-      <div id="detail-added-by" style="color:var(--text2);font-size:13px"></div>
-    </div>
-
-    <div class="detail-row" id="detail-notes-row" style="display:none">
-      <div class="detail-row-icon">📝</div>
-      <div id="detail-notes-text" style="line-height:1.5"></div>
+    <div class="detail-row" id="detail-notes-row" style="display:none; flex-direction: column; align-items: flex-start">
+      <div id="detail-notes-text" contenteditable="true" style="line-height:1.5; width:100%; min-height:40px; outline:none; cursor:text; color:var(--text)"></div>
     </div>
   </div>
 </div>
@@ -1036,10 +1045,6 @@ function onSearchInput(val) {
 
 function showSuggestions(q) {
   if (!q) { hideSuggestions(); return; }
-  // Don't show dropdown when list sheet is already showing filtered results
-  if (!isDesktop() && document.getElementById('mobile-sheet')?.classList.contains('open')) {
-    hideSuggestions(); return;
-  }
   const lq = q.toLowerCase();
   const box = document.getElementById('search-suggestions');
   if (!box) return;
@@ -1188,7 +1193,7 @@ function cardHtml(r) {
         <div class="rec-card-info">
           <div class="rec-name-line">
             <div class="rec-name">${esc(cleanName)}</div>
-            ${r.city ? `<div class="rec-city-text">${esc(r.city)}</div>` : ''}
+            ${r.city ? `<div class="rec-city-text">· ${esc(r.city)}</div>` : ''}
             ${person ? `<div class="rec-person-tag">${esc(person)}</div>` : ''}
           </div>
         </div>
@@ -1235,7 +1240,7 @@ function renderMobileList() {
           && bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
         const sectionLabel = s => `<div style="padding:10px 16px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">${s}</div>`;
         const recentSearches = getRecentSearches();
-        const recentSearchHtml = recentSearches.length
+        const recentSearchHtml = recentSearches.length >= 10
           ? sectionLabel('Recently searched') +
             `<div style="display:flex;gap:8px;flex-wrap:wrap;padding:6px 16px 12px">` +
             recentSearches.map(s => `<button onclick="applyRecentSearch(this.dataset.q)" data-q="${esc(s)}" style="border:1px solid var(--border);background:var(--card);border-radius:20px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--text);font-family:inherit">${esc(s)}</button>`).join('') +
@@ -1379,29 +1384,28 @@ function openDetail(id) {
 
   document.getElementById('detail-maps-link').href = mapsUrl(r);
 
-  const peopleRow = document.getElementById('detail-people-row');
   if (r.recommended_by) {
-    peopleRow.style.display = 'flex';
     const firstPerson = r.recommended_by.split(',')[0].trim();
-    document.getElementById('detail-people').innerHTML =
-      `<span class="tag person">${esc(firstPerson)}</span>`;
+    document.getElementById('detail-person-tags').innerHTML = `<span class="tag person">${esc(firstPerson)}</span>`;
   } else {
-    peopleRow.style.display = 'none';
-  }
-
-  const addedByRow = document.getElementById('detail-added-by-row');
-  if (r.creator_name) {
-    addedByRow.style.display = 'flex';
-    document.getElementById('detail-added-by').textContent = 'Added by ' + r.creator_name;
-  } else {
-    addedByRow.style.display = 'none';
+    document.getElementById('detail-person-tags').innerHTML = '';
   }
 
   const notesRow = document.getElementById('detail-notes-row');
   notesRow.style.display = 'flex'; // always visible
   let notesHtml = r.notes ? esc(r.notes) : '<span style="color:var(--text3);font-style:italic">No notes yet</span>';
   if (r.source_url) notesHtml += `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:4px;display:inline-block">View source ↗</a>`;
-  document.getElementById('detail-notes-text').innerHTML = notesHtml;
+  const notesEl = document.getElementById('detail-notes-text');
+  notesEl.innerHTML = notesHtml;
+  notesEl._recId = r.id;
+  notesEl.onblur = async function() {
+    const newNotes = this.innerText.trim();
+    const rec = allRecs.find(x => x.id === this._recId);
+    if (rec && newNotes !== (rec.notes || '').trim()) {
+      await api('/api/recommendations/' + this._recId, 'PUT', { ...rec, notes: newNotes });
+      rec.notes = newNotes;
+    }
+  };
 
   const editBtn = document.getElementById('detail-edit-btn');
   editBtn.onclick = () => { closeDetailModal(); openEdit(id); };
@@ -1544,7 +1548,7 @@ function initDrawerSwipe() {
 // ── MAP ──
 function initMap() {
   if (map) { renderMapMarkers(); return; }
-  map = L.map('map', { zoomControl: false }).setView([42.5, 12.5], 7);
+  map = L.map('map', { zoomControl: false }).setView([43, 12], 9);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
