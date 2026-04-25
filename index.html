@@ -215,7 +215,7 @@
 
     /* ── MAP ── */
     #map-view { flex: 1; display: none; position: relative; }
-    #map { height: 100%; width: 100%; }
+    #map { height: 100%; width: 100%; filter: grayscale(1) brightness(1.05); }
 
     .leaflet-popup-content-wrapper {
       border-radius: 8px !important; box-shadow: var(--shadow-md) !important;
@@ -401,7 +401,7 @@
       .suggestion-item:active { background: var(--bg); }
 
       /* Recenter: above zoom controls, right-aligned */
-      .recenter-btn { bottom: 190px; right: 10px; left: auto; }
+      .recenter-btn { bottom: 186px; right: 10px; left: auto; width: 26px; height: 26px; border-radius: 2px; }
       .recenter-icon-fit { display: none; }    /* hide fit-all on mobile */
       .recenter-icon-locate { display: block; } /* show locate on mobile */
 
@@ -507,7 +507,7 @@
       }
       #buddy-panel.open { transform: translateX(0); }
       #buddy-header {
-        padding: 52px 12px 10px;
+        padding: 16px 12px 10px;
         background: #000;
         font-size: 12px; font-weight: 600; letter-spacing: .04em;
         color: #aaa; text-transform: uppercase;
@@ -522,13 +522,8 @@
         -webkit-tap-highlight-color: transparent;
       }
       .buddy-item:active { background: rgba(255,255,255,0.08); }
-      .buddy-dot {
-        width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
-      }
-      .buddy-dot.online { background: #34a853; box-shadow: 0 0 4px #34a853; }
-      .buddy-dot.offline { background: #5a6a7a; }
-      .buddy-item.muted { color: #444; }
-      .buddy-item.muted .buddy-name { text-decoration: line-through; }
+      .buddy-item.muted { color: #555; font-style: italic; }
+      .buddy-item.muted .buddy-name { text-decoration: none; }
       #buddy-footer {
         padding: 12px 14px 28px; border-top: 1px solid #222; flex-shrink: 0;
         display: flex; align-items: center; justify-content: flex-end;
@@ -675,14 +670,14 @@
       <!-- Desktop: fit all markers. Mobile: go to current location -->
       <button class="recenter-btn" id="recenter-btn" onclick="recenterBtnClick()" title="My location">
         <!-- Fit-all icon (desktop) -->
-        <svg class="recenter-icon-fit" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="recenter-icon-fit" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 3 21 3 21 9"></polyline>
           <polyline points="9 21 3 21 3 15"></polyline>
           <line x1="21" y1="3" x2="14" y2="10"></line>
           <line x1="3" y1="21" x2="10" y2="14"></line>
         </svg>
         <!-- Locate icon (mobile) -->
-        <svg class="recenter-icon-locate" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="recenter-icon-locate" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8" stroke-opacity=".3"/>
         </svg>
       </button>
@@ -718,15 +713,8 @@
   <div class="bottom-nav" id="bottom-nav">
     <button class="nav-btn active" id="nav-map" onclick="setMode('map')">
       <div class="nav-pill">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="28" height="28">
-          <!-- Heart -->
-          <path fill-rule="evenodd" fill="#e8453c" d="M50 34 C50 21 37 9 24 9 C9 9 7 24 7 30 C7 50 29 62 50 80 C71 62 93 50 93 30 C93 24 91 9 76 9 C63 9 50 21 50 34Z M50 43 C50 33 43 25 36 25 C27 25 25 35 25 39 C25 53 38 62 50 73 C62 62 75 53 75 39 C75 35 73 25 64 25 C57 25 50 33 50 43Z"/>
-          <!-- Left person: blue -->
-          <circle fill="#4285f4" cx="34" cy="80" r="8.5"/>
-          <path fill="#4285f4" d="M21 100 C21 89 27 86 34 86 C41 86 47 89 47 100Z"/>
-          <!-- Right person: yellow -->
-          <circle fill="#fbbc04" cx="67" cy="83" r="6.5"/>
-          <path fill="#fbbc04" d="M56 100 C56 91 61 88 67 88 C73 88 78 91 78 100Z"/>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/>
         </svg>
       </div>
       <span class="nav-label">Map</span>
@@ -753,8 +741,12 @@
 
 <!-- BUDDY LIST -->
 <button id="buddy-btn" onclick="toggleBuddy()" title="Buddy List">
-  <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-    <path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="22" height="22">
+    <path fill-rule="evenodd" fill="#e8453c" d="M50 34 C50 21 37 9 24 9 C9 9 7 24 7 30 C7 50 29 62 50 80 C71 62 93 50 93 30 C93 24 91 9 76 9 C63 9 50 21 50 34Z M50 43 C50 33 43 25 36 25 C27 25 25 35 25 39 C25 53 38 62 50 73 C62 62 75 53 75 39 C75 35 73 25 64 25 C57 25 50 33 50 43Z"/>
+    <circle fill="#4285f4" cx="34" cy="80" r="8.5"/>
+    <path fill="#4285f4" d="M21 100 C21 89 27 86 34 86 C41 86 47 89 47 100Z"/>
+    <circle fill="#fbbc04" cx="67" cy="83" r="6.5"/>
+    <path fill="#fbbc04" d="M56 100 C56 91 61 88 67 88 C73 88 78 91 78 100Z"/>
   </svg>
 </button>
 <div id="buddy-backdrop" onclick="closeBuddy()"></div>
@@ -910,10 +902,32 @@ const TYPE_ICONS = {
   beach: '🏖️', church: '⛪', neighborhood: '🗺️', other: '📍'
 };
 const TYPE_COLORS = {
-  restaurant: '#EA4335', bar: '#9334E6', cafe: '#FBBC05', museum: '#1A73E8',
-  attraction: '#34A853', hotel: '#1A73E8', shop: '#EA4335', market: '#34A853',
-  beach: '#1A73E8', church: '#9334E6', neighborhood: '#34A853', other: '#5f6368'
+  restaurant: '#e8453c', bar: '#e8453c', cafe: '#f29900',
+  museum: '#9334E6', attraction: '#9334E6', church: '#9334E6',
+  hotel: '#1A73E8', shop: '#1A73E8',
+  market: '#f29900', beach: '#00ACC1',
+  neighborhood: '#34A853', other: '#5f6368'
 };
+const TYPE_PATHS = {
+  restaurant: '<path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>',
+  bar: '<path d="M21 5V3H3v2l8 9v5H6v2h12v-2h-5v-5l8-9z"/>',
+  cafe: '<path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/>',
+  museum: '<path d="M22 11V9L12 2 2 9v2h2v9H2v2h20v-2h-2v-9h2zm-4 9H6v-9h12v9z"/>',
+  attraction: '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>',
+  hotel: '<path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/>',
+  shop: '<path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2z"/>',
+  market: '<path d="M4 10v7h3v-7H4zm6.5 0v7h3v-7h-3zM2 22h19v-3H2v3zm15-12v7h3v-7h-3zM11.5 1L2 6v2h19V6l-9.5-5z"/>',
+  beach: '<path d="M13.127 14.56l1.43-1.43 6.44 6.443L19.57 21zm4.293-5.73l2.86-2.86c-3.95-3.95-10.35-3.96-14.3-.02 3.93-1.3 8.31-.25 11.44 2.88zM5.95 6.23c-3.94 3.95-3.93 10.35.02 14.3l2.86-2.86C5.7 14.54 4.65 10.16 5.95 6.23zm.02-.02l-.01.01c-.38 3.01 1.17 6.88 4.3 10.02l5.73-5.73c-3.13-3.13-7.01-4.68-10.02-4.3z"/>',
+  church: '<path d="M9 22h6v-6.586l-3-3-3 3V22zm3-20L9 5v2H7v2h2v2.172l-5 5V22h2v-5.172l4-4 4 4V22h2v-5.828l-5-5V9h2V7h-2V5l-3-3z"/>',
+  neighborhood: '<path d="M12 3L2 12h3v8h6v-5h2v5h6v-8h3L12 3z"/>',
+  other: '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>'
+};
+
+function typeIconHtml(type, size = 26) {
+  const color = TYPE_COLORS[type] || '#5f6368';
+  const path = TYPE_PATHS[type] || TYPE_PATHS.other;
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" width="${Math.round(size*0.55)}" height="${Math.round(size*0.55)}" fill="white">${path}</svg></div>`;
+}
 
 let sessionToken = localStorage.getItem('hm_token') || null;
 let allRecs = [], filtered = [], allPeople = [];
@@ -1100,6 +1114,7 @@ function onSearchFocus() {
       document.getElementById('nav-list').classList.add('active');
       document.getElementById('nav-map').classList.remove('active');
       renderMobileList();
+      disableMapInteraction();
     }
   }
 }
@@ -1136,6 +1151,10 @@ function onSearchInput(val) {
 
 function showSuggestions(q) {
   if (!q) { hideSuggestions(); return; }
+  // Don't show dropdown overlay when list sheet is open — list already filters live
+  if (!isDesktop() && document.getElementById('mobile-sheet')?.classList.contains('open')) {
+    hideSuggestions(); return;
+  }
   const lq = q.toLowerCase();
   const box = document.getElementById('search-suggestions');
   if (!box) return;
@@ -1163,7 +1182,7 @@ function showSuggestions(q) {
   placeMatches.forEach(r => {
     const cleanName = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
     html += `<div class="suggestion-item" onclick="selectPlaceSuggestion(${r.id})">
-      <span style="font-size:16px">${TYPE_ICONS[r.type]||'📍'}</span>
+      ${typeIconHtml(r.type, 18)}
       <span>${esc(cleanName)} ${r.city ? `<span style="color:var(--text2);font-size:12px">· ${esc(r.city)}</span>` : ''}</span>
     </div>`;
   });
@@ -1285,7 +1304,7 @@ function cardHtml(r) {
   return `
     <div class="rec-card" id="card-${r.id}" data-id="${r.id}" onclick="handleCardTap(${r.id})">
       <div class="rec-card-top">
-        <div class="rec-type-icon">${TYPE_ICONS[r.type] || '📍'}</div>
+        ${typeIconHtml(r.type, 28)}
         <div class="rec-card-info">
           <div class="rec-name-line">
             <div class="rec-name">${esc(cleanName)}</div>
@@ -1387,6 +1406,7 @@ function closeSheetOnly() {
   document.getElementById('nav-map').classList.add('active');
   document.getElementById('mobile-sheet').classList.remove('open');
   collapseSearchFilters();
+  enableMapInteraction();
 }
 
 function panToRec(id) {
@@ -1526,11 +1546,13 @@ function setMode(mode) {
     expandSearchFilters();
     if (!map) initMap();
     renderMobileList(); // re-render with current map viewport bounds
+    disableMapInteraction();
   } else if (mode === 'map') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
     collapseSearchFilters();
     if (!map) initMap();
+    enableMapInteraction();
   } else if (mode === 'add') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
@@ -1643,11 +1665,26 @@ function initDrawerSwipe() {
 }
 
 // ── MAP ──
+function disableMapInteraction() {
+  if (!map) return;
+  map.dragging.disable();
+  map.touchZoom.disable();
+  map.doubleClickZoom.disable();
+  map.scrollWheelZoom.disable();
+}
+function enableMapInteraction() {
+  if (!map) return;
+  map.dragging.enable();
+  map.touchZoom.enable();
+  map.doubleClickZoom.enable();
+  map.scrollWheelZoom.enable();
+}
+
 function initMap() {
   if (map) { renderMapMarkers(); return; }
   map = L.map('map', { zoomControl: false }).setView([43, 12], 9);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19, subdomains: 'abcd'
   }).addTo(map);
@@ -1683,6 +1720,12 @@ function initMap() {
       if (sheet && sheet.classList.contains('open')) renderMobileList();
     }
   });
+  map.on('click', () => {
+    if (!isDesktop()) {
+      const sheet = document.getElementById('mobile-sheet');
+      if (sheet && sheet.classList.contains('open')) closeSheetOnly();
+    }
+  });
 }
 
 function recenterMap() {
@@ -1698,13 +1741,12 @@ function renderMapMarkers() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
   filtered.filter(r => r.latitude && r.longitude).forEach(r => {
-    const color = TYPE_COLORS[r.type] || '#1A73E8';
     const icon = L.divIcon({
       className: '',
-      html: `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white"><span style="transform:rotate(45deg);font-size:16px;line-height:1">${TYPE_ICONS[r.type]||'📍'}</span></div>`,
-      iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0,-36]
+      html: typeIconHtml(r.type, 32),
+      iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -16]
     });
-    const m = L.marker([r.latitude, r.longitude], { icon }).addTo(map);
+    const m = L.marker([parseFloat(r.latitude), parseFloat(r.longitude)], { icon }).addTo(map);
     m.on('click', () => openDetail(r.id));
     markers.push(m);
   });
@@ -1971,7 +2013,6 @@ function renderBuddyNames() {
     const muted = _hiddenPeople.has(p);
     const count = allRecs.filter(r => r.recommended_by && r.recommended_by.split(',').map(x => x.trim()).includes(p)).length;
     return `<div class="buddy-item${muted ? ' muted' : ''}" onclick="toggleBuddyPerson('${p.replace(/'/g,"\\'")}')">
-      <div class="buddy-dot ${muted ? 'offline' : 'online'}"></div>
       <span class="buddy-name">${esc(p)}</span>
       <span style="margin-left:auto;font-size:10px;color:${muted ? '#444' : '#666'}">${count}</span>
     </div>`;
