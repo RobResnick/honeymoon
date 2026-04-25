@@ -312,6 +312,10 @@
     }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 
+    /* Detail modal overlay transparent to events except on the modal itself */
+    #detail-overlay { pointer-events: none; }
+    #detail-overlay .modal { pointer-events: auto; }
+
     /* Detail modal specifics */
     .detail-header { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 20px; }
     .detail-icon { flex-shrink: 0; }
@@ -816,9 +820,9 @@
 </div>
 
 <!-- DETAIL MODAL -->
-<div class="modal-overlay" id="detail-overlay" onclick="closeDetailModal(event)">
+<div class="modal-overlay" id="detail-overlay">
   <div class="modal" style="position:relative">
-    <!-- Top-right: maps icons -->
+    <!-- Top-right: maps icons + close -->
     <div style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:10px">
       <a id="detail-apple-maps-link" href="" target="_blank" title="Open in Apple Maps" style="display:flex;align-items:center">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect width="24" height="24" rx="5" fill="#1C86EE"/><path d="M12 4C8.13 4 5 7.13 5 11c0 3.5 4 9 7 11 3-2 7-7.5 7-11 0-3.87-3.13-7-7-7z" fill="white" opacity=".9"/><circle cx="12" cy="11" r="2.5" fill="#1C86EE"/></svg>
@@ -827,7 +831,8 @@
         <svg viewBox="0 0 24 24" width="24" height="24"><rect width="24" height="24" rx="5" fill="#fff"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#EA4335"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>
       </a>
     </div>
-    <div class="detail-header" style="padding-right:64px">
+    <button onclick="closeDetailModal()" style="position:absolute;top:12px;left:12px;background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;padding:2px 6px;line-height:1">✕</button>
+    <div class="detail-header" style="padding:0 64px 0 36px;margin-bottom:20px">
       <div class="detail-icon" id="detail-icon"></div>
       <div style="flex:1;min-width:0">
         <div class="detail-name" id="detail-name"></div>
@@ -1614,15 +1619,64 @@ function appleMapsUrl(r) {
   return `https://maps.apple.com/?q=${encodeURIComponent(mapsQuery(r))}`;
 }
 
+function makeDetailEditable(el, field, r) {
+  el.contentEditable = 'true';
+  el.style.cursor = 'text';
+  el.style.borderBottom = '1px dashed var(--border)';
+  el.onblur = async function() {
+    const newVal = this.innerText.trim();
+    const rec = allRecs.find(x => x.id === r.id);
+    if (!rec || !newVal || newVal === (rec[field] || '').trim()) return;
+    rec[field] = newVal;
+    await api('/api/recommendations/' + r.id, 'PUT', { ...rec });
+    // Refresh maps links if location changed
+    if (['city','neighborhood','address'].includes(field)) {
+      document.getElementById('detail-google-maps-link').href = mapsUrl(rec);
+      document.getElementById('detail-apple-maps-link').href = appleMapsUrl(rec);
+    }
+  };
+}
+
 function openDetail(id) {
   const r = allRecs.find(x => x.id === id);
   if (!r) return;
+  const myItem = _currentUser && r.user_id === _currentUser.id;
 
   const srcColor = getRecSourceColor(r);
   document.getElementById('detail-icon').innerHTML = typeIconHtml(r.type, 40, srcColor);
-  document.getElementById('detail-name').textContent = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
+
+  const nameEl = document.getElementById('detail-name');
+  nameEl.textContent = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
+  nameEl.contentEditable = myItem ? 'true' : 'false';
+  nameEl.style.cursor = myItem ? 'text' : '';
+  nameEl.style.borderBottom = myItem ? '1px dashed var(--border)' : '';
+  if (myItem) {
+    nameEl.onblur = async function() {
+      const newVal = this.innerText.trim();
+      const rec = allRecs.find(x => x.id === r.id);
+      if (rec && newVal && newVal !== rec.name) { rec.name = newVal; await api('/api/recommendations/'+r.id,'PUT',{...rec}); }
+    };
+  }
+
+  const metaEl = document.getElementById('detail-meta');
   const metaParts = [r.city, r.neighborhood, r.type ? r.type.charAt(0).toUpperCase()+r.type.slice(1) : ''].filter(Boolean);
-  document.getElementById('detail-meta').textContent = metaParts.join(' · ');
+  metaEl.textContent = metaParts.join(' · ');
+  metaEl.contentEditable = myItem ? 'true' : 'false';
+  metaEl.style.cursor = myItem ? 'text' : '';
+  metaEl.style.borderBottom = myItem ? '1px dashed var(--border)' : '';
+  if (myItem) {
+    metaEl.title = 'Edit: City · Neighborhood · Type';
+    metaEl.onblur = async function() {
+      const parts = this.innerText.split('·').map(s=>s.trim()).filter(Boolean);
+      const rec = allRecs.find(x => x.id === r.id);
+      if (!rec) return;
+      // Update city if first part changed
+      if (parts[0] && parts[0] !== rec.city) { rec.city = parts[0]; }
+      await api('/api/recommendations/'+r.id,'PUT',{...rec});
+      document.getElementById('detail-google-maps-link').href = mapsUrl(rec);
+      document.getElementById('detail-apple-maps-link').href = appleMapsUrl(rec);
+    };
+  }
 
   // Maps links (top-right)
   document.getElementById('detail-google-maps-link').href = mapsUrl(r);
@@ -1675,10 +1729,8 @@ function openDetail(id) {
 }
 
 
-function closeDetailModal(e) {
-  if (!e || e.target === document.getElementById('detail-overlay')) {
-    document.getElementById('detail-overlay').classList.remove('open');
-  }
+function closeDetailModal() {
+  document.getElementById('detail-overlay').classList.remove('open');
 }
 
 // ── MOBILE NAV + SWIPE ──
