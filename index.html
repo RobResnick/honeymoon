@@ -169,7 +169,7 @@
     .rec-type-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
     .rec-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
     .rec-name-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; flex: 1; }
-    .rec-person-tag { margin-left: auto; font-size: 11px; color: var(--text3); flex-shrink: 0; padding-left: 6px; }
+    .rec-person-tag { margin-left: auto; font-size: 11px; color: var(--blue-dark); background: var(--blue-light); border: 1px solid #b8cef8; border-radius: 20px; padding: 2px 8px; flex-shrink: 0; white-space: nowrap; }
     .rec-name {
       font-size: 13px; font-weight: 500;
       font-family: 'Google Sans', sans-serif;
@@ -362,6 +362,8 @@
       }
       .map-search-top input::placeholder { color: var(--text3); }
       .map-search-top input:focus { border: none; box-shadow: none; }
+      .map-search-top input[type="search"]::-webkit-search-cancel-button,
+      .map-search-top input[type="search"]::-webkit-search-decoration { display: none; }
       /* Filter row hidden until typing or list open */
       .map-filter-row {
         display: none; gap: 5px;
@@ -611,9 +613,9 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text2)">
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
-      <input type="text" id="map-search-input" placeholder="Search places, cities…"
+      <input type="search" id="map-search-input" placeholder="Search places, cities…"
         enterkeyhint="go" inputmode="search"
-        autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
         oninput="onSearchInput(this.value)"
         onkeydown="handleSearchKey(event)"
         onfocus="onSearchFocus()" />
@@ -724,6 +726,11 @@
     <div class="detail-row" id="detail-people-row" style="display:none">
       <div class="detail-row-icon">👤</div>
       <div id="detail-people"></div>
+    </div>
+
+    <div class="detail-row" id="detail-added-by-row" style="display:none">
+      <div class="detail-row-icon">✍️</div>
+      <div id="detail-added-by" style="color:var(--text2);font-size:13px"></div>
     </div>
 
     <div class="detail-row" id="detail-notes-row" style="display:none">
@@ -943,7 +950,7 @@ function handleSearchKey(e) {
     hideSuggestions();
     applyFilters();
     const q = e.target.value.trim();
-    if (q) jumpToSearch(q);
+    if (q) { saveRecentSearch(q); jumpToSearch(q); }
     e.target.blur();
     // If search auto-opened the sheet, close it on Enter
     if (_sheetOpenedBySearch) {
@@ -1075,12 +1082,31 @@ function hideSuggestions() {
   if (box) box.classList.remove('visible');
 }
 
+function saveRecentSearch(q) {
+  if (!q || q.trim().length < 2) return;
+  q = q.trim();
+  let recent = JSON.parse(localStorage.getItem('hm_recent_searches') || '[]');
+  recent = [q, ...recent.filter(s => s.toLowerCase() !== q.toLowerCase())].slice(0, 6);
+  localStorage.setItem('hm_recent_searches', JSON.stringify(recent));
+}
+function getRecentSearches() {
+  return JSON.parse(localStorage.getItem('hm_recent_searches') || '[]');
+}
+function applyRecentSearch(q) {
+  const inp = document.getElementById('map-search-input');
+  if (inp) inp.value = q;
+  document.getElementById('map-search-clear').style.display = 'block';
+  applyFilters();
+  renderMobileList();
+}
+
 function selectCitySuggestion(city) {
   const inp = document.getElementById('map-search-input');
   if (inp) inp.value = city;
   document.getElementById('map-search-clear').style.display = 'block';
   hideSuggestions();
   applyFilters();
+  saveRecentSearch(city);
   jumpToSearch(city);
   if (!isDesktop()) closeSheetOnly();
 }
@@ -1207,14 +1233,20 @@ function renderMobileList() {
         const bounds = map.getBounds();
         const inBounds = filtered.filter(r => r.latitude && r.longitude
           && bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
+        const sectionLabel = s => `<div style="padding:10px 16px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">${s}</div>`;
+        const recentSearches = getRecentSearches();
+        const recentSearchHtml = recentSearches.length
+          ? sectionLabel('Recently searched') +
+            `<div style="display:flex;gap:8px;flex-wrap:wrap;padding:6px 16px 12px">` +
+            recentSearches.map(s => `<button onclick="applyRecentSearch(this.dataset.q)" data-q="${esc(s)}" style="border:1px solid var(--border);background:var(--card);border-radius:20px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--text);font-family:inherit">${esc(s)}</button>`).join('') +
+            `</div>`
+          : '';
         if (inBounds.length) {
-          html = inBounds.map(cardHtml).join('');
+          html = recentSearchHtml + inBounds.map(cardHtml).join('');
         } else {
           // Nothing in viewport → recently added fallback
           const recent = [...allRecs].sort((a, b) => b.id - a.id).slice(0, 12);
-          html = recent.length
-            ? `<div style="padding:10px 16px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Recently added</div>` + recent.map(cardHtml).join('')
-            : noMatch;
+          html = recentSearchHtml + (recent.length ? sectionLabel('Recently added') + recent.map(cardHtml).join('') : noMatch);
         }
       } else {
         html = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
@@ -1350,10 +1382,19 @@ function openDetail(id) {
   const peopleRow = document.getElementById('detail-people-row');
   if (r.recommended_by) {
     peopleRow.style.display = 'flex';
+    const firstPerson = r.recommended_by.split(',')[0].trim();
     document.getElementById('detail-people').innerHTML =
-      r.recommended_by.split(',').map(p => `<span class="tag person" style="margin-right:4px">${esc(p.trim())}</span>`).join('');
+      `<span class="tag person">${esc(firstPerson)}</span>`;
   } else {
     peopleRow.style.display = 'none';
+  }
+
+  const addedByRow = document.getElementById('detail-added-by-row');
+  if (r.creator_name) {
+    addedByRow.style.display = 'flex';
+    document.getElementById('detail-added-by').textContent = 'Added by ' + r.creator_name;
+  } else {
+    addedByRow.style.display = 'none';
   }
 
   const notesRow = document.getElementById('detail-notes-row');

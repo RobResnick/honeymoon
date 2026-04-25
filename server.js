@@ -199,17 +199,18 @@ async function geocode(name, address, city, country = '') {
 // Recommendations CRUD
 app.get('/api/recommendations', requireAuth, async (req, res) => {
   const { city, type, recommended_by, search } = req.query;
-  let query = 'SELECT * FROM recommendations WHERE user_id = $1';
-  const params = [req.userId];
-  let i = 2;
-  if (city) { query += ` AND LOWER(city) = LOWER($${i++})`; params.push(city); }
-  if (type) { query += ` AND type = $${i++}`; params.push(type); }
-  if (recommended_by) { query += ` AND LOWER(recommended_by) = LOWER($${i++})`; params.push(recommended_by); }
+  // All authenticated users share the same recommendations (family app)
+  let query = 'SELECT r.*, u.name as creator_name FROM recommendations r LEFT JOIN users u ON r.user_id = u.id WHERE 1=1';
+  const params = [];
+  let i = 1;
+  if (city) { query += ` AND LOWER(r.city) = LOWER($${i++})`; params.push(city); }
+  if (type) { query += ` AND r.type = $${i++}`; params.push(type); }
+  if (recommended_by) { query += ` AND LOWER(r.recommended_by) = LOWER($${i++})`; params.push(recommended_by); }
   if (search) {
-    query += ` AND (LOWER(name) LIKE LOWER($${i}) OR LOWER(notes) LIKE LOWER($${i}) OR LOWER(city) LIKE LOWER($${i}))`;
+    query += ` AND (LOWER(r.name) LIKE LOWER($${i}) OR LOWER(r.notes) LIKE LOWER($${i}) OR LOWER(r.city) LIKE LOWER($${i}))`;
     params.push(`%${search}%`); i++;
   }
-  query += ' ORDER BY created_at DESC';
+  query += ' ORDER BY r.created_at DESC';
   const result = await pool.query(query, params);
   res.json(result.rows);
 });
@@ -300,9 +301,9 @@ app.delete('/api/recommendations/:id', requireAuth, async (req, res) => {
 // Distinct filter values
 app.get('/api/filters', requireAuth, async (req, res) => {
   const [cities, types, people] = await Promise.all([
-    pool.query('SELECT DISTINCT city FROM recommendations WHERE user_id=$1 AND city IS NOT NULL ORDER BY city', [req.userId]),
-    pool.query('SELECT DISTINCT type FROM recommendations WHERE user_id=$1 AND type IS NOT NULL ORDER BY type', [req.userId]),
-    pool.query('SELECT DISTINCT recommended_by FROM recommendations WHERE user_id=$1 AND recommended_by IS NOT NULL ORDER BY recommended_by', [req.userId]),
+    pool.query('SELECT DISTINCT city FROM recommendations WHERE city IS NOT NULL ORDER BY city'),
+    pool.query('SELECT DISTINCT type FROM recommendations WHERE type IS NOT NULL ORDER BY type'),
+    pool.query('SELECT DISTINCT recommended_by FROM recommendations WHERE recommended_by IS NOT NULL ORDER BY recommended_by'),
   ]);
   res.json({
     cities: cities.rows.map(r => r.city),
