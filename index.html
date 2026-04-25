@@ -177,6 +177,21 @@
     }
     .rec-city-text { font-size: 12px; color: var(--text2); white-space: nowrap; flex-shrink: 0; }
     .rec-tags { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+    /* People pill picker (add/edit forms) */
+    .people-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; min-height: 28px; }
+    .people-pill {
+      padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--bg); font-size: 12px; cursor: pointer; color: var(--text2);
+      font-family: inherit; transition: background 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .people-pill.selected { background: var(--blue); color: white; border-color: var(--blue); }
+    .people-add-input {
+      border: none; border-bottom: 1px solid var(--border); outline: none;
+      font-size: 13px; padding: 2px 4px; background: transparent; color: var(--text);
+      width: 100%; font-family: inherit;
+    }
+    .people-add-input::placeholder { color: var(--text3); }
     .tag {
       font-size: 11px; padding: 2px 8px; border-radius: 20px;
       font-weight: 500; border: 1px solid; white-space: nowrap;
@@ -242,6 +257,9 @@
     /* Mobile-only elements hidden by default */
     .mobile-sheet { display: none; }
     .bottom-nav { display: none; }
+    #buddy-btn { display: none; }
+    #buddy-panel { display: none; }
+    #buddy-backdrop { display: none; }
 
     /* ── DRAWER ── */
     .overlay {
@@ -536,6 +554,7 @@
         display: none; position: fixed; inset: 0; z-index: 799;
       }
       #buddy-btn { display: flex; }
+      #buddy-panel { display: flex; }
     }
 
     /* ════════════════════════════════
@@ -734,7 +753,7 @@
 </div><!-- #app -->
 
 <!-- BUDDY LIST -->
-<button id="buddy-btn" onclick="toggleBuddy()" title="Buddy List" style="display:none">
+<button id="buddy-btn" onclick="toggleBuddy()" title="Buddy List">
   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
     <path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/>
   </svg>
@@ -770,8 +789,9 @@
         </div>
         <div class="field">
           <label>Recommended by</label>
-          <input type="text" id="input-person" placeholder="Jake" list="person-suggestions" autocomplete="off" />
-          <datalist id="person-suggestions"></datalist>
+          <div class="people-picker" id="add-person-picker"></div>
+          <input class="people-add-input" id="add-person-new" placeholder="+ new person" autocomplete="off" autocorrect="off" autocapitalize="words" onkeydown="handleNewPersonKey(event,'add')" />
+          <input type="hidden" id="input-person" />
         </div>
       </div>
       <div class="field">
@@ -858,7 +878,9 @@
       </div>
       <div class="field">
         <label>Recommended by</label>
-        <input type="text" id="edit-recommended-by" />
+        <div class="people-picker" id="edit-person-picker"></div>
+        <input class="people-add-input" id="edit-person-new" placeholder="+ new person" autocomplete="off" autocorrect="off" autocapitalize="words" onkeydown="handleNewPersonKey(event,'edit')" />
+        <input type="hidden" id="edit-recommended-by" />
       </div>
     </div>
     <div class="field-row">
@@ -901,7 +923,8 @@ const TYPE_COLORS = {
 };
 
 let sessionToken = localStorage.getItem('hm_token') || null;
-let allRecs = [], filtered = [];
+let allRecs = [], filtered = [], allPeople = [];
+let _addSelectedPeople = new Set(), _editSelectedPeople = new Set();
 let map = null, markers = [], locationDot = null;
 let authMode = 'login';
 let pendingParseCount = 0, pendingRawInput = '';
@@ -948,10 +971,15 @@ async function api(url, method = 'GET', body = null) {
   return res.json();
 }
 
+async function loadPeople() {
+  const data = await api('/api/people');
+  if (Array.isArray(data)) allPeople = data;
+}
+
 async function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  await loadRecs();
+  await Promise.all([loadRecs(), loadPeople()]);
   await loadFilters();
   // Leaflet needs the container to be visible before it can measure dimensions
   setTimeout(() => {
@@ -1693,8 +1721,8 @@ function renderMapMarkers() {
 function openAddDrawer() {
   document.getElementById('raw-input').value = '';
   document.getElementById('input-city').value = '';
-  document.getElementById('input-person').value = '';
   document.getElementById('parse-results').innerHTML = '';
+  initAddPersonPicker();
   document.getElementById('add-overlay').classList.add('open');
 }
 
@@ -1789,7 +1817,7 @@ function openEdit(id, e) {
   document.getElementById('edit-type').value = r.type || 'other';
   document.getElementById('edit-city').value = r.city || '';
   document.getElementById('edit-neighborhood').value = r.neighborhood || '';
-  document.getElementById('edit-recommended-by').value = r.recommended_by || '';
+  initEditPersonPicker(r.recommended_by || '');
   document.getElementById('edit-phone').value = r.phone || '';
   document.getElementById('edit-address').value = r.address || '';
   document.getElementById('edit-notes').value = r.notes || '';
@@ -1857,6 +1885,59 @@ function showToast(msg, duration = 2500) {
 // ── BUDDY LIST ──
 let _hiddenPeople = new Set(JSON.parse(localStorage.getItem('hm_hidden_people') || '[]'));
 
+// ── PEOPLE PICKER ──
+function renderPeoplePicker(pickerId, selectedSet) {
+  const el = document.getElementById(pickerId);
+  if (!el) return;
+  el.innerHTML = allPeople.map(p => {
+    const sel = selectedSet.has(p);
+    return `<button type="button" class="people-pill${sel ? ' selected' : ''}"
+      onclick="togglePersonPill('${p.replace(/'/g,"\\'")}','${pickerId}')">${esc(p)}</button>`;
+  }).join('');
+}
+
+function togglePersonPill(name, pickerId) {
+  const set = pickerId.startsWith('add') ? _addSelectedPeople : _editSelectedPeople;
+  const hiddenId = pickerId.startsWith('add') ? 'input-person' : 'edit-recommended-by';
+  if (set.has(name)) set.delete(name); else set.add(name);
+  renderPeoplePicker(pickerId, set);
+  document.getElementById(hiddenId).value = [...set].join(', ');
+}
+
+async function handleNewPersonKey(e, context) {
+  if (e.key !== 'Enter' && e.key !== ',') return;
+  e.preventDefault();
+  const name = e.target.value.trim().replace(/,$/, '');
+  if (!name) return;
+  e.target.value = '';
+  if (!allPeople.includes(name)) {
+    allPeople = [...new Set([...allPeople, name])].sort((a, b) => a.localeCompare(b));
+    await api('/api/people', 'POST', { people: allPeople });
+  }
+  const pickerId = context === 'add' ? 'add-person-picker' : 'edit-person-picker';
+  const set = context === 'add' ? _addSelectedPeople : _editSelectedPeople;
+  const hiddenId = context === 'add' ? 'input-person' : 'edit-recommended-by';
+  set.add(name);
+  renderPeoplePicker(pickerId, set);
+  document.getElementById(hiddenId).value = [...set].join(', ');
+}
+
+function initAddPersonPicker() {
+  _addSelectedPeople.clear();
+  renderPeoplePicker('add-person-picker', _addSelectedPeople);
+  const inp = document.getElementById('input-person');
+  if (inp) inp.value = '';
+  const newInp = document.getElementById('add-person-new');
+  if (newInp) newInp.value = '';
+}
+
+function initEditPersonPicker(currentValue) {
+  _editSelectedPeople = new Set((currentValue || '').split(',').map(p => p.trim()).filter(Boolean));
+  renderPeoplePicker('edit-person-picker', _editSelectedPeople);
+  const newInp = document.getElementById('edit-person-new');
+  if (newInp) newInp.value = '';
+}
+
 function toggleBuddy() {
   const panel = document.getElementById('buddy-panel');
   if (panel.classList.contains('open')) closeBuddy();
@@ -1864,20 +1945,17 @@ function toggleBuddy() {
 }
 
 function openBuddy() {
-  const people = [...new Set(
-    allRecs.flatMap(r => r.recommended_by
-      ? r.recommended_by.split(',').map(p => p.trim()).filter(Boolean)
-      : [])
-  )].sort();
   const namesEl = document.getElementById('buddy-names');
-  if (!people.length) {
-    namesEl.innerHTML = '<div style="padding:16px 14px;font-size:12px;color:#4a5a70">No buddies yet — add some recommendations!</div>';
+  if (!allPeople.length) {
+    namesEl.innerHTML = '<div style="padding:16px 14px;font-size:12px;color:#4a5a70">No buddies yet — add places with a "recommended by" name to see them here.</div>';
   } else {
-    namesEl.innerHTML = people.map(p => {
+    namesEl.innerHTML = allPeople.map(p => {
       const muted = _hiddenPeople.has(p);
+      const count = allRecs.filter(r => r.recommended_by && r.recommended_by.split(',').map(x=>x.trim()).includes(p)).length;
       return `<div class="buddy-item${muted ? ' muted' : ''}" onclick="toggleBuddyPerson('${p.replace(/'/g,"\\'")}')">
         <div class="buddy-dot ${muted ? 'offline' : 'online'}"></div>
         <span class="buddy-name">${esc(p)}</span>
+        <span style="margin-left:auto;font-size:10px;color:${muted?'#3a5070':'#5a7090'}">${count}</span>
       </div>`;
     }).join('');
   }

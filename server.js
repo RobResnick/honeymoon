@@ -298,6 +298,29 @@ app.delete('/api/recommendations/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Canonical people list (recommended_by "users")
+app.get('/api/people', requireAuth, async (req, res) => {
+  // Get stored list
+  const stored = await pool.query("SELECT value FROM app_config WHERE key='people_list'");
+  let people = stored.rows[0] ? JSON.parse(stored.rows[0].value) : [];
+  // Merge any names from recommendations not yet in the list
+  const fromRecs = await pool.query('SELECT DISTINCT recommended_by FROM recommendations WHERE recommended_by IS NOT NULL');
+  const recPeople = fromRecs.rows.flatMap(r => r.recommended_by.split(',').map(p => p.trim()).filter(Boolean));
+  const merged = [...new Set([...people, ...recPeople])].sort((a, b) => a.localeCompare(b));
+  if (merged.length !== people.length) {
+    await pool.query("INSERT INTO app_config(key,value) VALUES('people_list',$1) ON CONFLICT(key) DO UPDATE SET value=$1", [JSON.stringify(merged)]);
+  }
+  res.json(merged);
+});
+
+app.post('/api/people', requireAuth, async (req, res) => {
+  const { people } = req.body;
+  if (!Array.isArray(people)) return res.status(400).json({ error: 'people must be an array' });
+  const sorted = [...new Set(people.map(p => p.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  await pool.query("INSERT INTO app_config(key,value) VALUES('people_list',$1) ON CONFLICT(key) DO UPDATE SET value=$1", [JSON.stringify(sorted)]);
+  res.json({ ok: true, people: sorted });
+});
+
 // Distinct filter values
 app.get('/api/filters', requireAuth, async (req, res) => {
   const [cities, types, people] = await Promise.all([
