@@ -18,16 +18,41 @@ function generateToken(userId) {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '90d' });
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const token = req.headers['x-session-token'];
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.userId;
+    // Attach user name for normalization use
+    const u = await pool.query('SELECT name FROM users WHERE id=$1', [req.userId]);
+    req.userName = u.rows[0]?.name || '';
     next();
   } catch (e) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+}
+
+// City → country lookup for saving new places
+const CITY_COUNTRY_MAP = {
+  'florence':'Italy','milan':'Italy','rome':'Italy','venice':'Italy','naples':'Italy',
+  'como':'Italy','bologna':'Italy','turin':'Italy','genoa':'Italy','verona':'Italy',
+  'positano':'Italy','amalfi':'Italy','cinque terre':'Italy','siena':'Italy',
+  'paris':'France','lyon':'France','nice':'France','bordeaux':'France','marseille':'France',
+  'london':'United Kingdom','edinburgh':'United Kingdom','manchester':'United Kingdom',
+  'los angeles':'United States','new york':'United States','chicago':'United States',
+  'miami':'United States','san francisco':'United States','las vegas':'United States',
+  'maui':'United States','honolulu':'United States','hawaii':'United States',
+  'wailea':'United States','lahaina':'United States','kihei':'United States',
+  'madrid':'Spain','barcelona':'Spain','seville':'Spain',
+  'berlin':'Germany','munich':'Germany','hamburg':'Germany',
+  'amsterdam':'Netherlands','lisbon':'Portugal','athens':'Greece',
+  'tokyo':'Japan','kyoto':'Japan','osaka':'Japan',
+  'barcelona':'Spain',
+};
+function inferCountry(city) {
+  if (!city) return null;
+  return CITY_COUNTRY_MAP[city.toLowerCase().trim()] || null;
 }
 
 // Initialize DB schema
@@ -326,12 +351,22 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
   await Promise.all(uniqueCities.map(c => geocodeCity(c)));
 
   for (const rec of recs) {
-    const { name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, latitude, longitude, phone } = rec;
+    const { name, type, city, neighborhood, address, notes, source_url, raw_input, latitude, longitude, phone } = rec;
+
+    // Normalize recommended_by: if it matches the current user's name, store as "Me"
+    let recommended_by = (rec.recommended_by || '').trim();
+    if (recommended_by && req.userName &&
+        recommended_by.toLowerCase() === req.userName.toLowerCase()) {
+      recommended_by = 'Me';
+    }
+
+    // Infer country from city (DB no longer defaults to Italy)
+    const country = rec.country || inferCountry(city) || null;
 
     // Check for existing recommendation with same name + city
     const existing = await pool.query(
-      `SELECT * FROM recommendations WHERE user_id=$1 AND LOWER(name)=LOWER($2) AND LOWER(COALESCE(city,''))=LOWER(COALESCE($3,''))`,
-      [req.userId, name, city || '']
+      `SELECT * FROM recommendations WHERE LOWER(name)=LOWER($1) AND LOWER(COALESCE(city,''))=LOWER(COALESCE($2,''))`,
+      [name, city || '']
     );
 
     if (existing.rows[0] && recommended_by) {
@@ -358,9 +393,9 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO recommendations (user_id, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, latitude, longitude, phone)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-      [req.userId, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, lat, lon, phone || null]
+      `INSERT INTO recommendations (user_id, name, type, city, neighborhood, address, country, recommended_by, notes, source_url, raw_input, latitude, longitude, phone)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+      [req.userId, name, type, city, neighborhood, address, country, recommended_by, notes, source_url, raw_input, lat, lon, phone || null]
     );
     saved.push(result.rows[0]);
   }
@@ -484,7 +519,16 @@ app.get('/api/city-coords', requireAuth, async (req, res) => {
 });
 
 app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
-  const { name, type, city, neighborhood, address, recommended_by, notes, source_url, phone } = req.body;
+  const { name, type, city, neighborhood, address, notes, source_url, phone } = req.body;
+
+  // Normalize recommended_by
+  let recommended_by = (req.body.recommended_by || '').trim();
+  if (recommended_by && req.userName &&
+      recommended_by.toLowerCase() === req.userName.toLowerCase()) {
+    recommended_by = 'Me';
+  }
+
+  const country = req.body.country || inferCountry(city) || null;
 
   let { latitude, longitude } = req.body;
   if (!latitude || !longitude) {
@@ -494,9 +538,9 @@ app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
   }
 
   const result = await pool.query(
-    `UPDATE recommendations SET name=$1, type=$2, city=$3, neighborhood=$4, address=$5, recommended_by=$6, notes=$7, source_url=$8, latitude=$9, longitude=$10, phone=$11, updated_at=NOW()
-     WHERE id=$12 AND user_id=$13 RETURNING *`,
-    [name, type, city, neighborhood, address, recommended_by, notes, source_url, latitude, longitude, phone || null, req.params.id, req.userId]
+    `UPDATE recommendations SET name=$1, type=$2, city=$3, neighborhood=$4, address=$5, country=$6, recommended_by=$7, notes=$8, source_url=$9, latitude=$10, longitude=$11, phone=$12, updated_at=NOW()
+     WHERE id=$13 AND user_id=$14 RETURNING *`,
+    [name, type, city, neighborhood, address, country, recommended_by, notes, source_url, latitude, longitude, phone || null, req.params.id, req.userId]
   );
   if (!result.rows[0]) return res.status(404).json({ error: 'Not found' });
   res.json(result.rows[0]);

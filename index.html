@@ -1094,7 +1094,16 @@ async function showApp() {
   await loadFilters();
   // Fetch city-level coords (fast, cached server-side) — lets all places show on map
   api('/api/city-coords').then(data => {
-    if (data) { _cityCoords = data; if (map) renderMapMarkers(); }
+    if (data) {
+      _cityCoords = data;
+      if (map) renderMapMarkers();
+      // Re-run after city coords load so ⚠️ detection can compare against city centers
+      detectNoPreciseCoords();
+      renderList();
+      renderMobileList();
+      const fixBtn = document.getElementById('fix-location-btn');
+      if (fixBtn) fixBtn.style.display = _noPreciseCoords.size > 0 ? 'inline-flex' : 'none';
+    }
   });
   // Leaflet needs the container to be visible before it can measure dimensions
   setTimeout(() => {
@@ -1383,12 +1392,21 @@ function selectPlaceSuggestion(id) {
 }
 
 function detectNoPreciseCoords() {
-  // Find recs that share identical lat/lng with another rec — these are city-level fallbacks
   _noPreciseCoords = new Set();
   const coordMap = {}; // "lat,lng" → [ids]
   allRecs.forEach(r => {
     if (!r.latitude || !r.longitude) { _noPreciseCoords.add(r.id); return; }
-    const key = parseFloat(r.latitude).toFixed(5) + ',' + parseFloat(r.longitude).toFixed(5);
+    const lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
+    // Check if coords are essentially the city center (city-level fallback)
+    const cityKey = (r.city || '').toLowerCase().trim();
+    const cc = _cityCoords[cityKey];
+    if (cc) {
+      const dlat = Math.abs(lat - cc.latitude);
+      const dlng = Math.abs(lng - cc.longitude);
+      if (dlat < 0.02 && dlng < 0.02) { _noPreciseCoords.add(r.id); return; }
+    }
+    // Also catch duplicates (multiple places sharing exact same coords)
+    const key = lat.toFixed(5) + ',' + lng.toFixed(5);
     if (!coordMap[key]) coordMap[key] = [];
     coordMap[key].push(r.id);
   });
@@ -1657,7 +1675,7 @@ function esc(s) {
 
 // ── DETAIL MODAL ──
 function mapsQuery(r) {
-  return [r.name, r.neighborhood, r.city, 'Italy'].filter(Boolean).join(', ');
+  return [r.name, r.neighborhood, r.city, r.country].filter(Boolean).join(', ');
 }
 function mapsUrl(r) {
   return `https://www.google.com/maps/search/${encodeURIComponent(mapsQuery(r))}`;
@@ -2109,15 +2127,15 @@ function openAddDrawer() {
     }).catch(() => {});
   }
   const personInp = document.getElementById('input-person');
-  const defaultName = _currentUser?.name || '';
+  const defaultName = 'Me'; // always default to "Me" — server normalizes username→"Me" anyway
   personInp.value = defaultName;
   personInp.dataset.defaultVal = defaultName;
-  personInp.style.color = defaultName ? 'var(--text3)' : '';
+  personInp.style.color = 'var(--text3)';
   personInp.onfocus = function() {
     if (this.value === this.dataset.defaultVal) { this.value = ''; this.style.color = ''; }
   };
   personInp.onblur = function() {
-    if (!this.value.trim()) { this.value = this.dataset.defaultVal; this.style.color = this.dataset.defaultVal ? 'var(--text3)' : ''; }
+    if (!this.value.trim()) { this.value = this.dataset.defaultVal; this.style.color = 'var(--text3)'; }
   };
   document.getElementById('parse-results').innerHTML = '';
   document.getElementById('add-overlay').classList.add('open');
