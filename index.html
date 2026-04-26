@@ -977,6 +977,7 @@ let _userLocation = null; // { lat, lng } set when geolocation resolves
 let _folderOrder = JSON.parse(localStorage.getItem('hm_folder_order') || '["friends","internet","other"]');
 let _folderLabels = JSON.parse(localStorage.getItem('hm_folder_labels') || '{"friends":"Friends","internet":"Internet","other":"Other"}');
 let _personColors = JSON.parse(localStorage.getItem('hm_person_colors') || '{}');
+let _cityCoords = {}; // city name (lowercase) → {latitude, lng} from /api/city-coords
 
 // Color palette for unassigned people — distinct, not too dark/light
 const PERSON_PALETTE = ['#9334E6','#00897B','#FF6D00','#C62828','#1565C0','#558B2F','#F06292','#0288D1','#6D4C41','#546E7A'];
@@ -1089,13 +1090,15 @@ async function showApp() {
   document.getElementById('app').style.display = 'flex';
   await Promise.all([loadRecs(), loadPeople()]);
   await loadFilters();
+  // Fetch city-level coords (fast, cached server-side) — lets all places show on map
+  api('/api/city-coords').then(data => {
+    if (data) { _cityCoords = data; if (map) renderMapMarkers(); }
+  });
   // Leaflet needs the container to be visible before it can measure dimensions
   setTimeout(() => {
     if (map) map.invalidateSize();
     else if (!isDesktop()) initMap();
   }, 200);
-  // Fix any existing recs missing coordinates (runs quietly in background)
-  setTimeout(() => triggerGeocodeMissing(), 2000);
 }
 
 async function checkSession() {
@@ -2044,14 +2047,23 @@ function recenterMap() {
 function renderMapMarkers() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
-  filtered.filter(r => r.latitude && r.longitude).forEach(r => {
+  filtered.forEach(r => {
+    // Use precise coords if available, otherwise fall back to city-level
+    let lat = r.latitude ? parseFloat(r.latitude) : null;
+    let lng = r.longitude ? parseFloat(r.longitude) : null;
+    if (!lat || !lng) {
+      const cityKey = (r.city || '').toLowerCase().trim();
+      const cc = _cityCoords[cityKey];
+      if (cc) { lat = cc.latitude; lng = cc.longitude; }
+    }
+    if (!lat || !lng) return; // no coords at all, skip
     const srcColor = getRecSourceColor(r);
     const icon = L.divIcon({
       className: '',
       html: typeIconHtml(r.type, 32, srcColor),
       iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -16]
     });
-    const m = L.marker([parseFloat(r.latitude), parseFloat(r.longitude)], { icon }).addTo(map);
+    const m = L.marker([lat, lng], { icon }).addTo(map);
     m.on('click', () => openDetail(r.id));
     markers.push(m);
   });
@@ -2179,25 +2191,11 @@ async function saveParseResults() {
   closeAddDrawer();
   showToast(`Saved ${saved?.length || count} place${count>1?'s':''}!`);
   await loadRecs(); await loadFilters();
-  // Kick off precise geocoding in background; refresh map as coords come in
-  triggerGeocodeMissing();
+  // Refresh city coords so any new city shows up on map immediately
+  api('/api/city-coords').then(data => { if (data) { _cityCoords = data; if (map) renderMapMarkers(); } });
 }
 
 // Call /api/geocode-missing and re-render markers as precise coords arrive
-async function triggerGeocodeMissing() {
-  try {
-    let remaining = 1;
-    while (remaining > 0) {
-      const result = await api('/api/geocode-missing', 'POST', {});
-      if (!result) break;
-      remaining = result.remaining ?? 0;
-      if (result.updated && result.updated.length) {
-        await loadRecs(); // refresh map with new coords
-      }
-      if (remaining > 0) await new Promise(r => setTimeout(r, 500)); // brief pause between batches
-    }
-  } catch(e) { /* silent */ }
-}
 
 // ── EDIT ──
 function openEdit(id, e) {

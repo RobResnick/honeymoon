@@ -369,32 +369,21 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
   // Precise place-level geocoding happens via /api/geocode-missing called by the client
 });
 
-// Precise geocode up to 5 recs at a time (5 × 1.1s ≈ 5.5s, within Vercel timeout).
-// Client calls this in a loop until remaining = 0.
-app.post('/api/geocode-missing', requireAuth, async (req, res) => {
-  // Find recs with null coords, 5 at a time
+// Return city-level coordinates for every distinct city in the DB.
+// geocodeCity is cached in memory, so parallel calls are safe after warmup.
+app.get('/api/city-coords', requireAuth, async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, name, address, city FROM recommendations WHERE (latitude IS NULL OR longitude IS NULL) LIMIT 5`
+    `SELECT DISTINCT city FROM recommendations WHERE city IS NOT NULL AND city != ''`
   );
-  // Also count how many still need geocoding after this batch
-  const { rows: countRows } = await pool.query(
-    `SELECT COUNT(*) as n FROM recommendations WHERE (latitude IS NULL OR longitude IS NULL)`
-  );
-  const remaining = parseInt(countRows[0].n, 10);
-
-  const updated = [];
-  for (const row of rows) {
-    const coords = await geocode(row.name, row.address, row.city);
-    if (coords.latitude && coords.longitude) {
-      await pool.query(
-        `UPDATE recommendations SET latitude=$1, longitude=$2, updated_at=NOW() WHERE id=$3`,
-        [coords.latitude, coords.longitude, row.id]
-      );
-      updated.push({ id: row.id, latitude: coords.latitude, longitude: coords.longitude });
-    }
-    await new Promise(r => setTimeout(r, 1050));
+  const cities = rows.map(r => r.city);
+  // Geocode all cities in parallel (city-level only, no rate-limit delay needed for ~15 cities)
+  await Promise.all(cities.map(c => geocodeCity(c)));
+  const result = {};
+  for (const city of cities) {
+    const key = city.toLowerCase().trim();
+    if (cityCoordCache[key]) result[city.toLowerCase()] = cityCoordCache[key];
   }
-  res.json({ updated, remaining: Math.max(0, remaining - rows.length) });
+  res.json(result);
 });
 
 app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
