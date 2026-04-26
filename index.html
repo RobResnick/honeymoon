@@ -1140,11 +1140,20 @@ async function showApp() {
       autoFixIfNeeded();
     }
   });
-  // Leaflet needs the container to be visible before it can measure dimensions
-  setTimeout(() => {
-    if (map) map.invalidateSize();
-    else if (!isDesktop()) initMap();
-  }, 200);
+  // Leaflet needs the container to be painted before it can measure dimensions.
+  // Double-rAF ensures the browser has flushed the layout from display:flex,
+  // then we give an extra 50ms for any CSS transitions to settle.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    setTimeout(() => {
+      if (map) {
+        map.invalidateSize();
+      } else if (!isDesktop()) {
+        initMap();
+      }
+      // Belt-and-suspenders: a second invalidate in case tiles hadn't started yet
+      setTimeout(() => map && map.invalidateSize(), 400);
+    }, 50);
+  }));
 }
 
 async function checkSession() {
@@ -1440,7 +1449,7 @@ function detectCoordState() {
     // Check if coords are at city center (city-level fallback)
     const cityKey = (r.city || '').toLowerCase().trim();
     const cc = _cityCoords[cityKey];
-    const atCityCenter = cc && Math.abs(lat - cc.latitude) < 0.02 && Math.abs(lng - cc.longitude) < 0.02;
+    const atCityCenter = cc && Math.abs(lat - cc.latitude) < 0.05 && Math.abs(lng - cc.longitude) < 0.05;
     if (atCityCenter) {
       (r.geocode_attempted ? _failedCoords : _pendingCoords).add(r.id);
       return;

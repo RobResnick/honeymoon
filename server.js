@@ -414,13 +414,21 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
     // Infer country from city (DB no longer defaults to Italy)
     const country = rec.country || inferCountry(normalizedCity) || inferCountry(city) || null;
 
+    // Normalize a name for fuzzy duplicate matching: lowercase, strip accents, keep only alphanumeric
+    function normalizeName(s) {
+      return (s || '').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents
+        .replace(/[^a-z0-9]/g, '');                       // keep only letters/digits
+    }
+    const normInput = normalizeName(name);
+
     // Check for existing recommendation with same name + same city (or same metro area)
-    const existing = await pool.query(
-      `SELECT * FROM recommendations WHERE LOWER(name)=LOWER($1)`,
-      [name]
+    const existing = await pool.query(`SELECT * FROM recommendations`);
+    // Fuzzy match: exact LOWER() OR normalized (accent-stripped, punctuation-stripped) match
+    const dupRec = existing.rows.find(r =>
+      (sameCity(r.city, normalizedCity) || sameCity(r.city, city)) &&
+      (r.name.toLowerCase() === name.toLowerCase() || normalizeName(r.name) === normInput)
     );
-    // Filter to same city or same metro area
-    const dupRec = existing.rows.find(r => sameCity(r.city, normalizedCity) || sameCity(r.city, city));
 
     if (dupRec && recommended_by) {
       const current = dupRec.recommended_by || '';
@@ -467,7 +475,7 @@ async function isAtCityCenter(rec) {
   if (!cc) return false;
   const dlat = Math.abs(parseFloat(rec.latitude) - cc.latitude);
   const dlng = Math.abs(parseFloat(rec.longitude) - cc.longitude);
-  return dlat < 0.02 && dlng < 0.02;
+  return dlat < 0.05 && dlng < 0.05;
 }
 
 // Fix one place with no precise coords per call.
