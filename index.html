@@ -510,7 +510,7 @@
         position: fixed; top: 0; bottom: 0;
         left: 0; width: 32%; min-width: 180px;
         background: #111; color: white;
-        z-index: 800;
+        z-index: 4000;
         transform: translateX(-100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex; flex-direction: column;
@@ -831,8 +831,7 @@
         <svg viewBox="0 0 24 24" width="24" height="24"><rect width="24" height="24" rx="5" fill="#fff"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#EA4335"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>
       </a>
     </div>
-    <button onclick="closeDetailModal()" style="position:absolute;top:12px;left:12px;background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;padding:2px 6px;line-height:1">✕</button>
-    <div class="detail-header" style="padding:0 64px 0 36px;margin-bottom:20px">
+    <div class="detail-header" style="padding:0 64px 0 0;margin-bottom:20px">
       <div class="detail-icon" id="detail-icon"></div>
       <div style="flex:1;min-width:0">
         <div class="detail-name" id="detail-name"></div>
@@ -840,12 +839,12 @@
       </div>
     </div>
 
-    <div class="detail-row" id="detail-phone-row" style="display:none">
+    <div class="detail-row" id="detail-phone-row" style="display:none;border-top:none;padding-top:0">
       <div class="detail-row-icon">📞</div>
       <a id="detail-phone-link" href=""></a>
     </div>
 
-    <div class="detail-row" id="detail-recommended-row" style="display:none">
+    <div class="detail-row" id="detail-recommended-row" style="display:none;border-top:none;padding-top:0">
       <div id="detail-recommended-people" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"></div>
     </div>
 
@@ -1077,6 +1076,8 @@ async function checkSession() {
     document.getElementById('auth-screen').style.display = 'flex';
   } else {
     _currentUser = me;
+    // Re-render markers so source colors (me=blue) are applied correctly
+    if (map) renderMapMarkers();
   }
 }
 
@@ -1484,16 +1485,17 @@ function renderMobileList() {
             recentSearches.map(s => `<button onclick="applyRecentSearch(this.dataset.q)" data-q="${esc(s)}" style="border:1px solid var(--border);background:var(--card);border-radius:20px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--text);font-family:inherit">${esc(s)}</button>`).join('') +
             `</div>`
           : '';
-        // Nearby section (within ~8km / 5 miles of user location)
+        // Haversine helper (scoped)
+        function haversineKm(lat1, lng1, lat2, lng2) {
+          const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+          const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+        // Nearby section: within ~4.8km (3 miles) of user location
         let nearbyHtml = '';
         if (_userLocation) {
-          function haversineKm(lat1, lng1, lat2, lng2) {
-            const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          }
           const nearby = filtered.filter(r => r.latitude && r.longitude &&
-            haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) < 8)
+            haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) < 4.8)
             .sort((a,b) => haversineKm(_userLocation.lat, _userLocation.lng, a.latitude, a.longitude) -
                            haversineKm(_userLocation.lat, _userLocation.lng, b.latitude, b.longitude));
           if (nearby.length) {
@@ -1504,11 +1506,17 @@ function renderMobileList() {
         if (nearbyHtml) {
           html = recentSearchHtml + nearbyHtml;
         } else if (inBounds.length) {
-          html = recentSearchHtml + inBounds.map(cardHtml).join('');
+          // Show in-bounds items, but always at least 2
+          let showList = inBounds;
+          if (showList.length < 2) {
+            const fallback = [...filtered].sort((a,b) => b.id - a.id);
+            showList = [...new Map([...showList, ...fallback].map(r => [r.id, r])).values()].slice(0, 2);
+          }
+          html = recentSearchHtml + showList.map(cardHtml).join('');
         } else {
-          // Nothing in viewport → recently added fallback
-          const recent = [...allRecs].sort((a, b) => b.id - a.id).slice(0, 12);
-          html = recentSearchHtml + (recent.length ? sectionLabel('Recently added') + recent.map(cardHtml).join('') : noMatch);
+          // Nothing in viewport → show 2 most recent
+          const recent = [...filtered].sort((a, b) => b.id - a.id).slice(0, 2);
+          html = recentSearchHtml + (recent.length ? recent.map(cardHtml).join('') : noMatch);
         }
       } else {
         html = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
@@ -1649,7 +1657,7 @@ function openDetail(id) {
   nameEl.textContent = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
   nameEl.contentEditable = myItem ? 'true' : 'false';
   nameEl.style.cursor = myItem ? 'text' : '';
-  nameEl.style.borderBottom = myItem ? '1px dashed var(--border)' : '';
+  nameEl.style.borderBottom = '';
   if (myItem) {
     nameEl.onblur = async function() {
       const newVal = this.innerText.trim();
@@ -1663,7 +1671,7 @@ function openDetail(id) {
   metaEl.textContent = metaParts.join(' · ');
   metaEl.contentEditable = myItem ? 'true' : 'false';
   metaEl.style.cursor = myItem ? 'text' : '';
-  metaEl.style.borderBottom = myItem ? '1px dashed var(--border)' : '';
+  metaEl.style.borderBottom = '';
   if (myItem) {
     metaEl.title = 'Edit: City · Neighborhood · Type';
     metaEl.onblur = async function() {
@@ -1732,6 +1740,13 @@ function openDetail(id) {
 function closeDetailModal() {
   document.getElementById('detail-overlay').classList.remove('open');
 }
+// Close detail modal when clicking outside it
+document.addEventListener('click', function(e) {
+  const overlay = document.getElementById('detail-overlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  const modal = overlay.querySelector('.modal');
+  if (modal && !modal.contains(e.target)) closeDetailModal();
+});
 
 // ── MOBILE NAV + SWIPE ──
 function setMode(mode) {
@@ -2304,15 +2319,17 @@ function renderBuddyNames() {
     </div>`;
   }
 
-  // ── Current user row (always at top) ──
+  // ── "Me" row (always at top, always blue) ──
   const myName = _currentUser?.name || '';
+  // Filter current user out of the displayed people list everywhere
+  const displayPeople = allPeople.filter(p => !isMe(p));
   let html = '';
-  if (myName) {
+  if (_currentUser) {
     const meMuted = _hiddenPeople.has(myName);
     const meCount = allRecs.filter(r => r.user_id === _currentUser.id).length;
     html = `<div class="buddy-me-row${meMuted?' muted':''}" onclick="toggleBuddyPerson('${myName.replace(/'/g,"\\'")}')">
       ${dot(FOLDER_COLORS.me, meMuted)}
-      <span class="buddy-name">${esc(myName)}</span>
+      <span class="buddy-name">Me</span>
       <span style="margin-left:auto;font-size:10px;color:${meMuted?'#444':'#666'}">${meCount}</span>
     </div>`;
   }
@@ -2323,10 +2340,10 @@ function renderBuddyNames() {
     { id: 'internet', label: 'Internet', color: FOLDER_COLORS.internet },
     { id: 'other', label: 'Other', color: FOLDER_COLORS.other }
   ];
-  const assignedPeople = new Set(Object.values(_buddyFolders).flat());
+  const assignedPeople = new Set(Object.values(_buddyFolders).flat().filter(p => !isMe(p)));
 
   for (const { id: fid, label, color } of folderDefs) {
-    const members = (_buddyFolders[fid] || []).filter(p => allPeople.includes(p));
+    const members = (_buddyFolders[fid] || []).filter(p => displayPeople.includes(p));
     const folderOn = _folderStates[fid] !== false;
     const expanded = _folderExpanded[fid] !== false;
     html += `<div class="buddy-folder-header"
@@ -2350,12 +2367,12 @@ function renderBuddyNames() {
     }
   }
 
-  // ── Unassigned ──
-  const unassigned = allPeople.filter(p => !assignedPeople.has(p));
+  // ── Unassigned (excluding current user) ──
+  const unassigned = displayPeople.filter(p => !assignedPeople.has(p));
   if (unassigned.length) {
     html += `<div style="padding:8px 14px 2px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;border-top:1px solid #1a1a1a">Unassigned</div>`;
     for (const p of unassigned) html += personRow(p, FOLDER_COLORS.other);
-  } else if (!allPeople.length) {
+  } else if (!displayPeople.length && !_currentUser) {
     html += '<div style="padding:16px 14px;font-size:12px;color:#555">No people yet.</div>';
   }
 
