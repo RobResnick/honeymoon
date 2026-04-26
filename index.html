@@ -1194,6 +1194,9 @@ async function jumpToSearch(q) {
 }
 
 function onSearchFocus() {
+  // Close buddy panel when user taps search
+  const buddy = document.getElementById('buddy-panel');
+  if (buddy && buddy.classList.contains('open')) closeBuddy();
   const val = document.getElementById('map-search-input')?.value || '';
   document.getElementById('map-search-clear').style.display = val ? 'block' : 'none';
   if (val.length > 1) showSuggestions(val);
@@ -1742,6 +1745,9 @@ document.addEventListener('click', function(e) {
 
 // ── MOBILE NAV + SWIPE ──
 function setMode(mode) {
+  // Close buddy panel whenever user taps List, Add, or Map nav
+  const buddy = document.getElementById('buddy-panel');
+  if (buddy && buddy.classList.contains('open')) closeBuddy();
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   const sheet = document.getElementById('mobile-sheet');
 
@@ -2292,6 +2298,8 @@ function openBuddy() {
   // Gray out search shadow while buddy open
   const bar = document.getElementById('map-search-bar');
   if (bar) bar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)';
+  // Always keep map movable while buddy is open
+  enableMapInteraction();
   renderBuddyNames();
 
   // Refresh from server in background, re-render if new data
@@ -2404,6 +2412,9 @@ function closeBuddy() {
   // Restore blue search shadow
   const bar = document.getElementById('map-search-bar');
   if (bar) bar.style.boxShadow = '';
+  // Re-disable map if the list sheet is still open
+  const sheet = document.getElementById('mobile-sheet');
+  if (sheet && sheet.classList.contains('open')) disableMapInteraction();
 }
 
 function toggleBuddyPerson(name) {
