@@ -975,6 +975,15 @@ let _hiddenPeople = new Set(JSON.parse(localStorage.getItem('hm_hidden_people') 
 let _draggingPerson = null;
 let _userLocation = null; // { lat, lng } set when geolocation resolves
 
+// Distance between two lat/lng points in km
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+// 3 miles in km
+const NEARBY_KM = 4.83;
+
 function isMe(name) {
   return !!(name && _currentUser && (name === _currentUser.name || name.toLowerCase() === (_currentUser.name||'').toLowerCase()));
 }
@@ -1485,38 +1494,18 @@ function renderMobileList() {
             recentSearches.map(s => `<button onclick="applyRecentSearch(this.dataset.q)" data-q="${esc(s)}" style="border:1px solid var(--border);background:var(--card);border-radius:20px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--text);font-family:inherit">${esc(s)}</button>`).join('') +
             `</div>`
           : '';
-        // Haversine helper (scoped)
-        function haversineKm(lat1, lng1, lat2, lng2) {
-          const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
-          const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-        // Nearby section: within ~4.8km (3 miles) of user location
-        let nearbyHtml = '';
-        if (_userLocation) {
-          const nearby = filtered.filter(r => r.latitude && r.longitude &&
-            haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) < 4.8)
-            .sort((a,b) => haversineKm(_userLocation.lat, _userLocation.lng, a.latitude, a.longitude) -
-                           haversineKm(_userLocation.lat, _userLocation.lng, b.latitude, b.longitude));
-          if (nearby.length) {
-            nearbyHtml = sectionLabel('Nearby') + nearby.map(cardHtml).join('');
-          }
-        }
-
-        if (nearbyHtml) {
-          html = recentSearchHtml + nearbyHtml;
-        } else if (inBounds.length) {
-          // Show in-bounds items, but always at least 2
-          let showList = inBounds;
-          if (showList.length < 2) {
-            const fallback = [...filtered].sort((a,b) => b.id - a.id);
-            showList = [...new Map([...showList, ...fallback].map(r => [r.id, r])).values()].slice(0, 2);
-          }
-          html = recentSearchHtml + showList.map(cardHtml).join('');
+        // List = whatever dots are currently in the map frame
+        if (inBounds.length > 0) {
+          // "Nearby" label only if user location exists AND every visible dot is within 3 miles
+          const allNearby = _userLocation && inBounds.every(r =>
+            r.latitude && r.longitude &&
+            haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) < NEARBY_KM
+          );
+          const label = allNearby ? sectionLabel('Nearby') : '';
+          html = recentSearchHtml + label + inBounds.map(cardHtml).join('');
         } else {
-          // Nothing in viewport → show 2 most recent
-          const recent = [...filtered].sort((a, b) => b.id - a.id).slice(0, 2);
-          html = recentSearchHtml + (recent.length ? recent.map(cardHtml).join('') : noMatch);
+          // Nothing in viewport (rare on load before location resolves)
+          html = recentSearchHtml || noMatch;
         }
       } else {
         html = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
@@ -1773,15 +1762,38 @@ function setMode(mode) {
   }
 }
 
+// Center on user location and zoom out to include at least 2 nearest recommendation dots.
+function centerOnUserWithDots(lat, lng) {
+  if (!map) return;
+  const recs = filtered.filter(r => r.latitude && r.longitude);
+  const sorted = recs.map(r => ({
+    r,
+    dist: haversineKm(lat, lng, parseFloat(r.latitude), parseFloat(r.longitude))
+  })).sort((a, b) => a.dist - b.dist);
+
+  const pts = [L.latLng(lat, lng)];
+  const take = Math.min(2, sorted.length);
+  for (let i = 0; i < take; i++) {
+    pts.push(L.latLng(parseFloat(sorted[i].r.latitude), parseFloat(sorted[i].r.longitude)));
+  }
+  if (pts.length > 1) {
+    map.fitBounds(L.latLngBounds(pts).pad(0.35), { maxZoom: 15, animate: true });
+  } else {
+    map.setView([lat, lng], 14, { animate: true });
+  }
+}
+
 function goToCurrentLocation() {
   if (!map) return;
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
-      map.setView([pos.coords.latitude, pos.coords.longitude], 14);
+      _userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      centerOnUserWithDots(pos.coords.latitude, pos.coords.longitude);
     }, () => {
-      // No location — fit all markers instead
       if (markers.length) recenterMap();
     }, { enableHighAccuracy: true, timeout: 6000 });
+  } else if (markers.length) {
+    recenterMap();
   }
 }
 
@@ -1905,7 +1917,9 @@ function initMap() {
   const attr = document.querySelector('.leaflet-control-attribution');
   if (attr) attr.style.display = 'none';
 
-  // Blue dot for current location
+  renderMapMarkers();
+
+  // Get user location, center on it, zoom to show 2 nearest dots
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
       _userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -1913,16 +1927,15 @@ function initMap() {
       locationDot = L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
         radius: 9, fillColor: '#4285F4', color: 'white',
         weight: 3, fillOpacity: 1, zIndexOffset: 1000
-      }).addTo(map).bindPopup('You are here');
-      // On mobile, don't override marker-fitted view — just add the dot
+      }).addTo(map);
+      centerOnUserWithDots(pos.coords.latitude, pos.coords.longitude);
     }, () => {
-      // No location — fit all markers if not already done
+      // No location — fit all markers
+      if (markers.length) recenterMap();
     }, { enableHighAccuracy: true, timeout: 8000 });
+  } else if (markers.length) {
+    recenterMap();
   }
-
-  renderMapMarkers();
-  // On load: fit to show recommendations (mobile + desktop)
-  if (markers.length) recenterMap();
 
   // Inject recenter into Leaflet zoom control (mobile only)
   if (!isDesktop()) {
