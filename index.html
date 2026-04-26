@@ -1803,20 +1803,23 @@ function setMode(mode) {
   }
 }
 
-// Center on user, then zoom out until 2+ dots are visible.
-// Caps at z8 (~300km radius) — if no nearby dots exist, shows user at z11.
+// Count recs the list would show at the current map bounds — same logic as renderMobileList
+function visibleRecCount() {
+  if (!map) return 0;
+  const b = map.getBounds();
+  return filtered.filter(r => r.latitude && r.longitude &&
+    b.contains([parseFloat(r.latitude), parseFloat(r.longitude)])).length;
+}
+
+// Center on user, zoom out until the list would show 2+ places.
 function centerOnUserWithDots(lat, lng) {
   if (!map) return;
   map.setView([lat, lng], 14, { animate: false });
   for (let z = 14; z >= 8; z--) {
-    const visible = markers.filter(m => map.getBounds().contains(m.getLatLng()));
-    if (visible.length >= 2) break;
+    if (visibleRecCount() >= 2) break;
     if (z > 8) map.setZoom(z - 1, { animate: false });
   }
-  // If still no dots in view at z8, just sit at a comfortable local zoom
-  if (markers.filter(m => map.getBounds().contains(m.getLatLng())).length < 2) {
-    map.setZoom(11, { animate: false });
-  }
+  if (visibleRecCount() < 2) map.setZoom(11, { animate: false });
   map.panTo([lat, lng], { animate: true, duration: 0.4 });
 }
 
