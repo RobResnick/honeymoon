@@ -659,6 +659,22 @@ app.post('/api/people', requireAuth, async (req, res) => {
   res.json({ ok: true, people: sorted });
 });
 
+// User buddy/folder settings — persisted per user in app_config
+app.get('/api/buddy-settings', requireAuth, async (req, res) => {
+  const key = `buddy_settings_${req.userId}`;
+  const r = await pool.query("SELECT value FROM app_config WHERE key=$1", [key]);
+  res.json(r.rows[0] ? JSON.parse(r.rows[0].value) : null);
+});
+
+app.post('/api/buddy-settings', requireAuth, async (req, res) => {
+  const key = `buddy_settings_${req.userId}`;
+  await pool.query(
+    "INSERT INTO app_config(key,value) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET value=$2",
+    [key, JSON.stringify(req.body)]
+  );
+  res.json({ ok: true });
+});
+
 // Distinct filter values
 app.get('/api/filters', requireAuth, async (req, res) => {
   const [cities, types, people] = await Promise.all([

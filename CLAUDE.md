@@ -1,7 +1,7 @@
-# Honeymoon App — Project Memory
+# Taste App — Project Memory
 
 ## What this is
-Rob's Italy honeymoon trip recommendations app. Live at **honeymoon.robresnick.com** (Vercel).
+"Taste" — your favorite people's favorite places. A recommendations app for saving and sharing places. Live at **honeymoon.robresnick.com** (Vercel, URL TBD).
 
 ## Stack
 - **Frontend:** Single `index.html` — vanilla JS, Leaflet maps, no framework
