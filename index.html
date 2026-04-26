@@ -1803,20 +1803,20 @@ function setMode(mode) {
   }
 }
 
-// Center on user, then zoom out (no animation) until 2+ dots are visible.
-// All zoom steps happen instantly so the map just opens at the right level.
+// Center on user, then zoom out until 2+ dots are visible.
+// Caps at z8 (~300km radius) — if no nearby dots exist, shows user at z11.
 function centerOnUserWithDots(lat, lng) {
   if (!map) return;
-  // Snap to user at a close zoom, no animation
   map.setView([lat, lng], 14, { animate: false });
-  // Step out one zoom level at a time until 2+ markers are in view
-  for (let z = 14; z >= 3; z--) {
-    const b = map.getBounds();
-    const visible = markers.filter(m => b.contains(m.getLatLng()));
+  for (let z = 14; z >= 8; z--) {
+    const visible = markers.filter(m => map.getBounds().contains(m.getLatLng()));
     if (visible.length >= 2) break;
-    if (z > 3) map.setZoom(z - 1, { animate: false });
+    if (z > 8) map.setZoom(z - 1, { animate: false });
   }
-  // One gentle pan to centre on the user (the zoom is already right)
+  // If still no dots in view at z8, just sit at a comfortable local zoom
+  if (markers.filter(m => map.getBounds().contains(m.getLatLng())).length < 2) {
+    map.setZoom(11, { animate: false });
+  }
   map.panTo([lat, lng], { animate: true, duration: 0.4 });
 }
 
