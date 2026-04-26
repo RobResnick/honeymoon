@@ -1103,6 +1103,8 @@ async function showApp() {
       renderMobileList();
       const fixBtn = document.getElementById('fix-location-btn');
       if (fixBtn) fixBtn.style.display = _noPreciseCoords.size > 0 ? 'inline-flex' : 'none';
+      // Auto-fix any ⚠️ places in the background
+      autoFixIfNeeded();
     }
   });
   // Leaflet needs the container to be visible before it can measure dimensions
@@ -1441,6 +1443,8 @@ async function loadRecs(fromServer = true) {
   // Show/hide fix-location button based on whether any ⚠️ places exist
   const fixBtn = document.getElementById('fix-location-btn');
   if (fixBtn) fixBtn.style.display = _noPreciseCoords.size > 0 ? 'inline-flex' : 'none';
+  // If city coords are already loaded, auto-fix any new ⚠️ places immediately
+  if (Object.keys(_cityCoords).length > 0) autoFixIfNeeded();
 }
 
 async function loadFilters() {
@@ -2297,28 +2301,28 @@ function showToast(msg, duration = 2500) {
 
 // ── FIX NO-LOCATION ROUTINE ──
 let _fixingLocations = false;
-async function runFixNoLocation() {
+
+// silent=true: runs in background, only toasts on success, no button state changes
+async function runFixNoLocation(silent = false) {
   if (_fixingLocations) return;
   _fixingLocations = true;
   const btn = document.getElementById('fix-location-btn');
-  if (btn) { btn.textContent = '⏳ Fixing…'; btn.disabled = true; }
+  if (!silent && btn) { btn.textContent = '⏳ Fixing…'; btn.disabled = true; }
 
-  let remaining = _noPreciseCoords.size;
   let fixed = 0;
+  let attempts = 0;
+  const maxAttempts = 30; // safety cap
 
-  while (remaining > 0) {
+  while (attempts++ < maxAttempts) {
     try {
       const result = await api('/api/fix-no-location', { method: 'POST' });
       if (!result || result.done) break;
-      remaining = result.remaining;
       if (result.updated) {
         fixed++;
-        showToast(`📍 Fixed: ${result.name}`, 2000);
-      } else {
-        showToast(`❓ Can't find: ${result.name}`, 1800);
+        showToast(`📍 Fixed location: ${result.name}`, 2000);
       }
-      // Small delay between calls
-      await new Promise(r => setTimeout(r, 600));
+      if (result.remaining === 0) break;
+      await new Promise(r => setTimeout(r, 400));
     } catch (e) {
       console.error('fix-no-location error:', e);
       break;
@@ -2326,9 +2330,21 @@ async function runFixNoLocation() {
   }
 
   _fixingLocations = false;
+  // Reload to reflect any changes (suppress auto-fix re-trigger)
+  _suppressAutoFix = true;
   await loadRecs();
-  if (btn) { btn.disabled = false; }
-  showToast(fixed > 0 ? `✅ Fixed ${fixed} location${fixed !== 1 ? 's' : ''}` : '✅ Done checking locations', 3000);
+  _suppressAutoFix = false;
+  if (!silent && btn) { btn.disabled = false; }
+  if (!silent) showToast(fixed > 0 ? `✅ Fixed ${fixed} location${fixed !== 1 ? 's' : ''}` : '✅ Done checking', 2500);
+}
+
+// Auto-triggered after save when ⚠️ places exist
+let _suppressAutoFix = false;
+function autoFixIfNeeded() {
+  if (_suppressAutoFix || _fixingLocations) return;
+  if (_noPreciseCoords.size > 0) {
+    runFixNoLocation(true); // silent background run
+  }
 }
 
 // ── PWA ICON: generate apple-touch-icon PNG from SVG via canvas ──

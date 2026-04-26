@@ -128,6 +128,8 @@ async function initDb() {
   `);
   // Add phone to existing tables that predate this column
   await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS phone VARCHAR(50)`);
+  // Track whether we've already attempted precise geocoding (prevents infinite retries)
+  await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS geocode_attempted BOOLEAN DEFAULT FALSE`);
 
   // Deleted items log (for future "deleted" section)
   await pool.query(`
@@ -458,28 +460,48 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
   // Precise place-level geocoding happens via /api/geocode-missing called by the client
 });
 
+// Helper: is this rec's lat/lng at city-center level?
+async function isAtCityCenter(rec) {
+  if (!rec.latitude || !rec.longitude) return true;
+  const cc = await geocodeCity(rec.city);
+  if (!cc) return false;
+  const dlat = Math.abs(parseFloat(rec.latitude) - cc.latitude);
+  const dlng = Math.abs(parseFloat(rec.longitude) - cc.longitude);
+  return dlat < 0.02 && dlng < 0.02;
+}
+
 // Fix one place with no precise coords per call.
-// Finds places whose lat/lng is shared with another place (city-level fallback),
-// asks Claude for the street address, geocodes it via Nominatim, updates DB.
+// Finds places at city-center coords that haven't been attempted yet,
+// asks Claude for the street address, geocodes via Nominatim, updates DB.
+// Sets geocode_attempted=true regardless so it never retries the same place.
 app.post('/api/fix-no-location', requireAuth, async (req, res) => {
   try {
-    // Find all places that share identical coords with at least one other place
-    const { rows } = await pool.query(`
-      SELECT id, name, city, country, address
+    // Find all cities and warm up cache first
+    const { rows: cityRows } = await pool.query(
+      `SELECT DISTINCT city FROM recommendations WHERE city IS NOT NULL AND city != ''`
+    );
+    await Promise.all(cityRows.map(r => geocodeCity(r.city)));
+
+    // Find places not yet attempted — check client-provided list or scan all
+    const { rows: candidates } = await pool.query(`
+      SELECT id, name, city, country, address, latitude, longitude
       FROM recommendations
-      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-        AND (latitude, longitude) IN (
-          SELECT latitude, longitude FROM recommendations
-          GROUP BY latitude, longitude HAVING COUNT(*) > 1
-        )
-      ORDER BY id LIMIT 1
+      WHERE geocode_attempted = FALSE AND latitude IS NOT NULL AND longitude IS NOT NULL
+      ORDER BY created_at DESC
     `);
 
-    if (!rows.length) return res.json({ done: true, remaining: 0 });
+    // Find the first one that's actually at city-center level
+    let rec = null;
+    for (const r of candidates) {
+      if (await isAtCityCenter(r)) { rec = r; break; }
+      // Not at city center — mark as done so we skip it next time
+      await pool.query(`UPDATE recommendations SET geocode_attempted=TRUE WHERE id=$1`, [r.id]);
+    }
 
-    const rec = rows[0];
+    if (!rec) return res.json({ done: true, remaining: 0 });
 
     // Ask Claude for the street address
+    const countryStr = rec.country && rec.country !== 'Italy' ? `, ${rec.country}` : rec.city === 'Milan' || rec.city === 'Florence' ? ', Italy' : '';
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -492,7 +514,7 @@ app.post('/api/fix-no-location', requireAuth, async (req, res) => {
         max_tokens: 200,
         messages: [{
           role: 'user',
-          content: `What is the full street address of "${rec.name}" in ${rec.city}${rec.country && rec.country !== 'Italy' ? ', ' + rec.country : ''}? Return ONLY valid JSON: {"address":"full street address"} or {"address":null} if you don't know. No other text.`
+          content: `What is the full street address of "${rec.name}" in ${rec.city}${countryStr}? Return ONLY valid JSON: {"address":"full street address including city"} or {"address":null} if unknown. No other text.`
         }]
       })
     });
@@ -506,39 +528,33 @@ app.post('/api/fix-no-location', requireAuth, async (req, res) => {
 
     let updated = false;
     if (aiAddress) {
-      // Try to geocode the address
-      const query = `${aiAddress}, ${rec.city}`;
-      const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+      const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(aiAddress)}&format=json&limit=1`;
       const nomRes = await fetch(nomUrl, { headers: { 'User-Agent': 'HoneymoonApp/1.0 rob@robresnick.com' } });
       const nomData = await nomRes.json();
       if (nomData && nomData[0]) {
         const lat = parseFloat(nomData[0].lat);
         const lng = parseFloat(nomData[0].lon);
-        await pool.query(
-          `UPDATE recommendations SET latitude=$1, longitude=$2, address=COALESCE(NULLIF(address,''),$3), updated_at=NOW() WHERE id=$4`,
-          [lat, lng, aiAddress, rec.id]
-        );
-        updated = true;
+        // Verify result is in roughly the right area (within ~50km of city center)
+        const cc = cityCoordCache[rec.city?.toLowerCase().trim()];
+        const inRange = !cc || (Math.abs(lat - cc.latitude) < 0.5 && Math.abs(lng - cc.longitude) < 0.5);
+        if (inRange) {
+          await pool.query(
+            `UPDATE recommendations SET latitude=$1, longitude=$2, address=COALESCE(NULLIF(address,''),$3), geocode_attempted=TRUE, updated_at=NOW() WHERE id=$4`,
+            [lat, lng, aiAddress, rec.id]
+          );
+          updated = true;
+        }
       }
     }
 
+    // Mark attempted even if failed, so we don't retry
     if (!updated) {
-      // Mark as unresolvable by setting a unique tiny jitter so it no longer matches city center
-      // This prevents it being retried endlessly — we shift it slightly from city center
-      await pool.query(
-        `UPDATE recommendations SET latitude=latitude + 0.000${rec.id % 9 + 1}, longitude=longitude + 0.000${rec.id % 7 + 1}, updated_at=NOW() WHERE id=$1`,
-        [rec.id]
-      );
+      await pool.query(`UPDATE recommendations SET geocode_attempted=TRUE, updated_at=NOW() WHERE id=$1`, [rec.id]);
     }
 
-    // Count remaining
-    const { rows: rem } = await pool.query(`
-      SELECT COUNT(*) as cnt FROM recommendations
-      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-        AND (latitude, longitude) IN (
-          SELECT latitude, longitude FROM recommendations
-          GROUP BY latitude, longitude HAVING COUNT(*) > 1
-        )
+    // Count remaining unattempted places still at city center
+    const { rows: remRows } = await pool.query(`
+      SELECT COUNT(*) as cnt FROM recommendations WHERE geocode_attempted = FALSE
     `);
 
     res.json({
@@ -547,7 +563,7 @@ app.post('/api/fix-no-location', requireAuth, async (req, res) => {
       name: rec.name,
       city: rec.city,
       address: aiAddress,
-      remaining: parseInt(rem[0].cnt)
+      remaining: parseInt(remRows[0].cnt)
     });
   } catch (err) {
     console.error('fix-no-location error:', err);
