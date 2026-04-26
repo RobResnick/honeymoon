@@ -398,8 +398,19 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
       recommended_by = 'Me';
     }
 
+    // If city is actually a neighborhood, promote parent to city
+    let normalizedCity = city;
+    let normalizedNeighborhood = neighborhood;
+    const cityParent = city ? CITY_PARENT[city.toLowerCase().trim()] : null;
+    if (cityParent) {
+      // Capitalize parent city name
+      normalizedCity = cityParent.charAt(0).toUpperCase() + cityParent.slice(1);
+      // Use original city as neighborhood if not already set
+      if (!normalizedNeighborhood) normalizedNeighborhood = city;
+    }
+
     // Infer country from city (DB no longer defaults to Italy)
-    const country = rec.country || inferCountry(city) || null;
+    const country = rec.country || inferCountry(normalizedCity) || inferCountry(city) || null;
 
     // Check for existing recommendation with same name + same city (or same metro area)
     const existing = await pool.query(
@@ -407,7 +418,7 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
       [name]
     );
     // Filter to same city or same metro area
-    const dupRec = existing.rows.find(r => sameCity(r.city, city));
+    const dupRec = existing.rows.find(r => sameCity(r.city, normalizedCity) || sameCity(r.city, city));
 
     if (dupRec && recommended_by) {
       const current = dupRec.recommended_by || '';
@@ -438,7 +449,7 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
     const result = await pool.query(
       `INSERT INTO recommendations (user_id, name, type, city, neighborhood, address, country, recommended_by, notes, source_url, raw_input, latitude, longitude, phone)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
-      [req.userId, name, type, city, neighborhood, address, country, recommended_by, notes, source_url, raw_input, lat, lon, phone || null]
+      [req.userId, name, type, normalizedCity, normalizedNeighborhood, address, country, recommended_by, notes, source_url, raw_input, lat, lon, phone || null]
     );
     saved.push(result.rows[0]);
   }
