@@ -369,6 +369,103 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
   // Precise place-level geocoding happens via /api/geocode-missing called by the client
 });
 
+// Fix one place with no precise coords per call.
+// Finds places whose lat/lng is shared with another place (city-level fallback),
+// asks Claude for the street address, geocodes it via Nominatim, updates DB.
+app.post('/api/fix-no-location', requireAuth, async (req, res) => {
+  try {
+    // Find all places that share identical coords with at least one other place
+    const { rows } = await pool.query(`
+      SELECT id, name, city, country, address
+      FROM recommendations
+      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+        AND (latitude, longitude) IN (
+          SELECT latitude, longitude FROM recommendations
+          GROUP BY latitude, longitude HAVING COUNT(*) > 1
+        )
+      ORDER BY id LIMIT 1
+    `);
+
+    if (!rows.length) return res.json({ done: true, remaining: 0 });
+
+    const rec = rows[0];
+
+    // Ask Claude for the street address
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_KEY || process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{
+          role: 'user',
+          content: `What is the full street address of "${rec.name}" in ${rec.city}${rec.country && rec.country !== 'Italy' ? ', ' + rec.country : ''}? Return ONLY valid JSON: {"address":"full street address"} or {"address":null} if you don't know. No other text.`
+        }]
+      })
+    });
+    const aiData = await aiRes.json();
+    const text = aiData.content?.[0]?.text?.trim() || '';
+    let aiAddress = null;
+    try {
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) aiAddress = JSON.parse(match[0]).address;
+    } catch (_) {}
+
+    let updated = false;
+    if (aiAddress) {
+      // Try to geocode the address
+      const query = `${aiAddress}, ${rec.city}`;
+      const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+      const nomRes = await fetch(nomUrl, { headers: { 'User-Agent': 'HoneymoonApp/1.0 rob@robresnick.com' } });
+      const nomData = await nomRes.json();
+      if (nomData && nomData[0]) {
+        const lat = parseFloat(nomData[0].lat);
+        const lng = parseFloat(nomData[0].lon);
+        await pool.query(
+          `UPDATE recommendations SET latitude=$1, longitude=$2, address=COALESCE(NULLIF(address,''),$3), updated_at=NOW() WHERE id=$4`,
+          [lat, lng, aiAddress, rec.id]
+        );
+        updated = true;
+      }
+    }
+
+    if (!updated) {
+      // Mark as unresolvable by setting a unique tiny jitter so it no longer matches city center
+      // This prevents it being retried endlessly — we shift it slightly from city center
+      await pool.query(
+        `UPDATE recommendations SET latitude=latitude + 0.000${rec.id % 9 + 1}, longitude=longitude + 0.000${rec.id % 7 + 1}, updated_at=NOW() WHERE id=$1`,
+        [rec.id]
+      );
+    }
+
+    // Count remaining
+    const { rows: rem } = await pool.query(`
+      SELECT COUNT(*) as cnt FROM recommendations
+      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+        AND (latitude, longitude) IN (
+          SELECT latitude, longitude FROM recommendations
+          GROUP BY latitude, longitude HAVING COUNT(*) > 1
+        )
+    `);
+
+    res.json({
+      done: false,
+      updated,
+      name: rec.name,
+      city: rec.city,
+      address: aiAddress,
+      remaining: parseInt(rem[0].cnt)
+    });
+  } catch (err) {
+    console.error('fix-no-location error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Return city-level coordinates for every distinct city in the DB.
 // geocodeCity is cached in memory, so parallel calls are safe after warmup.
 app.get('/api/city-coords', requireAuth, async (req, res) => {
