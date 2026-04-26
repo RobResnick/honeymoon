@@ -259,7 +259,27 @@ ${input}`
   }
 });
 
-// Geocode using Nominatim
+// In-memory city coordinate cache (per process lifetime)
+const cityCoordCache = {};
+
+async function geocodeCity(city) {
+  if (!city) return null;
+  const key = city.toLowerCase().trim();
+  if (cityCoordCache[key]) return cityCoordCache[key];
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`;
+    const resp = await fetch(url, { headers: { 'User-Agent': 'HoneymoonApp/1.0 rob@robresnick.com' } });
+    const data = await resp.json();
+    if (data && data[0]) {
+      const coords = { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
+      cityCoordCache[key] = coords;
+      return coords;
+    }
+  } catch (e) { console.error('City geocode error:', e); }
+  return null;
+}
+
+// Geocode using Nominatim — precise place-level lookup with city fallback
 async function geocode(name, address, city, country = '') {
   try {
     const query = [name, address, city, country].filter(Boolean).join(', ');
@@ -269,15 +289,9 @@ async function geocode(name, address, city, country = '') {
     if (data && data[0]) {
       return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
     }
-    // Fallback: search just city
-    if (city) {
-      const cityUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`;
-      const cityResp = await fetch(cityUrl, { headers: { 'User-Agent': 'HoneymoonApp/1.0 rob@robresnick.com' } });
-      const cityData = await cityResp.json();
-      if (cityData && cityData[0]) {
-        return { latitude: parseFloat(cityData[0].lat), longitude: parseFloat(cityData[0].lon) };
-      }
-    }
+    // Fallback: city-level (cached)
+    const city_coords = await geocodeCity(city);
+    if (city_coords) return city_coords;
   } catch (e) {
     console.error('Geocode error:', e);
   }
@@ -307,6 +321,10 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
   const recs = Array.isArray(req.body) ? req.body : [req.body];
   const saved = [];
 
+  // Pre-fetch city coords for all unique cities in one pass (cached, fast)
+  const uniqueCities = [...new Set(recs.map(r => r.city).filter(Boolean))];
+  await Promise.all(uniqueCities.map(c => geocodeCity(c)));
+
   for (const rec of recs) {
     const { name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, latitude, longitude, phone } = rec;
 
@@ -317,7 +335,6 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
     );
 
     if (existing.rows[0] && recommended_by) {
-      // Merge: append new recommender if not already listed
       const current = existing.rows[0].recommended_by || '';
       const names = current.split(',').map(n => n.trim().toLowerCase());
       if (!names.includes(recommended_by.trim().toLowerCase())) {
@@ -333,37 +350,52 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
       continue;
     }
 
-    // Insert immediately without geocoding (lat/lon stay null)
+    // Use provided coords, or fall back to cached city-level coords
+    let lat = latitude || null, lon = longitude || null;
+    if (!lat || !lon) {
+      const cityCoords = cityCoordCache[city?.toLowerCase().trim()];
+      if (cityCoords) { lat = cityCoords.latitude; lon = cityCoords.longitude; }
+    }
+
     const result = await pool.query(
       `INSERT INTO recommendations (user_id, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, latitude, longitude, phone)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-      [req.userId, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input,
-       (latitude || null), (longitude || null), phone || null]
+      [req.userId, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, lat, lon, phone || null]
     );
     saved.push(result.rows[0]);
   }
 
-  // Respond immediately — client doesn't wait for geocoding
   res.json(saved);
+  // Precise place-level geocoding happens via /api/geocode-missing called by the client
+});
 
-  // Background: geocode any rows that have no coordinates
-  const needsGeocode = saved.filter(r => !r.latitude || !r.longitude);
-  (async () => {
-    for (const rec of needsGeocode) {
-      try {
-        const coords = await geocode(rec.name, rec.address, rec.city);
-        if (coords.latitude && coords.longitude) {
-          await pool.query(
-            `UPDATE recommendations SET latitude=$1, longitude=$2, updated_at=NOW() WHERE id=$3`,
-            [coords.latitude, coords.longitude, rec.id]
-          );
-        }
-      } catch (e) {
-        console.error('Background geocode error for', rec.id, e);
-      }
-      await new Promise(r => setTimeout(r, 1100)); // Nominatim rate limit: 1 req/sec
+// Precise geocode up to 8 recs at a time that only have city-level coords.
+// Client calls this after save to progressively improve marker accuracy.
+app.post('/api/geocode-missing', requireAuth, async (req, res) => {
+  const { ids } = req.body; // optional: specific IDs to geocode
+  let query, params;
+  if (ids && ids.length) {
+    query = `SELECT id, name, address, city FROM recommendations WHERE id = ANY($1) AND latitude IS NOT NULL AND longitude IS NOT NULL`;
+    params = [ids];
+  } else {
+    // Find recs with null coords
+    query = `SELECT id, name, address, city FROM recommendations WHERE (latitude IS NULL OR longitude IS NULL) LIMIT 20`;
+    params = [];
+  }
+  const rows = (await pool.query(query, params)).rows;
+  const updated = [];
+  for (const row of rows) {
+    const coords = await geocode(row.name, row.address, row.city);
+    if (coords.latitude && coords.longitude) {
+      await pool.query(
+        `UPDATE recommendations SET latitude=$1, longitude=$2, updated_at=NOW() WHERE id=$3`,
+        [coords.latitude, coords.longitude, row.id]
+      );
+      updated.push({ id: row.id, latitude: coords.latitude, longitude: coords.longitude });
     }
-  })();
+    await new Promise(r => setTimeout(r, 1100));
+  }
+  res.json({ updated });
 });
 
 app.put('/api/recommendations/:id', requireAuth, async (req, res) => {

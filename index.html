@@ -1094,6 +1094,8 @@ async function showApp() {
     if (map) map.invalidateSize();
     else if (!isDesktop()) initMap();
   }, 200);
+  // Fix any existing recs missing coordinates (runs quietly in background)
+  setTimeout(() => triggerGeocodeMissing(), 2000);
 }
 
 async function checkSession() {
@@ -2177,6 +2179,28 @@ async function saveParseResults() {
   closeAddDrawer();
   showToast(`Saved ${saved?.length || count} place${count>1?'s':''}!`);
   await loadRecs(); await loadFilters();
+  // Kick off precise geocoding in background; refresh map as coords come in
+  triggerGeocodeMissing();
+}
+
+// Call /api/geocode-missing and re-render markers as precise coords arrive
+async function triggerGeocodeMissing() {
+  try {
+    const result = await api('/api/geocode-missing', 'POST', {});
+    if (result && result.updated && result.updated.length) {
+      // Patch allRecs with new coordinates
+      result.updated.forEach(u => {
+        const r = allRecs.find(x => x.id === u.id);
+        if (r) { r.latitude = u.latitude; r.longitude = u.longitude; }
+      });
+      // Rebuild filtered and re-render map
+      filtered = allRecs.filter(r => {
+        // simple re-apply: just keep the same set, coords updated
+        return filtered.some(f => f.id === r.id) || allRecs.find(x => x.id === r.id);
+      });
+      if (map) renderMapMarkers();
+    }
+  } catch(e) { /* silent */ }
 }
 
 // ── EDIT ──
@@ -2416,26 +2440,39 @@ function folderPressClick(e, fid) {
 
 function startFolderRename(fid) {
   const label = _folderLabels[fid] || fid;
-  const headerEl = document.querySelector(`.buddy-folder-header[data-fid="${fid}"]`);
-  if (!headerEl) return;
   const color = getFolderColor(fid);
-  headerEl.innerHTML = `
-    <input id="folder-rename-${fid}" value="${esc(label)}"
-      style="flex:1;background:#222;border:none;border-bottom:1px solid ${color};color:#fff;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:0 4px;outline:none"
-      onkeydown="if(event.key==='Enter'){saveFolderLabel('${fid}',this.value);}"
-      onblur="saveFolderLabel('${fid}',this.value)" />
-    <button onclick="confirmDeleteFolder('${fid}')"
-      style="background:none;border:none;color:#e8453c;padding:0 6px;cursor:pointer;font-size:14px;font-weight:700" title="Delete list">✕</button>
-  `;
-  headerEl.onclick = null;
-  const inp = document.getElementById(`folder-rename-${fid}`);
-  if (inp) { inp.focus(); inp.select(); }
+  // Show a floating popup so the keyboard opens properly on mobile
+  const existing = document.getElementById('folder-rename-popup');
+  if (existing) existing.remove();
+  const popup = document.createElement('div');
+  popup.id = 'folder-rename-popup';
+  popup.style.cssText = `position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)`;
+  popup.innerHTML = `
+    <div style="background:#1a1a1a;border-radius:10px;padding:20px;width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:${color};margin-bottom:10px">Rename list</div>
+      <input id="folder-rename-input" value="${esc(label)}"
+        style="width:100%;background:#111;border:1px solid #333;border-radius:6px;color:#fff;font-size:15px;padding:8px 10px;outline:none;box-sizing:border-box"
+        onkeydown="if(event.key==='Enter'){saveFolderLabel('${fid}',this.value);}" />
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="confirmDeleteFolder('${fid}')"
+          style="flex:0;background:none;border:1px solid #e8453c;color:#e8453c;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:12px">Delete</button>
+        <button onclick="document.getElementById('folder-rename-popup').remove();renderBuddyNames();"
+          style="flex:1;background:#333;border:none;color:#aaa;border-radius:6px;padding:8px;cursor:pointer;font-size:13px">Cancel</button>
+        <button onclick="saveFolderLabel('${fid}',document.getElementById('folder-rename-input').value)"
+          style="flex:1;background:${color};border:none;color:#fff;border-radius:6px;padding:8px;cursor:pointer;font-size:13px;font-weight:600">Save</button>
+      </div>
+    </div>`;
+  document.body.appendChild(popup);
+  const inp = document.getElementById('folder-rename-input');
+  inp.focus(); inp.select();
 }
 
 function saveFolderLabel(fid, val) {
   const label = val.trim() || _folderLabels[fid] || fid;
   _folderLabels[fid] = label;
   localStorage.setItem('hm_folder_labels', JSON.stringify(_folderLabels));
+  const popup = document.getElementById('folder-rename-popup');
+  if (popup) popup.remove();
   renderBuddyNames();
 }
 
