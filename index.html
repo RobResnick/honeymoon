@@ -772,12 +772,15 @@
 
 <!-- BUDDY LIST -->
 <button id="buddy-btn" onclick="toggleBuddy()" title="Buddy List">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="22" height="22">
-    <path fill-rule="evenodd" fill="#e8453c" d="M50 34 C50 21 37 9 24 9 C9 9 7 24 7 30 C7 50 29 62 50 80 C71 62 93 50 93 30 C93 24 91 9 76 9 C63 9 50 21 50 34Z M50 43 C50 33 43 25 36 25 C27 25 25 35 25 39 C25 53 38 62 50 73 C62 62 75 53 75 39 C75 35 73 25 64 25 C57 25 50 33 50 43Z"/>
-    <circle fill="#4285f4" cx="34" cy="80" r="8.5"/>
-    <path fill="#4285f4" d="M21 100 C21 89 27 86 34 86 C41 86 47 89 47 100Z"/>
-    <circle fill="#fbbc04" cx="67" cy="83" r="6.5"/>
-    <path fill="#fbbc04" d="M56 100 C56 91 61 88 67 88 C73 88 78 91 78 100Z"/>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="26" height="26">
+    <rect x="10" y="10" width="180" height="180" rx="40" ry="40" fill="white"/>
+    <rect x="10" y="10" width="180" height="180" rx="40" ry="40" fill="none" stroke="#000000" stroke-opacity="0.06" stroke-width="1.5"/>
+    <g transform="translate(0,22)">
+      <path d="M 52 51 L 52 92 Q 52 146 100 146 Q 148 146 148 92 L 148 51" fill="none" stroke="#EA4335" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 25 31 C 60 62 75 56 100 56" fill="none" stroke="#4285F4" stroke-width="17" stroke-linecap="round"/>
+      <path d="M 100 56 C 125 56 140 62 175 31" fill="none" stroke="#34A853" stroke-width="17" stroke-linecap="round"/>
+      <rect x="91.5" y="64" width="17" height="42" rx="7" fill="#FBBC05"/>
+    </g>
   </svg>
 </button>
 <div id="buddy-backdrop" onclick="closeBuddy()"></div>
