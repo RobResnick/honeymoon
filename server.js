@@ -122,32 +122,74 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 });
 
 // Parse raw input with Claude
-// Fetch a URL and extract readable plain text from its HTML
+// Extract Open Graph / Twitter meta tag values from HTML
+function extractMetaTags(html) {
+  const tags = {};
+  const metaRe = /<meta[^>]+>/gi;
+  let m;
+  while ((m = metaRe.exec(html)) !== null) {
+    const tag = m[0];
+    const prop = (tag.match(/(?:property|name)="([^"]+)"/i) || [])[1];
+    const content = (tag.match(/content="([^"]*)"/i) || [])[1];
+    if (prop && content) tags[prop.toLowerCase()] = content;
+  }
+  return tags;
+}
+
+// Fetch a URL and extract readable plain text from its HTML.
+// For social media (Instagram, TikTok, Twitter) we rely on OG meta tags
+// which are server-rendered even without login.
 async function fetchPageText(url) {
   const resp = await fetch(url, {
     headers: {
+      // Pretend to be a browser so sites return full HTML (including OG tags)
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
     },
     redirect: 'follow',
-    timeout: 10000,
+    timeout: 12000,
   });
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const html = await resp.text();
-  // Strip scripts, styles, nav, footer, ads
-  let text = html
+
+  // Pull Open Graph / Twitter card meta tags — reliable on Instagram, TikTok, etc.
+  const meta = extractMetaTags(html);
+  const ogParts = [
+    meta['og:title'],
+    meta['og:description'],
+    meta['twitter:title'],
+    meta['twitter:description'],
+    meta['description'],
+  ].filter(Boolean).map(s =>
+    s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"')
+  );
+
+  // Also extract body text for article-style pages
+  let bodyText = html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<nav[\s\S]*?<\/nav>/gi, ' ')
     .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
     .replace(/<header[\s\S]*?<\/header>/gi, ' ')
     .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/<[^>]+>/g, ' ')           // strip remaining tags
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#\d+;/g, ' ')
-    .replace(/\s{3,}/g, '\n\n')         // collapse whitespace
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#\d+;/g,' ')
+    .replace(/\s{3,}/g, '\n\n')
     .trim();
-  // Limit to ~12000 chars so it fits in the prompt
+
+  // For social media posts the OG description IS the caption — put it first and prominent
+  const isSocial = /instagram\.com|tiktok\.com|twitter\.com|x\.com|facebook\.com/.test(url);
+  let text;
+  if (isSocial) {
+    // OG tags are the content; body text is mostly JS junk
+    text = ogParts.join('\n\n');
+    if (!text) throw new Error('No readable content found (post may be private)');
+  } else {
+    // Article pages: prefer body text, prepend OG summary
+    text = (ogParts.length ? ogParts.join('\n\n') + '\n\n' : '') + bodyText;
+  }
+
   if (text.length > 12000) text = text.slice(0, 12000) + '…';
   return text;
 }
