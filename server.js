@@ -55,6 +55,44 @@ function inferCountry(city) {
   return CITY_COUNTRY_MAP[city.toLowerCase().trim()] || null;
 }
 
+// Location hierarchy: maps neighborhoods/sub-cities to their parent city.
+// Used for duplicate detection — "Koast, Wailea" == "Koast, Maui"
+const CITY_PARENT = {
+  // Maui, Hawaii
+  'wailea':'maui','kihei':'maui','lahaina':'maui','kapalua':'maui',
+  'paia':'maui','hana':'maui','makawao':'maui','kaanapali':'maui',
+  // Los Angeles area
+  'beverly hills':'los angeles','west hollywood':'los angeles',
+  'santa monica':'los angeles','venice':'los angeles',
+  'silver lake':'los angeles','echo park':'los angeles',
+  'los feliz':'los angeles','culver city':'los angeles',
+  'brentwood':'los angeles','malibu':'los angeles',
+  'pasadena':'los angeles','burbank':'los angeles',
+  'topanga':'los angeles',
+  // Florence
+  'oltrarno':'florence','santa croce':'florence',
+  // Paris arrondissements
+  '1st arrondissement':'paris','2nd arrondissement':'paris',
+  '3rd arrondissement':'paris','4th arrondissement':'paris',
+  '5th arrondissement':'paris','6th arrondissement':'paris',
+  '7th arrondissement':'paris','8th arrondissement':'paris',
+  '9th arrondissement':'paris','10th arrondissement':'paris',
+  '11th arrondissement':'paris','12th arrondissement':'paris',
+  // Milan
+  'brera':'milan','navigli':'milan','isola':'milan',
+};
+
+// Returns true if two city strings refer to the same metro area
+function sameCity(a, b) {
+  if (!a || !b) return false;
+  const ak = a.toLowerCase().trim();
+  const bk = b.toLowerCase().trim();
+  if (ak === bk) return true;
+  // Check parent hierarchy both ways
+  return CITY_PARENT[ak] === bk || CITY_PARENT[bk] === ak ||
+    (CITY_PARENT[ak] && CITY_PARENT[ak] === CITY_PARENT[bk]);
+}
+
 // Initialize DB schema
 async function initDb() {
   await pool.query(`
@@ -363,25 +401,30 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
     // Infer country from city (DB no longer defaults to Italy)
     const country = rec.country || inferCountry(city) || null;
 
-    // Check for existing recommendation with same name + city
+    // Check for existing recommendation with same name + same city (or same metro area)
     const existing = await pool.query(
-      `SELECT * FROM recommendations WHERE LOWER(name)=LOWER($1) AND LOWER(COALESCE(city,''))=LOWER(COALESCE($2,''))`,
-      [name, city || '']
+      `SELECT * FROM recommendations WHERE LOWER(name)=LOWER($1)`,
+      [name]
     );
+    // Filter to same city or same metro area
+    const dupRec = existing.rows.find(r => sameCity(r.city, city));
 
-    if (existing.rows[0] && recommended_by) {
-      const current = existing.rows[0].recommended_by || '';
+    if (dupRec && recommended_by) {
+      const current = dupRec.recommended_by || '';
       const names = current.split(',').map(n => n.trim().toLowerCase());
       if (!names.includes(recommended_by.trim().toLowerCase())) {
         const merged = current ? `${current}, ${recommended_by.trim()}` : recommended_by.trim();
         const updated = await pool.query(
           `UPDATE recommendations SET recommended_by=$1, updated_at=NOW() WHERE id=$2 RETURNING *`,
-          [merged, existing.rows[0].id]
+          [merged, dupRec.id]
         );
         saved.push(updated.rows[0]);
       } else {
-        saved.push(existing.rows[0]);
+        saved.push(dupRec);
       }
+      continue;
+    } else if (dupRec) {
+      saved.push(dupRec);
       continue;
     }
 
