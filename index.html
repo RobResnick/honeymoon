@@ -985,7 +985,9 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 const NEARBY_KM = 4.83;
 
 function isMe(name) {
-  return !!(name && _currentUser && (name === _currentUser.name || name.toLowerCase() === (_currentUser.name||'').toLowerCase()));
+  if (!name) return false;
+  if (name.toLowerCase() === 'me') return true; // literal "Me" in recommended_by = current user
+  return !!(_currentUser && (name === _currentUser.name || name.toLowerCase() === (_currentUser.name||'').toLowerCase()));
 }
 
 function getPersonFolder(name) {
@@ -998,7 +1000,6 @@ function getPersonFolder(name) {
 }
 
 function getRecSourceColor(rec) {
-  if (_currentUser && rec.user_id === _currentUser.id) return FOLDER_COLORS.me;
   if (!rec.recommended_by) return FOLDER_COLORS.other;
   const people = rec.recommended_by.split(',').map(p => p.trim()).filter(Boolean);
   if (!people.length) return FOLDER_COLORS.other;
@@ -1007,7 +1008,7 @@ function getRecSourceColor(rec) {
 
 function isPersonVisible(name) {
   if (!name) return true;
-  if (isMe(name)) return !_hiddenPeople.has(name); // me: controlled by own hidden state
+  if (isMe(name)) return !_hiddenPeople.has('__me__'); // canonical key, covers "Me" and real username
   if (_hiddenPeople.has(name)) return false;
   const folder = getPersonFolder(name);
   if (_folderStates[folder] === false) return false;
@@ -1361,11 +1362,9 @@ async function loadRecs(fromServer = true) {
       const hay = [r.name, r.city, r.notes, r.recommended_by].join(' ').toLowerCase();
       if (!hay.includes(search)) return false;
     }
-    // Filter by buddy visibility
-    if (_currentUser && r.user_id === _currentUser.id && _hiddenPeople.has(_currentUser.name)) return false;
+    // Filter by buddy visibility — recommended_by is the source of truth
     if (r.recommended_by) {
-      const people = r.recommended_by.split(',').map(p => p.trim()).filter(Boolean)
-        .filter(p => !isMe(p)); // exclude current user from rec-by check (handled above)
+      const people = r.recommended_by.split(',').map(p => p.trim()).filter(Boolean);
       if (people.length > 0 && people.every(p => !isPersonVisible(p))) return false;
     }
     return true;
@@ -1722,6 +1721,7 @@ function openDetail(id) {
     }
   };
 
+  _detailJustOpened = true; // prevent the opening tap from immediately closing via doc listener
   document.getElementById('detail-overlay').classList.add('open');
 }
 
@@ -1729,8 +1729,11 @@ function openDetail(id) {
 function closeDetailModal() {
   document.getElementById('detail-overlay').classList.remove('open');
 }
-// Close detail modal when clicking outside it
+// Close detail modal when clicking outside it.
+// _detailJustOpened prevents the same tap that opened it from immediately closing it.
+let _detailJustOpened = false;
 document.addEventListener('click', function(e) {
+  if (_detailJustOpened) { _detailJustOpened = false; return; }
   const overlay = document.getElementById('detail-overlay');
   if (!overlay || !overlay.classList.contains('open')) return;
   const modal = overlay.querySelector('.modal');
@@ -2333,14 +2336,17 @@ function renderBuddyNames() {
   }
 
   // ── "Me" row (always at top, always blue) ──
-  const myName = _currentUser?.name || '';
-  // Filter current user out of the displayed people list everywhere
+  // Filter current user out of the displayed people list everywhere (covers "Me" string + real name)
   const displayPeople = allPeople.filter(p => !isMe(p));
   let html = '';
   if (_currentUser) {
-    const meMuted = _hiddenPeople.has(myName);
-    const meCount = allRecs.filter(r => r.user_id === _currentUser.id).length;
-    html = `<div class="buddy-me-row${meMuted?' muted':''}" onclick="toggleBuddyPerson('${myName.replace(/'/g,"\\'")}')">
+    const meMuted = _hiddenPeople.has('__me__');
+    // Count recs where recommended_by explicitly names "me" (literal "Me" or current user's name)
+    const meCount = allRecs.filter(r => {
+      if (!r.recommended_by) return false;
+      return r.recommended_by.split(',').map(p => p.trim()).some(p => isMe(p));
+    }).length;
+    html = `<div class="buddy-me-row${meMuted?' muted':''}" onclick="toggleBuddyPerson('__me__')">
       ${dot(FOLDER_COLORS.me, meMuted)}
       <span class="buddy-name">Me</span>
       <span style="margin-left:auto;font-size:10px;color:${meMuted?'#444':'#666'}">${meCount}</span>
