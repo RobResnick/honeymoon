@@ -1803,25 +1803,21 @@ function setMode(mode) {
   }
 }
 
-// Center on user location and zoom out to include at least 2 nearest recommendation dots.
+// Center on user, then zoom out (no animation) until 2+ dots are visible.
+// All zoom steps happen instantly so the map just opens at the right level.
 function centerOnUserWithDots(lat, lng) {
   if (!map) return;
-  const recs = filtered.filter(r => r.latitude && r.longitude);
-  const sorted = recs.map(r => ({
-    r,
-    dist: haversineKm(lat, lng, parseFloat(r.latitude), parseFloat(r.longitude))
-  })).sort((a, b) => a.dist - b.dist);
-
-  const pts = [L.latLng(lat, lng)];
-  const take = Math.min(2, sorted.length);
-  for (let i = 0; i < take; i++) {
-    pts.push(L.latLng(parseFloat(sorted[i].r.latitude), parseFloat(sorted[i].r.longitude)));
+  // Snap to user at a close zoom, no animation
+  map.setView([lat, lng], 14, { animate: false });
+  // Step out one zoom level at a time until 2+ markers are in view
+  for (let z = 14; z >= 3; z--) {
+    const b = map.getBounds();
+    const visible = markers.filter(m => b.contains(m.getLatLng()));
+    if (visible.length >= 2) break;
+    if (z > 3) map.setZoom(z - 1, { animate: false });
   }
-  if (pts.length > 1) {
-    map.fitBounds(L.latLngBounds(pts).pad(0.35), { maxZoom: 15, animate: true });
-  } else {
-    map.setView([lat, lng], 14, { animate: true });
-  }
+  // One gentle pan to centre on the user (the zoom is already right)
+  map.panTo([lat, lng], { animate: true, duration: 0.4 });
 }
 
 function goToCurrentLocation() {
