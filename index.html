@@ -959,6 +959,7 @@ function typeIconHtml(type, size = 26, overrideColor) {
 
 let sessionToken = localStorage.getItem('hm_token') || null;
 let allRecs = [], filtered = [], allPeople = [];
+let _noPreciseCoords = new Set(); // rec IDs that share city-level fallback coords
 let _addSelectedPeople = new Set(), _editSelectedPeople = new Set();
 let map = null, markers = [], locationDot = null;
 let authMode = 'login';
@@ -1380,8 +1381,24 @@ function selectPlaceSuggestion(id) {
   if (!isDesktop()) closeSheetOnly();
 }
 
+function detectNoPreciseCoords() {
+  // Find recs that share identical lat/lng with another rec — these are city-level fallbacks
+  _noPreciseCoords = new Set();
+  const coordMap = {}; // "lat,lng" → [ids]
+  allRecs.forEach(r => {
+    if (!r.latitude || !r.longitude) { _noPreciseCoords.add(r.id); return; }
+    const key = parseFloat(r.latitude).toFixed(5) + ',' + parseFloat(r.longitude).toFixed(5);
+    if (!coordMap[key]) coordMap[key] = [];
+    coordMap[key].push(r.id);
+  });
+  Object.values(coordMap).forEach(ids => {
+    if (ids.length > 1) ids.forEach(id => _noPreciseCoords.add(id));
+  });
+}
+
 async function loadRecs(fromServer = true) {
   if (fromServer) allRecs = await api('/api/recommendations') || [];
+  detectNoPreciseCoords();
   const { search, city, type, person } = getFilterValues();
   filtered = allRecs.filter(r => {
     if (city   && (r.city||'').toLowerCase() !== city) return false;
@@ -1452,6 +1469,7 @@ function cardHtml(r) {
         <div class="rec-card-info">
           <div class="rec-name-line">
             <div class="rec-name">${esc(cleanName)}</div>
+            ${_noPreciseCoords.has(r.id) ? `<span title="No precise location found" style="font-size:13px;opacity:0.7;flex-shrink:0">⚠️</span>` : ''}
             ${r.city ? `<div class="rec-city-text">· ${esc(r.city)}</div>` : ''}
             ${person ? `<div class="rec-person-tag" style="${tagStyle}">${esc(person)}</div>` : ''}
           </div>
