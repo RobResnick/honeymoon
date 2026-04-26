@@ -966,7 +966,7 @@ let pendingParseCount = 0, pendingRawInput = '';
 
 // ── SOURCE / FOLDER COLOR SYSTEM ──
 let _currentUser = null;
-const FOLDER_COLORS = { me: '#1A73E8', friends: '#e8453c', internet: '#34A853', other: '#f29900' };
+const FOLDER_COLORS = { me: '#1A73E8', friends: '#f29900', internet: '#34A853', other: '#e8453c' };
 const FOLDER_LABELS = { me: 'Me', friends: 'Friends', internet: 'Internet', other: 'Other' };
 let _buddyFolders = JSON.parse(localStorage.getItem('hm_buddy_folders') || '{"friends":[],"internet":[],"other":[]}');
 let _folderStates = JSON.parse(localStorage.getItem('hm_folder_states') || '{"friends":true,"internet":true,"other":true}');
@@ -1709,19 +1709,51 @@ function openDetail(id) {
   // Notes
   const notesRow = document.getElementById('detail-notes-row');
   notesRow.style.display = 'flex';
-  let notesHtml = r.notes ? esc(r.notes) : '<span style="color:var(--text3);font-style:italic">No notes yet</span>';
-  if (r.source_url) notesHtml += `<br><a href="${esc(r.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:4px;display:inline-block">View source ↗</a>`;
   const notesEl = document.getElementById('detail-notes-text');
-  notesEl.innerHTML = notesHtml;
   notesEl._recId = r.id;
-  notesEl.contentEditable = 'true'; // always editable for now
+  notesEl.contentEditable = 'true';
+
+  function renderNotesContent(rec) {
+    if (rec.notes) {
+      let html = esc(rec.notes);
+      if (rec.source_url) html += `<br><a href="${esc(rec.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:4px;display:inline-block">View source ↗</a>`;
+      notesEl.innerHTML = html;
+      notesEl.style.color = '';
+      notesEl.style.fontStyle = '';
+    } else {
+      notesEl.innerHTML = 'No notes yet';
+      notesEl.style.color = 'var(--text3)';
+      notesEl.style.fontStyle = 'italic';
+      if (rec.source_url) {
+        notesEl.innerHTML += `<br><a href="${esc(rec.source_url)}" target="_blank" style="color:var(--blue);font-size:12px;margin-top:4px;display:inline-block;font-style:normal">View source ↗</a>`;
+      }
+    }
+  }
+  renderNotesContent(r);
+
+  notesEl.onfocus = function() {
+    const rec = allRecs.find(x => x.id === this._recId);
+    // Clear placeholder text when user taps into notes
+    if (!rec?.notes && this.innerText.startsWith('No notes yet')) {
+      this.innerHTML = '';
+      this.style.color = '';
+      this.style.fontStyle = '';
+    }
+  };
   notesEl.onblur = async function() {
     const newNotes = this.innerText.trim();
     const rec = allRecs.find(x => x.id === this._recId);
-    if (rec && newNotes !== (rec.notes || '').trim()) {
-      await api('/api/recommendations/' + this._recId, 'PUT', { ...rec, notes: newNotes });
-      rec.notes = newNotes;
+    if (!rec) return;
+    if (newNotes !== (rec.notes || '').trim()) {
+      if (newNotes) {
+        await api('/api/recommendations/' + this._recId, 'PUT', { ...rec, notes: newNotes });
+        rec.notes = newNotes;
+      } else {
+        await api('/api/recommendations/' + this._recId, 'PUT', { ...rec, notes: '' });
+        rec.notes = '';
+      }
     }
+    renderNotesContent(rec);
   };
 
   _detailJustOpened = true; // prevent the opening tap from immediately closing via doc listener
@@ -1916,7 +1948,7 @@ function enableMapInteraction() {
 
 function initMap() {
   if (map) { renderMapMarkers(); return; }
-  map = L.map('map', { zoomControl: false }).setView([43, 12], 9);
+  map = L.map('map', { zoomControl: false }).setView([43, 12], 5);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
@@ -1927,8 +1959,10 @@ function initMap() {
   if (attr) attr.style.display = 'none';
 
   renderMapMarkers();
+  // Show all dots immediately so the map isn't blank while waiting for geolocation
+  if (markers.length) recenterMap();
 
-  // Get user location, center on it, zoom to show 2 nearest dots
+  // Then try to get user location and re-center to show 2 nearest dots
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
       _userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -1939,11 +1973,8 @@ function initMap() {
       }).addTo(map);
       centerOnUserWithDots(pos.coords.latitude, pos.coords.longitude);
     }, () => {
-      // No location — fit all markers
-      if (markers.length) recenterMap();
-    }, { enableHighAccuracy: true, timeout: 8000 });
-  } else if (markers.length) {
-    recenterMap();
+      // No location available — already showing all markers, nothing to do
+    }, { enableHighAccuracy: false, timeout: 8000 });
   }
 
   // Inject recenter into Leaflet zoom control (mobile only)
@@ -2007,7 +2038,20 @@ function renderMapMarkers() {
 // ── ADD DRAWER ──
 function openAddDrawer() {
   document.getElementById('raw-input').value = '';
-  document.getElementById('input-city').value = '';
+  // Default city to wherever the map is currently centered (reverse geocode)
+  const cityInp = document.getElementById('input-city');
+  cityInp.value = '';
+  if (map) {
+    const c = map.getCenter();
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${c.lat}&lon=${c.lng}&format=json&zoom=10`, {
+      headers: { 'User-Agent': 'HoneymoonApp/1.0 rob@robresnick.com' }
+    }).then(r => r.json()).then(d => {
+      const a = d.address || {};
+      // Prefer city > town > county > state — avoid tiny neighborhoods
+      const city = a.city || a.town || a.municipality || a.county || a.state_district || '';
+      if (city && !cityInp.value) cityInp.value = city;
+    }).catch(() => {});
+  }
   const personInp = document.getElementById('input-person');
   const defaultName = _currentUser?.name || '';
   personInp.value = defaultName;

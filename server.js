@@ -122,9 +122,52 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 });
 
 // Parse raw input with Claude
+// Fetch a URL and extract readable plain text from its HTML
+async function fetchPageText(url) {
+  const resp = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+    redirect: 'follow',
+    timeout: 10000,
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const html = await resp.text();
+  // Strip scripts, styles, nav, footer, ads
+  let text = html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<nav[\s\S]*?<\/nav>/gi, ' ')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
+    .replace(/<header[\s\S]*?<\/header>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<[^>]+>/g, ' ')           // strip remaining tags
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#\d+;/g, ' ')
+    .replace(/\s{3,}/g, '\n\n')         // collapse whitespace
+    .trim();
+  // Limit to ~12000 chars so it fits in the prompt
+  if (text.length > 12000) text = text.slice(0, 12000) + '…';
+  return text;
+}
+
 app.post('/api/parse', requireAuth, async (req, res) => {
-  const { input } = req.body;
+  let { input } = req.body;
   if (!input) return res.status(400).json({ error: 'Input required' });
+
+  let sourceUrl = '';
+  const urlMatch = input.trim().match(/^(https?:\/\/[^\s]+)$/i);
+  if (urlMatch) {
+    // Input is a URL — fetch the page and parse its content
+    sourceUrl = urlMatch[1];
+    try {
+      input = await fetchPageText(sourceUrl);
+    } catch (err) {
+      console.error('URL fetch error:', err.message);
+      return res.status(422).json({ error: `Could not fetch that URL: ${err.message}` });
+    }
+  }
 
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -136,34 +179,37 @@ app.post('/api/parse', requireAuth, async (req, res) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2048,
+        max_tokens: 4096,
         messages: [{
           role: 'user',
-          content: `You are helping parse travel recommendations. Extract all recommendations from the following input and return them as a JSON array. Each recommendation should have these fields:
+          content: `You are helping parse travel recommendations. Extract all place recommendations from the following content and return them as a JSON array. Each recommendation should have these fields:
 - name: the place name (required)
 - type: one of "restaurant", "bar", "cafe", "museum", "attraction", "hotel", "shop", "market", "beach", "church", "neighborhood", "other"
 - city: the city (e.g. Rome, Florence, Venice, Paris, etc.)
 - neighborhood: neighborhood or area within the city (if mentioned)
 - address: street address if mentioned
-- recommended_by: who recommended it (if mentioned in the text)
+- recommended_by: who recommended it (if mentioned)
 - notes: any additional details, descriptions, or context about the place
-- source_url: any URL associated with this place (if present)
-- phone: the phone number of the place if you have reliable knowledge of it (e.g. for famous/well-known restaurants you may know it), otherwise empty string
+- source_url: ${sourceUrl ? `"${sourceUrl}"` : 'any URL associated with this place (if present), otherwise empty string'}
+- phone: phone number if mentioned, otherwise empty string
 
-Return ONLY a valid JSON array, no other text. If the input has multiple places, return multiple objects. If something is unclear, make your best guess. Example:
-[{"name":"Trattoria da Mario","type":"restaurant","city":"Florence","neighborhood":"Santa Croce","address":"","recommended_by":"John","notes":"Amazing pasta, cash only","source_url":"","phone":""}]
+Return ONLY a valid JSON array, no other text. Extract every distinct place mentioned. Example:
+[{"name":"Trattoria da Mario","type":"restaurant","city":"Florence","neighborhood":"Santa Croce","address":"","recommended_by":"","notes":"Amazing pasta, cash only","source_url":"${sourceUrl}","phone":""}]
 
-Input to parse:
+Content to parse:
 ${input}`
         }]
       })
     });
     const aiData = await aiRes.json();
-    const text = aiData.content[0].text.trim();
+    const text = aiData.content?.[0]?.text?.trim();
+    if (!text) return res.status(422).json({ error: 'No response from AI' });
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return res.status(422).json({ error: 'Could not parse input' });
 
     const parsed = JSON.parse(jsonMatch[0]);
+    // If we fetched a URL, make sure source_url is set on all results
+    if (sourceUrl) parsed.forEach(p => { if (!p.source_url) p.source_url = sourceUrl; });
     res.json({ recommendations: parsed });
   } catch (err) {
     console.error('Parse error:', err);
