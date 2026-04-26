@@ -676,7 +676,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="28" height="28" class="header-logo"><rect width="100" height="100" rx="22" fill="white"/><defs><clipPath id="ic_h"><path d="M50 34 C50 21 37 9 24 9 C9 9 7 24 7 30 C7 50 29 62 50 80 C71 62 93 50 93 30 C93 24 91 9 76 9 C63 9 50 21 50 34Z"/></clipPath></defs><g clip-path="url(#ic_h)"><rect x="0" y="0" width="50" height="46" fill="#EA4335"/><rect x="50" y="0" width="50" height="46" fill="#4285F4"/><rect x="0" y="46" width="50" height="54" fill="#34A853"/><rect x="50" y="46" width="50" height="54" fill="#FBBC04"/></g><path d="M50 43 C50 33 43 25 36 25 C27 25 25 35 25 39 C25 53 38 62 50 73 C62 62 75 53 75 39 C75 35 73 25 64 25 C57 25 50 33 50 43Z" fill="white"/><circle cx="34" cy="80" r="8.5" fill="#4285F4"/><path d="M21 100 C21 89 27 86 34 86 C41 86 47 89 47 100Z" fill="#4285F4"/><circle cx="67" cy="83" r="6.5" fill="#FBBC04"/><path d="M56 100 C56 91 61 88 67 88 C73 88 78 91 78 100Z" fill="#FBBC04"/></svg>
       <h1>Honeymoon</h1>
       <span class="header-count" id="rec-count"></span>
-      <button id="fix-location-btn" onclick="runFixNoLocation()" title="Fix places with no precise location" style="display:none;align-items:center;gap:4px;background:none;border:1px solid #f5a623;border-radius:14px;color:#f5a623;font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">⚠️ Fix locations</button>
+      <button id="fix-location-btn" onclick="runFixNoLocation()" title="Retry finding locations for ⚠️ places" style="display:none;align-items:center;gap:4px;background:none;border:1px solid #f5a623;border-radius:14px;color:#f5a623;font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">⚠️ Retry locations</button>
     </header>
     <div class="filter-bar" id="filter-bar">
       <input type="text" id="search-input" placeholder="Search places…"
@@ -960,7 +960,8 @@ function typeIconHtml(type, size = 26, overrideColor) {
 
 let sessionToken = localStorage.getItem('hm_token') || null;
 let allRecs = [], filtered = [], allPeople = [];
-let _noPreciseCoords = new Set(); // rec IDs that share city-level fallback coords
+let _pendingCoords = new Set(); // rec IDs at city-level, geocode not yet attempted (show ⏳)
+let _failedCoords = new Set();  // rec IDs at city-level, geocode attempted + failed (show ⚠️)
 let _addSelectedPeople = new Set(), _editSelectedPeople = new Set();
 let map = null, markers = [], locationDot = null;
 let authMode = 'login';
@@ -1098,12 +1099,12 @@ async function showApp() {
       _cityCoords = data;
       if (map) renderMapMarkers();
       // Re-run after city coords load so ⚠️ detection can compare against city centers
-      detectNoPreciseCoords();
+      detectCoordState();
       renderList();
       renderMobileList();
       const fixBtn = document.getElementById('fix-location-btn');
-      if (fixBtn) fixBtn.style.display = _noPreciseCoords.size > 0 ? 'inline-flex' : 'none';
-      // Auto-fix any ⚠️ places in the background
+      if (fixBtn) fixBtn.style.display = _failedCoords.size > 0 ? 'inline-flex' : 'none';
+      // Auto-fix any ⏳ (pending) places in the background
       autoFixIfNeeded();
     }
   });
@@ -1393,33 +1394,40 @@ function selectPlaceSuggestion(id) {
   if (!isDesktop()) closeSheetOnly();
 }
 
-function detectNoPreciseCoords() {
-  _noPreciseCoords = new Set();
-  const coordMap = {}; // "lat,lng" → [ids]
+function detectCoordState() {
+  _pendingCoords = new Set();
+  _failedCoords = new Set();
+  const coordMap = {}; // "lat,lng" → [ids] for duplicate detection
   allRecs.forEach(r => {
-    if (!r.latitude || !r.longitude) { _noPreciseCoords.add(r.id); return; }
+    if (!r.latitude || !r.longitude) {
+      // No coords at all — pending if not attempted, failed if attempted
+      (r.geocode_attempted ? _failedCoords : _pendingCoords).add(r.id);
+      return;
+    }
     const lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
-    // Check if coords are essentially the city center (city-level fallback)
+    // Check if coords are at city center (city-level fallback)
     const cityKey = (r.city || '').toLowerCase().trim();
     const cc = _cityCoords[cityKey];
-    if (cc) {
-      const dlat = Math.abs(lat - cc.latitude);
-      const dlng = Math.abs(lng - cc.longitude);
-      if (dlat < 0.02 && dlng < 0.02) { _noPreciseCoords.add(r.id); return; }
+    const atCityCenter = cc && Math.abs(lat - cc.latitude) < 0.02 && Math.abs(lng - cc.longitude) < 0.02;
+    if (atCityCenter) {
+      (r.geocode_attempted ? _failedCoords : _pendingCoords).add(r.id);
+      return;
     }
-    // Also catch duplicates (multiple places sharing exact same coords)
+    // Duplicate coords fallback (same lat/lng shared with another place)
     const key = lat.toFixed(5) + ',' + lng.toFixed(5);
     if (!coordMap[key]) coordMap[key] = [];
-    coordMap[key].push(r.id);
+    coordMap[key].push({ id: r.id, attempted: r.geocode_attempted });
   });
-  Object.values(coordMap).forEach(ids => {
-    if (ids.length > 1) ids.forEach(id => _noPreciseCoords.add(id));
+  Object.values(coordMap).forEach(group => {
+    if (group.length > 1) group.forEach(({ id, attempted }) =>
+      (attempted ? _failedCoords : _pendingCoords).add(id)
+    );
   });
 }
 
 async function loadRecs(fromServer = true) {
   if (fromServer) allRecs = await api('/api/recommendations') || [];
-  detectNoPreciseCoords();
+  detectCoordState();
   const { search, city, type, person } = getFilterValues();
   filtered = allRecs.filter(r => {
     if (city   && (r.city||'').toLowerCase() !== city) return false;
@@ -1440,10 +1448,10 @@ async function loadRecs(fromServer = true) {
   if (map) renderMapMarkers();
   renderMobileList();
   document.getElementById('rec-count').textContent = filtered.length + (filtered.length === 1 ? ' place' : ' places');
-  // Show/hide fix-location button based on whether any ⚠️ places exist
+  // Show fix button if there are ⚠️ (failed) places the user can manually retry
   const fixBtn = document.getElementById('fix-location-btn');
-  if (fixBtn) fixBtn.style.display = _noPreciseCoords.size > 0 ? 'inline-flex' : 'none';
-  // If city coords are already loaded, auto-fix any new ⚠️ places immediately
+  if (fixBtn) fixBtn.style.display = _failedCoords.size > 0 ? 'inline-flex' : 'none';
+  // Auto-fix any ⏳ (pending) places immediately
   if (Object.keys(_cityCoords).length > 0) autoFixIfNeeded();
 }
 
@@ -1495,7 +1503,7 @@ function cardHtml(r) {
         <div class="rec-card-info">
           <div class="rec-name-line">
             <div class="rec-name">${esc(cleanName)}</div>
-            ${_noPreciseCoords.has(r.id) ? `<span title="No precise location found" style="font-size:13px;opacity:0.7;flex-shrink:0">⚠️</span>` : ''}
+            ${_pendingCoords.has(r.id) ? `<span title="Finding location…" style="font-size:13px;opacity:0.6;flex-shrink:0">⏳</span>` : _failedCoords.has(r.id) ? `<span title="No precise location found" style="font-size:13px;opacity:0.7;flex-shrink:0">⚠️</span>` : ''}
             ${r.city ? `<div class="rec-city-text">· ${esc(r.city)}</div>` : ''}
             ${person ? `<div class="rec-person-tag" style="${tagStyle}">${esc(person)}</div>` : ''}
           </div>
@@ -2302,20 +2310,25 @@ function showToast(msg, duration = 2500) {
 // ── FIX NO-LOCATION ROUTINE ──
 let _fixingLocations = false;
 
-// silent=true: runs in background, only toasts on success, no button state changes
+// silent=true: background auto-run (no button state, toast only on success)
+// silent=false: manual retry — resets geocode_attempted so ⚠️ places get another shot
 async function runFixNoLocation(silent = false) {
   if (_fixingLocations) return;
   _fixingLocations = true;
   const btn = document.getElementById('fix-location-btn');
-  if (!silent && btn) { btn.textContent = '⏳ Fixing…'; btn.disabled = true; }
+  if (!silent && btn) { btn.textContent = '⏳ Retrying…'; btn.disabled = true; }
 
   let fixed = 0;
   let attempts = 0;
-  const maxAttempts = 30; // safety cap
+  const maxAttempts = 50; // safety cap
+  // On manual retry, reset geocode_attempted for ⚠️ places on first call
+  let firstCall = !silent;
 
   while (attempts++ < maxAttempts) {
     try {
-      const result = await api('/api/fix-no-location', { method: 'POST' });
+      const url = firstCall ? '/api/fix-no-location?retry=1' : '/api/fix-no-location';
+      firstCall = false;
+      const result = await api(url, { method: 'POST' });
       if (!result || result.done) break;
       if (result.updated) {
         fixed++;
@@ -2338,11 +2351,11 @@ async function runFixNoLocation(silent = false) {
   if (!silent) showToast(fixed > 0 ? `✅ Fixed ${fixed} location${fixed !== 1 ? 's' : ''}` : '✅ Done checking', 2500);
 }
 
-// Auto-triggered after save when ⚠️ places exist
+// Auto-triggered after save/load when ⏳ (pending) places exist
 let _suppressAutoFix = false;
 function autoFixIfNeeded() {
   if (_suppressAutoFix || _fixingLocations) return;
-  if (_noPreciseCoords.size > 0) {
+  if (_pendingCoords.size > 0) {
     runFixNoLocation(true); // silent background run
   }
 }

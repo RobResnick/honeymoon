@@ -476,6 +476,11 @@ async function isAtCityCenter(rec) {
 // Sets geocode_attempted=true regardless so it never retries the same place.
 app.post('/api/fix-no-location', requireAuth, async (req, res) => {
   try {
+    // ?retry=1 resets geocode_attempted so ⚠️ places get another chance
+    if (req.query.retry === '1') {
+      await pool.query(`UPDATE recommendations SET geocode_attempted=FALSE WHERE geocode_attempted=TRUE`);
+    }
+
     // Find all cities and warm up cache first
     const { rows: cityRows } = await pool.query(
       `SELECT DISTINCT city FROM recommendations WHERE city IS NOT NULL AND city != ''`
