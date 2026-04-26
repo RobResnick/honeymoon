@@ -333,23 +333,37 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
       continue;
     }
 
-    let lat = latitude, lon = longitude;
-    if (!lat || !lon) {
-      const coords = await geocode(name, address, city);
-      lat = coords.latitude;
-      lon = coords.longitude;
-      await new Promise(r => setTimeout(r, 1100)); // Nominatim rate limit: 1 req/sec
-    }
-
+    // Insert immediately without geocoding (lat/lon stay null)
     const result = await pool.query(
       `INSERT INTO recommendations (user_id, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, latitude, longitude, phone)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-      [req.userId, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input, lat, lon, phone || null]
+      [req.userId, name, type, city, neighborhood, address, recommended_by, notes, source_url, raw_input,
+       (latitude || null), (longitude || null), phone || null]
     );
     saved.push(result.rows[0]);
   }
 
+  // Respond immediately — client doesn't wait for geocoding
   res.json(saved);
+
+  // Background: geocode any rows that have no coordinates
+  const needsGeocode = saved.filter(r => !r.latitude || !r.longitude);
+  (async () => {
+    for (const rec of needsGeocode) {
+      try {
+        const coords = await geocode(rec.name, rec.address, rec.city);
+        if (coords.latitude && coords.longitude) {
+          await pool.query(
+            `UPDATE recommendations SET latitude=$1, longitude=$2, updated_at=NOW() WHERE id=$3`,
+            [coords.latitude, coords.longitude, rec.id]
+          );
+        }
+      } catch (e) {
+        console.error('Background geocode error for', rec.id, e);
+      }
+      await new Promise(r => setTimeout(r, 1100)); // Nominatim rate limit: 1 req/sec
+    }
+  })();
 });
 
 app.put('/api/recommendations/:id', requireAuth, async (req, res) => {

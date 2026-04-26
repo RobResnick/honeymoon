@@ -974,6 +974,12 @@ let _folderExpanded = JSON.parse(localStorage.getItem('hm_folder_expanded') || '
 let _hiddenPeople = new Set(JSON.parse(localStorage.getItem('hm_hidden_people') || '[]'));
 let _draggingPerson = null;
 let _userLocation = null; // { lat, lng } set when geolocation resolves
+let _folderOrder = JSON.parse(localStorage.getItem('hm_folder_order') || '["friends","internet","other"]');
+let _folderLabels = JSON.parse(localStorage.getItem('hm_folder_labels') || '{"friends":"Friends","internet":"Internet","other":"Other"}');
+let _personColors = JSON.parse(localStorage.getItem('hm_person_colors') || '{}');
+
+// Color palette for unassigned people — distinct, not too dark/light
+const PERSON_PALETTE = ['#9334E6','#00897B','#FF6D00','#C62828','#1565C0','#558B2F','#F06292','#0288D1','#6D4C41','#546E7A'];
 
 // Distance between two lat/lng points in km
 function haversineKm(lat1, lng1, lat2, lng2) {
@@ -993,17 +999,32 @@ function isMe(name) {
 function getPersonFolder(name) {
   if (!name) return 'other';
   if (isMe(name)) return 'me';
-  for (const fid of ['friends','internet','other']) {
+  for (const fid of _folderOrder) {
     if ((_buddyFolders[fid] || []).includes(name)) return fid;
   }
   return 'other';
+}
+
+function getPersonColor(name) {
+  if (!name) return FOLDER_COLORS.other;
+  if (isMe(name)) return FOLDER_COLORS.me;
+  const folder = getPersonFolder(name);
+  if (folder !== 'other') return FOLDER_COLORS[folder];
+  // Unassigned: use stored color or assign new one from palette
+  if (!_personColors[name]) {
+    const used = new Set(Object.values(_personColors));
+    const pick = PERSON_PALETTE.find(c => !used.has(c)) || PERSON_PALETTE[Object.keys(_personColors).length % PERSON_PALETTE.length];
+    _personColors[name] = pick;
+    localStorage.setItem('hm_person_colors', JSON.stringify(_personColors));
+  }
+  return _personColors[name];
 }
 
 function getRecSourceColor(rec) {
   if (!rec.recommended_by) return FOLDER_COLORS.other;
   const people = rec.recommended_by.split(',').map(p => p.trim()).filter(Boolean);
   if (!people.length) return FOLDER_COLORS.other;
-  return FOLDER_COLORS[getPersonFolder(people[0])] || FOLDER_COLORS.other;
+  return getPersonColor(people[0]);
 }
 
 function isPersonVisible(name) {
@@ -2069,6 +2090,7 @@ function openAddDrawer() {
 function closeAddDrawer(e) {
   if (!e || e.target === document.getElementById('add-overlay')) {
     document.getElementById('add-overlay').classList.remove('open');
+    showParseArea();
   }
 }
 
@@ -2107,6 +2129,8 @@ function renderParseResults(recs, rawInput) {
   const isSingle = recs.length === 1;
   pendingParseCount = recs.length;
   pendingRawInput = rawInput;
+  // Hide the parse area while showing results
+  document.querySelector('.parse-area').style.display = 'none';
   el.innerHTML = recs.map((r, i) => `
     <div class="parse-result-item" id="result-${i}" data-neighborhood="${esc(r.neighborhood||'')}">
       <div class="item-name" data-name="${esc(r.name)}">${esc(r.name)}</div>
@@ -2119,9 +2143,14 @@ function renderParseResults(recs, rawInput) {
     </div>
   `).join('') + `
     <div style="display:flex;gap:8px;margin-top:8px;padding-bottom:8px">
-      <button class="btn btn-ghost" onclick="closeAddDrawer()">Cancel</button>
+      <button class="btn btn-ghost" onclick="showParseArea()">← Back</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveParseResults()">Save ${recs.length} place${recs.length>1?'s':''}</button>
     </div>`;
+}
+
+function showParseArea() {
+  document.querySelector('.parse-area').style.display = '';
+  document.getElementById('parse-results').innerHTML = '';
 }
 
 async function saveParseResults() {
@@ -2242,6 +2271,9 @@ function buddyDrop(e, targetFolder) {
   if (!_buddyFolders[targetFolder]) _buddyFolders[targetFolder] = [];
   _buddyFolders[targetFolder].push(name);
   localStorage.setItem('hm_buddy_folders', JSON.stringify(_buddyFolders));
+  // Clear unassigned color so the person takes on folder color
+  delete _personColors[name];
+  localStorage.setItem('hm_person_colors', JSON.stringify(_personColors));
   _draggingPerson = null;
   renderBuddyNames(); applyFilters();
 }
@@ -2258,6 +2290,9 @@ function buddyDropOnPerson(e, targetFolder, beforePerson) {
   if (idx >= 0) _buddyFolders[targetFolder].splice(idx, 0, name);
   else _buddyFolders[targetFolder].push(name);
   localStorage.setItem('hm_buddy_folders', JSON.stringify(_buddyFolders));
+  // Clear unassigned color so the person takes on folder color
+  delete _personColors[name];
+  localStorage.setItem('hm_person_colors', JSON.stringify(_personColors));
   _draggingPerson = null;
   renderBuddyNames(); applyFilters();
 }
@@ -2354,6 +2389,94 @@ function openBuddy() {
   }).catch(() => {});
 }
 
+function getFolderColor(fid) {
+  if (FOLDER_COLORS[fid]) return FOLDER_COLORS[fid];
+  // Custom folder: pick from PERSON_PALETTE
+  const customIdx = _folderOrder.indexOf(fid) - 3; // offset past built-ins
+  return PERSON_PALETTE[((customIdx % PERSON_PALETTE.length) + PERSON_PALETTE.length) % PERSON_PALETTE.length];
+}
+
+let _folderLongPressTimer = null;
+let _folderLongPressActive = false;
+
+function folderPressStart(e, fid) {
+  _folderLongPressActive = false;
+  _folderLongPressTimer = setTimeout(() => {
+    _folderLongPressActive = true;
+    startFolderRename(fid);
+  }, 500);
+}
+function folderPressEnd(e, fid) {
+  clearTimeout(_folderLongPressTimer);
+}
+function folderPressClick(e, fid) {
+  if (_folderLongPressActive) { e.stopPropagation(); return; }
+  toggleFolderExpand(fid);
+}
+
+function startFolderRename(fid) {
+  const label = _folderLabels[fid] || fid;
+  const headerEl = document.querySelector(`.buddy-folder-header[data-fid="${fid}"]`);
+  if (!headerEl) return;
+  const color = getFolderColor(fid);
+  headerEl.innerHTML = `
+    <input id="folder-rename-${fid}" value="${esc(label)}"
+      style="flex:1;background:#222;border:none;border-bottom:1px solid ${color};color:#fff;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:0 4px;outline:none"
+      onkeydown="if(event.key==='Enter'){saveFolderLabel('${fid}',this.value);}"
+      onblur="saveFolderLabel('${fid}',this.value)" />
+    <button onclick="confirmDeleteFolder('${fid}')"
+      style="background:none;border:none;color:#e8453c;padding:0 6px;cursor:pointer;font-size:14px;font-weight:700" title="Delete list">✕</button>
+  `;
+  headerEl.onclick = null;
+  const inp = document.getElementById(`folder-rename-${fid}`);
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function saveFolderLabel(fid, val) {
+  const label = val.trim() || _folderLabels[fid] || fid;
+  _folderLabels[fid] = label;
+  localStorage.setItem('hm_folder_labels', JSON.stringify(_folderLabels));
+  renderBuddyNames();
+}
+
+function confirmDeleteFolder(fid) {
+  const label = _folderLabels[fid] || fid;
+  if (!confirm(`Delete "${label}"? Members will move to Unassigned.`)) return;
+  deleteFolder(fid);
+}
+
+function deleteFolder(fid) {
+  delete _buddyFolders[fid];
+  _folderOrder = _folderOrder.filter(f => f !== fid);
+  delete _folderLabels[fid];
+  delete _folderStates[fid];
+  delete _folderExpanded[fid];
+  localStorage.setItem('hm_buddy_folders', JSON.stringify(_buddyFolders));
+  localStorage.setItem('hm_folder_order', JSON.stringify(_folderOrder));
+  localStorage.setItem('hm_folder_labels', JSON.stringify(_folderLabels));
+  localStorage.setItem('hm_folder_states', JSON.stringify(_folderStates));
+  localStorage.setItem('hm_folder_expanded', JSON.stringify(_folderExpanded));
+  renderBuddyNames();
+  applyFilters();
+}
+
+function addFolder() {
+  const fid = 'folder_' + Date.now();
+  _buddyFolders[fid] = [];
+  _folderOrder.push(fid);
+  _folderLabels[fid] = 'New List';
+  _folderStates[fid] = true;
+  _folderExpanded[fid] = true;
+  localStorage.setItem('hm_buddy_folders', JSON.stringify(_buddyFolders));
+  localStorage.setItem('hm_folder_order', JSON.stringify(_folderOrder));
+  localStorage.setItem('hm_folder_labels', JSON.stringify(_folderLabels));
+  localStorage.setItem('hm_folder_states', JSON.stringify(_folderStates));
+  localStorage.setItem('hm_folder_expanded', JSON.stringify(_folderExpanded));
+  renderBuddyNames();
+  // Auto-start rename for the new folder
+  setTimeout(() => startFolderRename(fid), 50);
+}
+
 function renderBuddyNames() {
   // Fall back to deriving from allRecs if allPeople still empty
   if (!allPeople.length) {
@@ -2371,9 +2494,8 @@ function renderBuddyNames() {
   function dot(color, muted) {
     return `<div style="width:8px;height:8px;border-radius:50%;background:${muted?'#444':color};flex-shrink:0"></div>`;
   }
-  function personRow(p, color, fid, insertIdx) {
+  function personRow(p, color, fid) {
     const muted = _hiddenPeople.has(p);
-    const cnt = countRecs(p);
     const escapedP = p.replace(/'/g,"\\'");
     return `<div class="buddy-item${muted?' muted':''}" draggable="true"
       ondragstart="buddyDragStart(event,'${escapedP}')"
@@ -2382,17 +2504,14 @@ function renderBuddyNames() {
       onclick="toggleBuddyPerson('${escapedP}')">
       ${dot(color, muted)}
       <span class="buddy-name">${esc(p)}</span>
-      <span style="margin-left:auto;font-size:10px;color:${muted?'#444':'#666'}">${cnt}</span>
     </div>`;
   }
 
   // ── "Me" row (always at top, always blue) ──
-  // Filter current user out of the displayed people list everywhere (covers "Me" string + real name)
   const displayPeople = allPeople.filter(p => !isMe(p));
   let html = '';
   if (_currentUser) {
     const meMuted = _hiddenPeople.has('__me__');
-    // Count recs where recommended_by explicitly names "me" (literal "Me" or current user's name)
     const meCount = allRecs.filter(r => {
       if (!r.recommended_by) return false;
       return r.recommended_by.split(',').map(p => p.trim()).some(p => isMe(p));
@@ -2404,22 +2523,25 @@ function renderBuddyNames() {
     </div>`;
   }
 
-  // ── Folders ──
-  const folderDefs = [
-    { id: 'friends', label: 'Friends', color: FOLDER_COLORS.friends },
-    { id: 'internet', label: 'Internet', color: FOLDER_COLORS.internet },
-    { id: 'other', label: 'Other', color: FOLDER_COLORS.other }
-  ];
-  const assignedPeople = new Set(Object.values(_buddyFolders).flat().filter(p => !isMe(p)));
+  // ── Folders (use _folderOrder) ──
+  const assignedPeople = new Set(
+    _folderOrder.flatMap(fid => (_buddyFolders[fid] || []).filter(p => !isMe(p)))
+  );
 
-  for (const { id: fid, label, color } of folderDefs) {
+  for (const fid of _folderOrder) {
+    const label = _folderLabels[fid] || fid;
+    const color = getFolderColor(fid);
     const members = (_buddyFolders[fid] || []).filter(p => displayPeople.includes(p));
     const folderOn = _folderStates[fid] !== false;
     const expanded = _folderExpanded[fid] !== false;
-    html += `<div class="buddy-folder-header"
+    html += `<div class="buddy-folder-header" data-fid="${fid}"
       ondragover="event.preventDefault()"
       ondrop="buddyDrop(event,'${fid}')"
-      onclick="toggleFolderExpand('${fid}')">
+      onmousedown="folderPressStart(event,'${fid}')"
+      ontouchstart="folderPressStart(event,'${fid}')"
+      onmouseup="folderPressEnd(event,'${fid}')"
+      ontouchend="folderPressEnd(event,'${fid}')"
+      onclick="folderPressClick(event,'${fid}')">
       ${dot(color, !folderOn)}
       <span style="flex:1;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${folderOn?'#aaa':'#555'}">${esc(label)}</span>
       <button onclick="event.stopPropagation();toggleFolder('${fid}')"
@@ -2432,7 +2554,7 @@ function renderBuddyNames() {
       for (const p of members) html += personRow(p, color, fid);
       if (!members.length) {
         html += `<div style="padding:6px 14px 6px 28px;font-size:11px;color:#444;font-style:italic"
-          ondragover="event.preventDefault()" ondrop="buddyDrop(event,'${fid}')">drop people here</div>`;
+          ondragover="event.preventDefault()" ondrop="buddyDrop(event,'${fid}')">drop here</div>`;
       }
     }
   }
@@ -2441,10 +2563,14 @@ function renderBuddyNames() {
   const unassigned = displayPeople.filter(p => !assignedPeople.has(p));
   if (unassigned.length) {
     html += `<div style="padding:8px 14px 2px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;border-top:1px solid #1a1a1a">Unassigned</div>`;
-    for (const p of unassigned) html += personRow(p, FOLDER_COLORS.other);
+    for (const p of unassigned) html += personRow(p, getPersonColor(p), '');
   } else if (!displayPeople.length && !_currentUser) {
     html += '<div style="padding:16px 14px;font-size:12px;color:#555">No people yet.</div>';
   }
+
+  html += `<div style="padding:8px 14px;border-top:1px solid #1a1a1a">
+    <button onclick="addFolder()" style="background:none;border:none;color:#555;font-size:11px;cursor:pointer;padding:4px 0;letter-spacing:.04em">+ add list</button>
+  </div>`;
 
   namesEl.innerHTML = html;
 }
