@@ -501,7 +501,7 @@
       /* ── BUDDY LIST ── */
       #buddy-btn {
         position: fixed; top: 70px; left: 16px; z-index: 599;
-        width: 36px; height: 36px; border-radius: 18px;
+        width: 42px; height: 42px; border-radius: 21px;
         background: #fff; border: none;
         box-shadow: 0 2px 16px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.25);
         display: flex; align-items: center; justify-content: center;
@@ -772,7 +772,7 @@
 
 <!-- BUDDY LIST -->
 <button id="buddy-btn" onclick="toggleBuddy()" title="Buddy List">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="26" height="26">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="32" height="32">
     <g transform="translate(0,22)">
       <path d="M 52 51 L 52 92 Q 52 146 100 146 Q 148 146 148 92 L 148 51" fill="none" stroke="#EA4335" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M 25 31 C 60 62 75 56 100 56" fill="none" stroke="#4285F4" stroke-width="17" stroke-linecap="round"/>
@@ -2128,6 +2128,27 @@ function recenterMap() {
   }
 }
 
+function updateSearchGlow() {
+  const bar = document.getElementById('map-search-bar');
+  if (!bar) return;
+  // Count dot colors among filtered places that have map coords
+  const colorCount = {};
+  filtered.forEach(r => {
+    let lat = r.latitude ? parseFloat(r.latitude) : null;
+    let lng = r.longitude ? parseFloat(r.longitude) : null;
+    if (!lat || !lng) {
+      const cc = _cityCoords[(r.city || '').toLowerCase().trim()];
+      if (cc) { lat = cc.latitude; lng = cc.longitude; }
+    }
+    if (!lat || !lng) return;
+    const c = getRecSourceColor(r);
+    colorCount[c] = (colorCount[c] || 0) + 1;
+  });
+  const topColor = Object.keys(colorCount).sort((a, b) => colorCount[b] - colorCount[a])[0]
+    || '#1a73e8'; // default blue
+  bar.style.boxShadow = `0 2px 12px ${topColor}47, 0 1px 4px ${topColor}26`;
+}
+
 function renderMapMarkers() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
@@ -2151,6 +2172,7 @@ function renderMapMarkers() {
     m.on('click', () => openDetail(r.id));
     markers.push(m);
   });
+  updateSearchGlow();
 }
 
 // ── ADD DRAWER ──
@@ -2752,9 +2774,8 @@ function renderBuddyNames() {
 function closeBuddy() {
   document.getElementById('buddy-panel').classList.remove('open');
   document.getElementById('buddy-settings-popup').classList.remove('visible');
-  // Restore blue search shadow
-  const bar = document.getElementById('map-search-bar');
-  if (bar) bar.style.boxShadow = '';
+  // Restore dynamic search glow
+  updateSearchGlow();
   // Re-disable map if the list sheet is still open
   const sheet = document.getElementById('mobile-sheet');
   if (sheet && sheet.classList.contains('open')) disableMapInteraction();
