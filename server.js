@@ -369,20 +369,19 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
   // Precise place-level geocoding happens via /api/geocode-missing called by the client
 });
 
-// Precise geocode up to 8 recs at a time that only have city-level coords.
-// Client calls this after save to progressively improve marker accuracy.
+// Precise geocode up to 5 recs at a time (5 × 1.1s ≈ 5.5s, within Vercel timeout).
+// Client calls this in a loop until remaining = 0.
 app.post('/api/geocode-missing', requireAuth, async (req, res) => {
-  const { ids } = req.body; // optional: specific IDs to geocode
-  let query, params;
-  if (ids && ids.length) {
-    query = `SELECT id, name, address, city FROM recommendations WHERE id = ANY($1) AND latitude IS NOT NULL AND longitude IS NOT NULL`;
-    params = [ids];
-  } else {
-    // Find recs with null coords
-    query = `SELECT id, name, address, city FROM recommendations WHERE (latitude IS NULL OR longitude IS NULL) LIMIT 20`;
-    params = [];
-  }
-  const rows = (await pool.query(query, params)).rows;
+  // Find recs with null coords, 5 at a time
+  const { rows } = await pool.query(
+    `SELECT id, name, address, city FROM recommendations WHERE (latitude IS NULL OR longitude IS NULL) LIMIT 5`
+  );
+  // Also count how many still need geocoding after this batch
+  const { rows: countRows } = await pool.query(
+    `SELECT COUNT(*) as n FROM recommendations WHERE (latitude IS NULL OR longitude IS NULL)`
+  );
+  const remaining = parseInt(countRows[0].n, 10);
+
   const updated = [];
   for (const row of rows) {
     const coords = await geocode(row.name, row.address, row.city);
@@ -393,9 +392,9 @@ app.post('/api/geocode-missing', requireAuth, async (req, res) => {
       );
       updated.push({ id: row.id, latitude: coords.latitude, longitude: coords.longitude });
     }
-    await new Promise(r => setTimeout(r, 1100));
+    await new Promise(r => setTimeout(r, 1050));
   }
-  res.json({ updated });
+  res.json({ updated, remaining: Math.max(0, remaining - rows.length) });
 });
 
 app.put('/api/recommendations/:id', requireAuth, async (req, res) => {

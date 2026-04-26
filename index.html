@@ -2186,19 +2186,15 @@ async function saveParseResults() {
 // Call /api/geocode-missing and re-render markers as precise coords arrive
 async function triggerGeocodeMissing() {
   try {
-    const result = await api('/api/geocode-missing', 'POST', {});
-    if (result && result.updated && result.updated.length) {
-      // Patch allRecs with new coordinates
-      result.updated.forEach(u => {
-        const r = allRecs.find(x => x.id === u.id);
-        if (r) { r.latitude = u.latitude; r.longitude = u.longitude; }
-      });
-      // Rebuild filtered and re-render map
-      filtered = allRecs.filter(r => {
-        // simple re-apply: just keep the same set, coords updated
-        return filtered.some(f => f.id === r.id) || allRecs.find(x => x.id === r.id);
-      });
-      if (map) renderMapMarkers();
+    let remaining = 1;
+    while (remaining > 0) {
+      const result = await api('/api/geocode-missing', 'POST', {});
+      if (!result) break;
+      remaining = result.remaining ?? 0;
+      if (result.updated && result.updated.length) {
+        await loadRecs(); // refresh map with new coords
+      }
+      if (remaining > 0) await new Promise(r => setTimeout(r, 500)); // brief pause between batches
     }
   } catch(e) { /* silent */ }
 }
@@ -2448,14 +2444,13 @@ function startFolderRename(fid) {
   popup.id = 'folder-rename-popup';
   popup.style.cssText = `position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)`;
   popup.innerHTML = `
-    <div style="background:#1a1a1a;border-radius:10px;padding:20px;width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
-      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:${color};margin-bottom:10px">Rename list</div>
+    <div style="background:#1a1a1a;border-radius:10px;padding:20px;width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.5);position:relative">
+      <button onclick="confirmDeleteFolder('${fid}')"
+        style="position:absolute;top:10px;right:10px;background:none;border:none;color:#555;font-size:10px;cursor:pointer;padding:2px 4px;letter-spacing:.03em">delete group</button>
       <input id="folder-rename-input" value="${esc(label)}"
-        style="width:100%;background:#111;border:1px solid #333;border-radius:6px;color:#fff;font-size:15px;padding:8px 10px;outline:none;box-sizing:border-box"
+        style="width:100%;background:#111;border:1px solid #333;border-radius:6px;color:#fff;font-size:15px;padding:8px 10px;outline:none;box-sizing:border-box;margin-top:4px"
         onkeydown="if(event.key==='Enter'){saveFolderLabel('${fid}',this.value);}" />
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button onclick="confirmDeleteFolder('${fid}')"
-          style="flex:0;background:none;border:1px solid #e8453c;color:#e8453c;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:12px">Delete</button>
         <button onclick="document.getElementById('folder-rename-popup').remove();renderBuddyNames();"
           style="flex:1;background:#333;border:none;color:#aaa;border-radius:6px;padding:8px;cursor:pointer;font-size:13px">Cancel</button>
         <button onclick="saveFolderLabel('${fid}',document.getElementById('folder-rename-input').value)"
