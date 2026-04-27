@@ -2261,10 +2261,8 @@ function renderAddChips() {
   container.innerHTML = people.map(p => {
     const sel = p === _addSelectedPerson || (isMe(p) && _addSelectedPerson === 'Me');
     const col = getPersonColor(p);
-    const style = sel
-      ? `background:${col};color:#fff;border-color:${col}`
-      : `border-color:${col}55;color:${col}`;
-    return `<button class="add-chip" style="${style}" onclick="selectAddPerson('${p.replace(/'/g,"\\'")}')">
+    const style = sel ? `background:${col};color:#fff;border-color:${col}` : '';
+    return `<button class="add-chip${sel ? '' : ''}" style="${style}" onclick="selectAddPerson('${p.replace(/'/g,"\\'")}')">
       ${esc(p)}
     </button>`;
   }).join('') +
