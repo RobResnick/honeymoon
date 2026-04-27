@@ -1557,7 +1557,7 @@ function detectCoordState() {
     // Check if coords are at city center (city-level fallback)
     const cityKey = (r.city || '').toLowerCase().trim();
     const cc = _cityCoords[cityKey];
-    const atCityCenter = cc && Math.abs(lat - cc.latitude) < 0.05 && Math.abs(lng - cc.longitude) < 0.05;
+    const atCityCenter = cc && Math.abs(lat - cc.latitude) < 0.012 && Math.abs(lng - cc.longitude) < 0.012;
     if (atCityCenter) {
       (r.geocode_attempted ? _failedCoords : _pendingCoords).add(r.id);
       return;
