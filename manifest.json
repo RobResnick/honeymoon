@@ -1,6 +1,6 @@
 {
-  "name": "Taste",
-  "short_name": "Taste",
+  "name": "Honeymaps",
+  "short_name": "Honeymaps",
   "description": "Your favorite people's favorite places.",
   "start_url": "/",
   "display": "standalone",

@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Taste</title>
+  <title>Honeymaps</title>
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Taste">
+  <meta name="apple-mobile-web-app-title" content="Honeymaps">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" id="ati" href="/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -434,7 +434,7 @@
 
       #left-panel { display: none !important; }
 
-      #app { position: fixed; inset: 0; overflow: hidden; background: #000; }
+      #app { position: fixed; inset: 0; overflow: hidden; background: #000; z-index: 260; }
 
       /* Map fills full screen — nav floats on top */
       .main-content {
@@ -735,8 +735,8 @@
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-box">
-    <div class="auth-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="64" height="64"><defs><clipPath id="a-tongue"><path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z"/></clipPath><radialGradient id="a-ts" cx="48%" cy="38%" r="65%" fx="48%" fy="35%"><stop offset="0%" stop-color="#EA4335"/><stop offset="70%" stop-color="#EA4335"/><stop offset="100%" stop-color="#c0291c"/></radialGradient></defs><rect width="200" height="200" fill="white"/><g transform="translate(100,105) scale(0.8) translate(-100,-96)" clip-path="url(#a-tongue)"><path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z" fill="url(#a-ts)"/><rect x="42" y="43" width="116" height="6" rx="3" fill="white"/><rect x="97.5" y="43" width="5" height="90" rx="2.5" fill="white"/></g></svg></div>
-    <h1>Taste</h1>
+    <div class="auth-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="52" height="64"><defs><clipPath id="a-pin-clip"><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z"/></clipPath><radialGradient id="a-bevel" cx="38%" cy="30%" r="65%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#FF7A6A" stop-opacity="0.55"/><stop offset="100%" stop-color="#FF7A6A" stop-opacity="0"/></radialGradient></defs><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="#DD4F41"/><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="url(#a-bevel)"/><path d="M 420 105 C 460 130 500 180 515 240 C 528 290 520 340 500 383 L 420 470 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 200 492 130 420 105 Z" fill="#AE3E34" opacity="0.6" clip-path="url(#a-pin-clip)"/><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="none" stroke="#1A0A08" stroke-width="12" stroke-linejoin="round"/><path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="white"/><path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="none" stroke="#1A0A08" stroke-width="10" stroke-linejoin="round"/></svg></div>
+    <h1>Honeymaps</h1>
     <p class="subtitle">Your favorite people's favorite places.</p>
     <div id="auth-form">
       <div class="field" id="name-field" style="display:none">
@@ -766,8 +766,8 @@
   <!-- LEFT PANEL (desktop only) -->
   <div id="left-panel">
     <header>
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="28" height="28" class="header-logo"><defs><clipPath id="h-tongue"><path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z"/></clipPath><radialGradient id="h-ts" cx="48%" cy="38%" r="65%" fx="48%" fy="35%"><stop offset="0%" stop-color="#EA4335"/><stop offset="70%" stop-color="#EA4335"/><stop offset="100%" stop-color="#c0291c"/></radialGradient></defs><rect width="200" height="200" fill="white"/><g transform="translate(100,105) scale(0.8) translate(-100,-96)" clip-path="url(#h-tongue)"><path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z" fill="url(#h-ts)"/><rect x="42" y="43" width="116" height="6" rx="3" fill="white"/><rect x="97.5" y="43" width="5" height="90" rx="2.5" fill="white"/></g></svg>
-      <h1>Taste</h1>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="20" height="25" class="header-logo"><defs><clipPath id="h-pin-clip"><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z"/></clipPath><radialGradient id="h-bevel" cx="38%" cy="30%" r="65%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#FF7A6A" stop-opacity="0.55"/><stop offset="100%" stop-color="#FF7A6A" stop-opacity="0"/></radialGradient></defs><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="#DD4F41"/><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="url(#h-bevel)"/><path d="M 420 105 C 460 130 500 180 515 240 C 528 290 520 340 500 383 L 420 470 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 200 492 130 420 105 Z" fill="#AE3E34" opacity="0.6" clip-path="url(#h-pin-clip)"/><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="none" stroke="#1A0A08" stroke-width="12" stroke-linejoin="round"/><path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="white"/></svg>
+      <h1>Honeymaps</h1>
       <span class="header-count" id="rec-count"></span>
       <button id="fix-location-btn" onclick="runFixNoLocation()" title="Retry finding locations for ⚠️ places" style="display:none;align-items:center;gap:4px;background:none;border:1px solid #f5a623;border-radius:14px;color:#f5a623;font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">⚠️ Retry locations</button>
     </header>
@@ -878,9 +878,9 @@
 <!-- BUDDY LIST -->
 <button id="buddy-btn" onclick="toggleBuddy()" title="Buddy List">
   <svg width="10" height="46" viewBox="0 0 10 46" style="display:block">
-    <circle cx="5" cy="7"  r="4.5" fill="#1A73E8"/>
-    <circle cx="5" cy="23" r="4.5" fill="#f29900"/>
-    <circle cx="5" cy="39" r="4.5" fill="#34A853"/>
+    <circle cx="5" cy="7"  r="4.5" fill="white"/>
+    <circle cx="5" cy="23" r="4.5" fill="white"/>
+    <circle cx="5" cy="39" r="4.5" fill="white"/>
   </svg>
 </button>
 <div id="buddy-backdrop" onclick="closeBuddy()"></div>
