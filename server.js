@@ -131,6 +131,13 @@ async function initDb() {
   // Track whether we've already attempted precise geocoding (prevents infinite retries)
   await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS geocode_attempted BOOLEAN DEFAULT FALSE`);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_config (
+      key VARCHAR(255) PRIMARY KEY,
+      value TEXT
+    )
+  `);
+
   // Deleted items log (for future "deleted" section)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS deleted_recommendations (

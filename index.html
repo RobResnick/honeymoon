@@ -1101,7 +1101,7 @@ function saveBuddySettings() {
   // Debounce — wait 800ms after last change before writing to server
   clearTimeout(_saveBuddyTimer);
   _saveBuddyTimer = setTimeout(() => {
-    api('/api/buddy-settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({
+    api('/api/buddy-settings', 'POST', {
       buddyFolders:  _buddyFolders,
       folderOrder:   _folderOrder,
       folderLabels:  _folderLabels,
@@ -1109,7 +1109,7 @@ function saveBuddySettings() {
       folderExpanded:_folderExpanded,
       hiddenPeople:  [..._hiddenPeople],
       personColors:  _personColors,
-    })});
+    });
   }, 800);
 }
 
