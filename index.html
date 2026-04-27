@@ -267,29 +267,77 @@
 
     /* ── DRAWER ── */
     .overlay {
-      position: fixed; inset: 0; background: rgba(32,33,36,0.5);
+      position: fixed; inset: 0; background: rgba(32,33,36,0.45);
       z-index: 2000; display: none; align-items: flex-end;
     }
     .overlay.open { display: flex; }
     .drawer {
-      background: var(--card); border-radius: 12px 12px 0 0;
-      width: 100%; max-height: 92vh; overflow-y: auto; padding: 8px 20px 32px;
+      background: var(--card); border-radius: 24px 24px 0 0;
+      width: 100%; height: 80vh; overflow-y: auto;
+      display: flex; flex-direction: column;
     }
     .drawer-handle {
       width: 36px; height: 4px; background: var(--border);
-      border-radius: 2px; margin: 12px auto 20px;
+      border-radius: 2px; margin: 14px auto 0; flex-shrink: 0;
     }
-    .drawer h2 {
-      font-family: 'Google Sans', sans-serif; font-size: 18px;
-      font-weight: 400; margin-bottom: 20px; color: var(--text);
+    /* ── ADD FORM ── */
+    .add-section {
+      padding: 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
+    .add-inline-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 15px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .add-row-label {
+      font-size: 12px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text2); margin-bottom: 10px;
+    }
+    .add-inline-row .add-row-label { margin-bottom: 0; min-width: 40px; flex-shrink: 0; }
+    .add-row-input {
+      flex: 1; border: none; outline: none; font-size: 16px;
+      color: var(--text); background: transparent; font-family: inherit;
+    }
+    .add-row-input::placeholder { color: var(--text3); }
+    .add-person-chips {
+      display: flex; flex-wrap: wrap; gap: 7px; align-items: center;
+    }
+    .add-chip {
+      padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: 500;
+      border: 1.5px solid var(--border); cursor: pointer;
+      color: var(--text2); background: transparent;
+      -webkit-tap-highlight-color: transparent; transition: all 0.12s;
+      font-family: inherit;
+    }
+    .add-chip.selected { background: var(--blue); color: white; border-color: var(--blue); }
+    .add-chip.new-chip { color: var(--text3); border-style: dashed; }
+    .add-new-name-input {
+      border: none; border-bottom: 1.5px solid var(--blue); outline: none;
+      font-size: 14px; padding: 4px 2px; background: transparent;
+      color: var(--text); font-family: inherit; min-width: 70px; max-width: 120px;
+    }
+    .add-places-section {
+      flex: 1; display: flex; flex-direction: column; padding: 14px 20px 0; min-height: 0;
+    }
+    .add-places-textarea {
+      flex: 1; border: none; outline: none; resize: none; min-height: 100px;
+      font-size: 15px; line-height: 1.7; color: var(--text);
+      background: transparent; font-family: inherit; padding: 4px 0;
+    }
+    .add-places-textarea::placeholder { color: var(--text3); }
+    .add-go-btn {
+      margin: 14px 20px 32px; background: var(--blue); color: white;
+      border: none; border-radius: 24px; padding: 15px;
+      font-size: 16px; font-weight: 600; width: calc(100% - 40px);
+      cursor: pointer; font-family: 'Google Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+    }
+    .add-go-btn:active { opacity: 0.88; }
 
-    /* ── PARSE ── */
-    .parse-area textarea { min-height: 100px; resize: vertical; font-size: 14px; line-height: 1.6; }
-    .parse-results { margin-top: 16px; }
+    /* ── PARSE RESULTS ── */
+    .parse-results { padding: 0 20px 32px; }
     .parse-result-item {
       background: var(--bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 14px; margin-bottom: 8px;
+      border-radius: 12px; padding: 14px; margin-bottom: 10px;
     }
     .parse-result-item .item-name {
       font-family: 'Google Sans', sans-serif; font-weight: 500;
@@ -371,19 +419,19 @@
 
       /* ── FLOATING SEARCH BAR ── */
       .map-search-bar {
-        position: fixed; top: 12px; left: 66px; right: 12px;
-        display: flex; flex-direction: column; gap: 5px;
-        background: white; border-radius: 24px;
-        padding: 10px 12px 8px;
+        position: fixed; top: 12px; left: 12px; right: 12px;
+        display: flex; flex-direction: column; gap: 6px;
+        background: white; border-radius: 28px;
+        padding: 14px 14px 10px;
         box-shadow: 0 2px 12px rgba(26,115,232,0.28), 0 1px 4px rgba(26,115,232,0.15);
         z-index: 600; /* above sheet (300) and nav (500) */
       }
       .map-search-top {
-        display: flex; align-items: center; gap: 7px;
+        display: flex; align-items: center; gap: 8px;
       }
       .map-search-top input {
         flex: 1; border: none; outline: none; box-shadow: none;
-        font-size: 14px; background: transparent;
+        font-size: 15px; background: transparent;
         color: var(--text); font-family: 'Roboto', Arial, sans-serif;
       }
       .map-search-top input::placeholder { color: var(--text3); }
@@ -392,7 +440,7 @@
       .map-search-top input[type="search"]::-webkit-search-decoration { display: none; }
       /* Search suggestions dropdown */
       .search-suggestions {
-        position: fixed; left: 66px; right: 12px; top: 66px; /* updated dynamically */
+        position: fixed; left: 12px; right: 12px; top: 70px; /* updated dynamically */
         background: white; border-radius: 12px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.18);
         z-index: 601; overflow: hidden; display: none;
@@ -496,18 +544,21 @@
       .modal { border-radius: 16px 16px 0 0; max-width: 100%; padding: 20px 20px 40px; }
       #detail-overlay.open { background: transparent; }
 
-      /* Drawer stays as-is */
-      .drawer { border-radius: 12px 12px 0 0; }
+      /* Drawer on desktop */
+      .drawer { border-radius: 16px; height: auto; max-height: 90vh; }
 
       /* ── BUDDY LIST ── */
       #buddy-btn {
-        position: fixed; top: 12px; left: 12px; z-index: 601;
-        width: 42px; height: 42px; border-radius: 21px;
+        position: fixed; top: 50%; left: 0; transform: translateY(-50%);
+        z-index: 601;
+        width: 36px; height: 64px;
+        border-radius: 0 20px 20px 0;
         background: #fff; border: none;
-        box-shadow: 0 2px 16px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.25);
+        box-shadow: 2px 0 12px rgba(0,0,0,0.18), 1px 0 4px rgba(0,0,0,0.10);
         display: flex; align-items: center; justify-content: center;
-        cursor: pointer; color: #fff;
+        cursor: pointer;
         -webkit-tap-highlight-color: transparent;
+        padding: 0;
       }
       #buddy-panel {
         position: fixed; top: 0; bottom: 0;
@@ -619,7 +670,7 @@
       .search-suggestions { display: none !important; }
 
       .overlay { align-items: center; justify-content: center; }
-      .drawer { border-radius: 8px; max-width: 500px; }
+      .drawer { border-radius: 16px; max-width: 500px; height: auto; max-height: 90vh; }
 
       .rec-card { padding: 8px 12px; margin-bottom: 4px; }
       .tag { font-size: 11px; padding: 2px 8px; }
@@ -634,7 +685,7 @@
 
     @media (min-width: 600px) and (hover: none) {
       .overlay { align-items: center; justify-content: center; padding: 20px; }
-      .drawer { border-radius: 8px; max-width: 560px; }
+      .drawer { border-radius: 16px; max-width: 560px; height: auto; max-height: 90vh; }
       .modal-overlay { align-items: center; padding: 20px; }
       .modal { border-radius: 8px; }
     }
@@ -773,7 +824,7 @@
 
 <!-- BUDDY LIST -->
 <button id="buddy-btn" onclick="toggleBuddy()" title="Buddy List">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="32" height="32"><defs><clipPath id="b-tongue"><path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z"/></clipPath><radialGradient id="b-ts" cx="48%" cy="38%" r="65%" fx="48%" fy="35%"><stop offset="0%" stop-color="#EA4335"/><stop offset="70%" stop-color="#EA4335"/><stop offset="100%" stop-color="#c0291c"/></radialGradient></defs><g transform="translate(100,105) scale(0.8) translate(-100,-96)" clip-path="url(#b-tongue)"><path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z" fill="url(#b-ts)"/><rect x="42" y="43" width="116" height="6" rx="3" fill="white"/><rect x="97.5" y="43" width="5" height="90" rx="2.5" fill="white"/></g></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="22" height="22"><defs><clipPath id="b-tongue"><path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z"/></clipPath><radialGradient id="b-ts" cx="48%" cy="38%" r="65%" fx="48%" fy="35%"><stop offset="0%" stop-color="#EA4335"/><stop offset="70%" stop-color="#EA4335"/><stop offset="100%" stop-color="#c0291c"/></radialGradient></defs><g transform="translate(100,105) scale(0.8) translate(-100,-96)" clip-path="url(#b-tongue)"><path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z" fill="url(#b-ts)"/><rect x="42" y="43" width="116" height="6" rx="3" fill="white"/><rect x="97.5" y="43" width="5" height="90" rx="2.5" fill="white"/></g></svg>
 </button>
 <div id="buddy-backdrop" onclick="closeBuddy()"></div>
 <div id="buddy-panel">
@@ -794,24 +845,24 @@
 <div class="overlay" id="add-overlay" onclick="closeAddDrawer(event)">
   <div class="drawer" id="add-drawer">
     <div class="drawer-handle" id="drawer-handle"></div>
-    <h2>Add recommendations</h2>
     <div class="parse-area">
-      <div class="field-row">
-        <div class="field">
-          <label>City</label>
-          <input type="text" id="input-city" placeholder="Florence" list="city-suggestions" autocomplete="off" />
-          <datalist id="city-suggestions"></datalist>
-        </div>
-        <div class="field">
-          <label>Recommended by</label>
-          <input type="text" id="input-person" placeholder="Jake" autocomplete="off" autocorrect="off" />
-        </div>
+      <!-- Add to: person chips -->
+      <div class="add-section">
+        <div class="add-row-label">Add to</div>
+        <div class="add-person-chips" id="add-person-chips"></div>
       </div>
-      <div class="field">
-        <label>Paste anything — texts, links, lists, Instagram posts…</label>
-        <textarea id="raw-input" placeholder="Da Camilo&#10;Tre Panche&#10;La Giostra"></textarea>
+      <!-- City -->
+      <div class="add-inline-row">
+        <span class="add-row-label">City</span>
+        <input type="text" id="input-city" placeholder="Anywhere" list="city-suggestions" autocomplete="off" class="add-row-input" />
+        <datalist id="city-suggestions"></datalist>
       </div>
-      <button class="btn btn-primary btn-full" onclick="parseInput()" id="parse-btn">Add</button>
+      <!-- Places textarea -->
+      <div class="add-places-section">
+        <div class="add-row-label">Places</div>
+        <textarea id="raw-input" class="add-places-textarea" placeholder="Paste texts, links, lists, Instagram posts…"></textarea>
+      </div>
+      <button class="add-go-btn" onclick="parseInput()" id="parse-btn">Add</button>
     </div>
     <div id="parse-results" class="parse-results"></div>
   </div>
@@ -2173,8 +2224,55 @@ function renderMapMarkers() {
 }
 
 // ── ADD DRAWER ──
+let _addSelectedPerson = 'Me';
+let _addCustomPerson = null;
+
+function renderAddChips() {
+  const container = document.getElementById('add-person-chips');
+  if (!container) return;
+  const people = ['Me', ...allPeople.filter(p => !isMe(p))];
+  // Include custom person if typed and not already in list
+  if (_addCustomPerson && !people.some(p => p.toLowerCase() === _addCustomPerson.toLowerCase())) {
+    people.push(_addCustomPerson);
+  }
+  container.innerHTML = people.map(p => {
+    const sel = p === _addSelectedPerson || (isMe(p) && _addSelectedPerson === 'Me');
+    return `<button class="add-chip${sel ? ' selected' : ''}" onclick="selectAddPerson('${p.replace(/'/g,"\\'")}')">
+      ${esc(p)}
+    </button>`;
+  }).join('') +
+  `<button class="add-chip new-chip" onclick="showAddNewChip()">+ New</button>`;
+}
+
+function selectAddPerson(name) {
+  _addSelectedPerson = name;
+  renderAddChips();
+}
+
+function showAddNewChip() {
+  const container = document.getElementById('add-person-chips');
+  if (document.getElementById('add-new-chip-input')) return;
+  const inp = document.createElement('input');
+  inp.id = 'add-new-chip-input';
+  inp.className = 'add-new-name-input';
+  inp.placeholder = 'Name…';
+  inp.autocomplete = 'off';
+  const commit = () => {
+    const v = inp.value.trim();
+    if (v) { _addCustomPerson = v; _addSelectedPerson = v; }
+    renderAddChips();
+  };
+  inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') renderAddChips(); };
+  inp.onblur = commit;
+  container.appendChild(inp);
+  inp.focus();
+}
+
 function openAddDrawer() {
   document.getElementById('raw-input').value = '';
+  _addSelectedPerson = 'Me';
+  _addCustomPerson = null;
+  renderAddChips();
   // Default city to wherever the map is currently centered (reverse geocode)
   const cityInp = document.getElementById('input-city');
   cityInp.value = '';
@@ -2184,24 +2282,13 @@ function openAddDrawer() {
       headers: { 'User-Agent': 'HoneymoonApp/1.0 rob@robresnick.com' }
     }).then(r => r.json()).then(d => {
       const a = d.address || {};
-      // Prefer city > town > county > state — avoid tiny neighborhoods
       const city = a.city || a.town || a.municipality || a.county || a.state_district || '';
       if (city && !cityInp.value) cityInp.value = city;
     }).catch(() => {});
   }
-  const personInp = document.getElementById('input-person');
-  const defaultName = 'Me'; // always default to "Me" — server normalizes username→"Me" anyway
-  personInp.value = defaultName;
-  personInp.dataset.defaultVal = defaultName;
-  personInp.style.color = 'var(--text3)';
-  personInp.onfocus = function() {
-    if (this.value === this.dataset.defaultVal) { this.value = ''; this.style.color = ''; }
-  };
-  personInp.onblur = function() {
-    if (!this.value.trim()) { this.value = this.dataset.defaultVal; this.style.color = 'var(--text3)'; }
-  };
   document.getElementById('parse-results').innerHTML = '';
   document.getElementById('add-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('raw-input')?.focus(), 300);
 }
 
 function closeAddDrawer(e) {
@@ -2215,12 +2302,12 @@ async function parseInput() {
   const input = document.getElementById('raw-input').value.trim();
   if (!input) return showToast('Paste something first');
   const city = document.getElementById('input-city').value.trim();
-  const recommended_by = document.getElementById('input-person').value.trim();
+  const recommended_by = _addSelectedPerson || 'Me';
   const btn = document.getElementById('parse-btn');
   btn.innerHTML = '<span class="spinner"></span> Parsing…';
   btn.disabled = true;
   const data = await api('/api/parse', 'POST', { input });
-  btn.innerHTML = 'Add';
+  btn.textContent = 'Add';
   btn.disabled = false;
   if (!data || !data.recommendations) return showToast('Could not parse — try again');
 
@@ -2273,7 +2360,7 @@ function showParseArea() {
 async function saveParseResults() {
   const count = pendingParseCount, rawInput = pendingRawInput;
   const city = document.getElementById('input-city').value.trim();
-  const recommended_by = document.getElementById('input-person').value.trim();
+  const recommended_by = _addSelectedPerson || 'Me';
   const isSingle = count === 1;
   const recs = [];
   for (let i = 0; i < count; i++) {
