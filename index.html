@@ -2171,8 +2171,9 @@ function initMap() {
       }
     }, 300);
   }
-  // Re-render mobile list when map moves to reflect current viewport
+  // Re-render mobile list + update glow when map moves
   map.on('moveend', () => {
+    updateSearchGlow();
     if (!isDesktop()) {
       const sheet = document.getElementById('mobile-sheet');
       if (sheet && sheet.classList.contains('open')) renderMobileList();
@@ -2200,7 +2201,7 @@ function recenterMap() {
 function updateSearchGlow() {
   const bar = document.getElementById('map-search-bar');
   if (!bar) return;
-  // Only count places that have a visible map marker (lat/lng after city fallback)
+  const bounds = map ? map.getBounds() : null;
   const colorCount = {};
   filtered.forEach(r => {
     let lat = r.latitude ? parseFloat(r.latitude) : null;
@@ -2210,6 +2211,8 @@ function updateSearchGlow() {
       if (cc) { lat = cc.latitude; lng = cc.longitude; }
     }
     if (!lat || !lng) return;
+    // When map is live, only count dots actually in the viewport
+    if (bounds && !bounds.contains([lat, lng])) return;
     colorCount[getRecSourceColor(r)] = (colorCount[getRecSourceColor(r)] || 0) + 1;
   });
   const topColor = Object.keys(colorCount).sort((a, b) => colorCount[b] - colorCount[a])[0]
