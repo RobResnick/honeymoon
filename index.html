@@ -2197,14 +2197,20 @@ function recenterMap() {
 function updateSearchGlow() {
   const bar = document.getElementById('map-search-bar');
   if (!bar) return;
-  // Count colors across all filtered items
+  // Only count places that have a visible map marker (lat/lng after city fallback)
   const colorCount = {};
   filtered.forEach(r => {
-    const c = getRecSourceColor(r);
-    colorCount[c] = (colorCount[c] || 0) + 1;
+    let lat = r.latitude ? parseFloat(r.latitude) : null;
+    let lng = r.longitude ? parseFloat(r.longitude) : null;
+    if (!lat || !lng) {
+      const cc = _cityCoords[(r.city || '').toLowerCase().trim()];
+      if (cc) { lat = cc.latitude; lng = cc.longitude; }
+    }
+    if (!lat || !lng) return;
+    colorCount[getRecSourceColor(r)] = (colorCount[getRecSourceColor(r)] || 0) + 1;
   });
   const topColor = Object.keys(colorCount).sort((a, b) => colorCount[b] - colorCount[a])[0]
-    || '#1a73e8'; // default blue
+    || '#1a73e8';
   bar.style.boxShadow = `0 2px 14px ${topColor}55, 0 1px 5px ${topColor}33`;
 }
 
