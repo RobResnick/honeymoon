@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Taste</title>
   <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Taste">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" id="ati" href="/apple-touch-icon.png">
@@ -370,19 +371,19 @@
 
       /* ── FLOATING SEARCH BAR ── */
       .map-search-bar {
-        position: fixed; top: 12px; left: 12px; right: 12px;
-        display: flex; flex-direction: column; gap: 6px;
-        background: white; border-radius: 28px;
-        padding: 14px 14px 10px;
+        position: fixed; top: 12px; left: 66px; right: 12px;
+        display: flex; flex-direction: column; gap: 5px;
+        background: white; border-radius: 24px;
+        padding: 10px 12px 8px;
         box-shadow: 0 2px 12px rgba(26,115,232,0.28), 0 1px 4px rgba(26,115,232,0.15);
         z-index: 600; /* above sheet (300) and nav (500) */
       }
       .map-search-top {
-        display: flex; align-items: center; gap: 8px;
+        display: flex; align-items: center; gap: 7px;
       }
       .map-search-top input {
         flex: 1; border: none; outline: none; box-shadow: none;
-        font-size: 15px; background: transparent;
+        font-size: 14px; background: transparent;
         color: var(--text); font-family: 'Roboto', Arial, sans-serif;
       }
       .map-search-top input::placeholder { color: var(--text3); }
@@ -391,7 +392,7 @@
       .map-search-top input[type="search"]::-webkit-search-decoration { display: none; }
       /* Search suggestions dropdown */
       .search-suggestions {
-        position: fixed; left: 12px; right: 12px; top: 70px; /* updated dynamically */
+        position: fixed; left: 66px; right: 12px; top: 66px; /* updated dynamically */
         background: white; border-radius: 12px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.18);
         z-index: 601; overflow: hidden; display: none;
@@ -500,7 +501,7 @@
 
       /* ── BUDDY LIST ── */
       #buddy-btn {
-        position: fixed; top: 70px; left: 16px; z-index: 599;
+        position: fixed; top: 12px; left: 12px; z-index: 601;
         width: 42px; height: 42px; border-radius: 21px;
         background: #fff; border: none;
         box-shadow: 0 2px 16px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.25);
@@ -1480,6 +1481,7 @@ async function loadRecs(fromServer = true) {
   });
   renderList();
   if (map) renderMapMarkers();
+  else updateSearchGlow(); // update glow even before map is initialized
   renderMobileList();
   document.getElementById('rec-count').textContent = filtered.length + (filtered.length === 1 ? ' place' : ' places');
   // Show fix button if there are ⚠️ (failed) places the user can manually retry
@@ -2133,22 +2135,15 @@ function recenterMap() {
 function updateSearchGlow() {
   const bar = document.getElementById('map-search-bar');
   if (!bar) return;
-  // Count dot colors among filtered places that have map coords
+  // Count colors across all filtered items
   const colorCount = {};
   filtered.forEach(r => {
-    let lat = r.latitude ? parseFloat(r.latitude) : null;
-    let lng = r.longitude ? parseFloat(r.longitude) : null;
-    if (!lat || !lng) {
-      const cc = _cityCoords[(r.city || '').toLowerCase().trim()];
-      if (cc) { lat = cc.latitude; lng = cc.longitude; }
-    }
-    if (!lat || !lng) return;
     const c = getRecSourceColor(r);
     colorCount[c] = (colorCount[c] || 0) + 1;
   });
   const topColor = Object.keys(colorCount).sort((a, b) => colorCount[b] - colorCount[a])[0]
     || '#1a73e8'; // default blue
-  bar.style.boxShadow = `0 2px 12px ${topColor}47, 0 1px 4px ${topColor}26`;
+  bar.style.boxShadow = `0 2px 14px ${topColor}55, 0 1px 5px ${topColor}33`;
 }
 
 function renderMapMarkers() {
