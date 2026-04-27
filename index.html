@@ -557,6 +557,8 @@
       .nav-icon-img { width: 24px; height: 24px; display: block; }
       .nav-label { font-size: 11px; font-weight: 500; }
 
+      #nav-map { color: #5f6368; }
+      #nav-map.active { color: var(--blue); }
       #nav-list svg path { fill: #3c4043; }
       #nav-add svg path { fill: #3c4043; }
       #nav-list.active svg path, #nav-add.active svg path { fill: var(--blue) !important; }
@@ -832,24 +834,24 @@
   <div class="bottom-nav" id="bottom-nav">
     <button class="nav-btn active" id="nav-map" onclick="setMode('map')">
       <div class="nav-pill">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="22" height="26">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="20" height="25">
           <defs>
             <clipPath id="nav-pin-clip">
-              <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"/>
+              <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z"/>
             </clipPath>
           </defs>
-          <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"
-            fill="#8B2018" opacity="0.18" transform="translate(4,4)"/>
-          <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"
-            fill="#D94F3D"/>
-          <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 130 180 A 58 58 0 0 0 155 90 A 58 58 0 0 0 100 38 Z"
-            fill="#B03A2E" clip-path="url(#nav-pin-clip)"/>
-          <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"
-            fill="none" stroke="#2A1210" stroke-width="5" stroke-linejoin="round"/>
-          <path d="M 100 132 C 88 122 63 108 63 88 C 63 74 72 65 83 65 C 90 65 96 69 100 76 C 104 69 110 65 117 65 C 128 65 137 74 137 88 C 137 108 112 122 100 132 Z"
+          <!-- Body -->
+          <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z"
+            fill="currentColor"/>
+          <!-- Shadow crescent (darker overlay) -->
+          <path d="M 420 105 C 460 130 500 180 515 240 C 528 290 520 340 500 383 L 420 470 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 200 492 130 420 105 Z"
+            fill="#000" opacity="0.12" clip-path="url(#nav-pin-clip)"/>
+          <!-- Outline -->
+          <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z"
+            fill="none" stroke="currentColor" stroke-width="10" stroke-linejoin="round" opacity="0.4"/>
+          <!-- Heart -->
+          <path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z"
             fill="white"/>
-          <path d="M 100 132 C 88 122 63 108 63 88 C 63 74 72 65 83 65 C 90 65 96 69 100 76 C 104 69 110 65 117 65 C 128 65 137 74 137 88 C 137 108 112 122 100 132 Z"
-            fill="none" stroke="#2A1210" stroke-width="4.5" stroke-linejoin="round"/>
         </svg>
       </div>
       <span class="nav-label">Map</span>
