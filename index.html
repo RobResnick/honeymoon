@@ -449,7 +449,7 @@
         display: flex; flex-direction: column; gap: 6px;
         background: white; border-radius: 28px;
         padding: 14px 14px 10px;
-        box-shadow: 0 2px 12px rgba(26,115,232,0.28), 0 1px 4px rgba(26,115,232,0.15);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.10);
         z-index: 600; /* above sheet (300) and nav (500) */
       }
       .map-search-top {
@@ -577,17 +577,16 @@
 
       /* ── BUDDY LIST ── */
       #buddy-btn {
-        position: fixed; top: 70px; left: 0;
+        position: fixed; top: 80px; left: 0;
         z-index: 250; /* below mobile-sheet (300) so sheet covers it when open */
-        width: 40px; height: 76px;
-        border-radius: 0 20px 20px 0;
+        width: 24px; height: 48px;
+        border-radius: 0 12px 12px 0;
         background: #111; border: none;
-        box-shadow: 2px 0 12px rgba(0,0,0,0.35), 1px 0 4px rgba(0,0,0,0.18);
+        box-shadow: 2px 0 8px rgba(0,0,0,0.3);
         display: flex; align-items: center; justify-content: center;
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         padding: 0;
-        gap: 0;
         flex-direction: column;
       }
       #buddy-panel {
@@ -875,10 +874,10 @@
 
   <!-- BUDDY LIST -->
   <button id="buddy-btn" onclick="toggleBuddy()" title="Buddy List">
-    <svg width="10" height="46" viewBox="0 0 10 46" style="display:block">
-      <circle cx="5" cy="7"  r="4.5" fill="white"/>
-      <circle cx="5" cy="23" r="4.5" fill="white"/>
-      <circle cx="5" cy="39" r="4.5" fill="white"/>
+    <svg width="6" height="26" viewBox="0 0 6 26" style="display:block">
+      <circle cx="3" cy="3"  r="2.5" fill="white"/>
+      <circle cx="3" cy="13" r="2.5" fill="white"/>
+      <circle cx="3" cy="23" r="2.5" fill="white"/>
     </svg>
   </button>
   <div id="buddy-backdrop" onclick="closeBuddy()"></div>
@@ -1596,7 +1595,6 @@ async function loadRecs(fromServer = true) {
   });
   renderList();
   if (map) renderMapMarkers();
-  else updateSearchGlow(); // update glow even before map is initialized
   renderMobileList();
   document.getElementById('rec-count').textContent = filtered.length + (filtered.length === 1 ? ' place' : ' places');
   // Show fix button if there are ⚠️ (failed) places the user can manually retry
@@ -2324,9 +2322,8 @@ function initMap() {
       }
     }, 300);
   }
-  // Re-render mobile list + update glow when map moves
+  // Re-render mobile list when map moves
   map.on('moveend', () => {
-    updateSearchGlow();
     if (!isDesktop()) {
       const sheet = document.getElementById('mobile-sheet');
       if (sheet && sheet.classList.contains('open')) renderMobileList();
@@ -2352,27 +2349,6 @@ function recenterMap() {
   }
 }
 
-function updateSearchGlow() {
-  const bar = document.getElementById('map-search-bar');
-  if (!bar) return;
-  const bounds = map ? map.getBounds() : null;
-  const colorCount = {};
-  filtered.forEach(r => {
-    let lat = r.latitude ? parseFloat(r.latitude) : null;
-    let lng = r.longitude ? parseFloat(r.longitude) : null;
-    if (!lat || !lng) {
-      const cc = _cityCoords[(r.city || '').toLowerCase().trim()];
-      if (cc) { lat = cc.latitude; lng = cc.longitude; }
-    }
-    if (!lat || !lng) return;
-    // When map is live, only count dots actually in the viewport
-    if (bounds && !bounds.contains([lat, lng])) return;
-    colorCount[getRecSourceColor(r)] = (colorCount[getRecSourceColor(r)] || 0) + 1;
-  });
-  const topColor = Object.keys(colorCount).sort((a, b) => colorCount[b] - colorCount[a])[0]
-    || '#1a73e8';
-  bar.style.boxShadow = `0 2px 14px ${topColor}55, 0 1px 5px ${topColor}33`;
-}
 
 function renderMapMarkers() {
   markers.forEach(m => map.removeLayer(m));
@@ -2397,7 +2373,6 @@ function renderMapMarkers() {
     m.on('click', () => openDetail(r.id));
     markers.push(m);
   });
-  updateSearchGlow();
 }
 
 // ── ADD DRAWER ──
@@ -2817,9 +2792,6 @@ function toggleBuddy() {
 function openBuddy() {
   document.getElementById('buddy-panel').classList.add('open');
   document.getElementById('buddy-settings-popup').classList.remove('visible');
-  // Gray out search shadow while buddy open
-  const bar = document.getElementById('map-search-bar');
-  if (bar) bar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)';
   // Always keep map movable while buddy is open
   enableMapInteraction();
   renderBuddyNames();
@@ -3037,8 +3009,6 @@ function renderBuddyNames() {
 function closeBuddy() {
   document.getElementById('buddy-panel').classList.remove('open');
   document.getElementById('buddy-settings-popup').classList.remove('visible');
-  // Restore dynamic search glow
-  updateSearchGlow();
   // Re-disable map if the list sheet is still open
   const sheet = document.getElementById('mobile-sheet');
   if (sheet && sheet.classList.contains('open')) disableMapInteraction();
