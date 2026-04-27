@@ -1,25 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
   <defs>
-    <filter id="sh">
-      <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#000" flood-opacity="0.08"/>
-    </filter>
-    <linearGradient id="bv" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fff" stop-opacity="0.20"/>
-      <stop offset="100%" stop-color="#000" stop-opacity="0.04"/>
-    </linearGradient>
     <clipPath id="tongue">
       <path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z"/>
     </clipPath>
     <radialGradient id="tongue-shade" cx="48%" cy="38%" r="65%" fx="48%" fy="35%">
-      <stop offset="0%"   stop-color="#EA4335" stop-opacity="1"/>
-      <stop offset="70%"  stop-color="#EA4335" stop-opacity="1"/>
-      <stop offset="100%" stop-color="#c0291c" stop-opacity="1"/>
+      <stop offset="0%"   stop-color="#EA4335"/>
+      <stop offset="70%"  stop-color="#EA4335"/>
+      <stop offset="100%" stop-color="#c0291c"/>
     </radialGradient>
   </defs>
-  <rect x="10" y="10" width="180" height="180" rx="38" fill="white" filter="url(#sh)"/>
-  <rect x="10" y="10" width="180" height="180" rx="38" fill="white"/>
-  <rect x="10" y="10" width="180" height="180" rx="38" fill="url(#bv)"/>
-  <rect x="10" y="10" width="180" height="180" rx="38" fill="none" stroke="#000" stroke-opacity="0.07" stroke-width="1.5"/>
+  <rect width="200" height="200" fill="white"/>
   <g transform="translate(100,105) scale(0.8) translate(-100,-96)" clip-path="url(#tongue)">
     <path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z" fill="url(#tongue-shade)"/>
     <rect x="42" y="43" width="116" height="6" rx="3" fill="white"/>
