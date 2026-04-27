@@ -381,6 +381,33 @@
     .detail-row-icon { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
     .detail-row a { color: var(--blue); text-decoration: none; }
     .detail-row a:hover { text-decoration: underline; }
+    .detail-tag {
+      display: inline-flex; align-items: center;
+      font-size: 12px; padding: 2px 10px; border-radius: 20px;
+      font-weight: 500; cursor: pointer; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .detail-tag-add {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--bg2); border: 1.5px dashed var(--border);
+      color: var(--text3); font-size: 16px; line-height: 1;
+      cursor: pointer; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #detail-tag-picker {
+      position: absolute; background: var(--bg); border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18); padding: 6px;
+      display: none; z-index: 100; min-width: 130px;
+    }
+    #detail-tag-picker.open { display: block; }
+    .detail-tag-option {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 8px; cursor: pointer;
+      font-size: 13px; font-weight: 500;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .detail-tag-option:hover, .detail-tag-option:active { background: var(--bg2); }
 
     /* ── TOAST ── */
     .toast {
@@ -907,8 +934,9 @@
       <a id="detail-phone-link" href=""></a>
     </div>
 
-    <div class="detail-row" id="detail-recommended-row" style="display:none;border-top:none;padding-top:0">
+    <div class="detail-row" id="detail-recommended-row" style="display:none;border-top:none;padding-top:0;position:relative">
       <div id="detail-recommended-people" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"></div>
+      <div id="detail-tag-picker"></div>
     </div>
 
     <div class="detail-row" id="detail-notes-row" style="display:none; flex-direction: column; align-items: flex-start">
@@ -1871,19 +1899,122 @@ function openDetail(id) {
     phoneRow.style.display = 'none';
   }
 
-  // Recommended by (under address)
+  // Recommended by — interactive tags (add / long-press to remove)
   const recRow = document.getElementById('detail-recommended-row');
   const recPeople = document.getElementById('detail-recommended-people');
-  if (r.recommended_by) {
-    recRow.style.display = 'flex';
-    const people = r.recommended_by.split(',').map(p => p.trim()).filter(Boolean);
-    recPeople.innerHTML = people.map(p => {
-      const col = FOLDER_COLORS[getPersonFolder(p)] || FOLDER_COLORS.other;
-      return `<span style="font-size:12px;padding:2px 10px;border-radius:20px;background:${col}22;color:${col};border:1px solid ${col}55;font-weight:500">${esc(p)}</span>`;
+  const tagPicker = document.getElementById('detail-tag-picker');
+  recRow.style.display = 'flex';
+
+  function renderDetailTags() {
+    const rec = allRecs.find(x => x.id === r.id);
+    if (!rec) return;
+    const people = (rec.recommended_by || '').split(',').map(p => p.trim()).filter(Boolean);
+    let html = people.map(p => {
+      const col = getPersonColor(p);
+      const label = isMe(p) ? 'Me' : p;
+      return `<span class="detail-tag" data-person="${esc(p)}"
+        style="background:${col}22;color:${col};border:1px solid ${col}55"
+        title="Long-press to remove"
+      >${esc(label)}</span>`;
     }).join('');
-  } else {
-    recRow.style.display = 'none';
+    html += `<span class="detail-tag-add" id="detail-tag-add-btn" title="Add person">+</span>`;
+    recPeople.innerHTML = html;
+
+    // Long-press to remove a tag
+    recPeople.querySelectorAll('.detail-tag').forEach(el => {
+      let lpt;
+      el.ontouchstart = () => {
+        lpt = setTimeout(() => {
+          const name = el.dataset.person;
+          const label = isMe(name) ? 'Me' : name;
+          if (confirm(`Remove "${label}" from this place?`)) removeDetailTag(name);
+        }, 600);
+      };
+      el.ontouchend = () => clearTimeout(lpt);
+      el.ontouchmove = () => clearTimeout(lpt);
+      el.oncontextmenu = e => {
+        e.preventDefault();
+        const name = el.dataset.person;
+        const label = isMe(name) ? 'Me' : name;
+        if (confirm(`Remove "${label}" from this place?`)) removeDetailTag(name);
+      };
+    });
+
+    // "+" opens picker
+    const addBtn = document.getElementById('detail-tag-add-btn');
+    if (addBtn) addBtn.onclick = e => { e.stopPropagation(); openTagPicker(); };
   }
+
+  async function removeDetailTag(personName) {
+    const rec = allRecs.find(x => x.id === r.id);
+    if (!rec) return;
+    const people = (rec.recommended_by || '').split(',').map(p => p.trim()).filter(Boolean)
+      .filter(p => p !== personName);
+    rec.recommended_by = people.join(', ');
+    await api('/api/recommendations/' + rec.id, 'PUT', { ...rec });
+    if (!rec.recommended_by) {
+      allRecs = allRecs.filter(x => x.id !== rec.id);
+      loadRecs(false);
+      closeDetailModal();
+    } else {
+      renderDetailTags();
+    }
+  }
+
+  function openTagPicker() {
+    const rec = allRecs.find(x => x.id === r.id);
+    if (!rec) return;
+    const current = (rec.recommended_by || '').split(',').map(p => p.trim()).filter(Boolean);
+    // Build list of people not already on this place ("Me" handled specially)
+    const available = ['Me', ...allPeople.filter(p => !isMe(p))]
+      .filter(p => !current.some(c => c === p || (isMe(p) && isMe(c))));
+    if (!available.length) { tagPicker.classList.remove('open'); return; }
+    tagPicker.innerHTML = available.map(p => {
+      const col = getPersonColor(p);
+      return `<div class="detail-tag-option" data-person="${esc(p)}">
+        <span style="width:10px;height:10px;border-radius:50%;background:${col};display:inline-block;flex-shrink:0"></span>
+        ${esc(p)}
+      </div>`;
+    }).join('');
+    tagPicker.classList.add('open');
+    tagPicker.querySelectorAll('.detail-tag-option').forEach(opt => {
+      opt.onclick = async e => {
+        e.stopPropagation();
+        tagPicker.classList.remove('open');
+        const name = opt.dataset.person;
+        const currRec = allRecs.find(x => x.id === r.id);
+        if (!currRec) return;
+        const pp = (currRec.recommended_by || '').split(',').map(p => p.trim()).filter(Boolean);
+        if (!pp.some(c => c === name || (isMe(name) && isMe(c)))) {
+          pp.push(name);
+          currRec.recommended_by = pp.join(', ');
+          await api('/api/recommendations/' + currRec.id, 'PUT', { ...currRec });
+          renderDetailTags();
+        }
+      };
+    });
+  }
+
+  renderDetailTags();
+
+  // Long-press on the detail icon → open tag picker (use .on* to avoid accumulating listeners)
+  const iconEl = document.getElementById('detail-icon');
+  let iconLpt;
+  iconEl.style.cursor = 'pointer';
+  iconEl.ontouchstart = () => { iconLpt = setTimeout(() => openTagPicker(), 600); };
+  iconEl.ontouchend = () => clearTimeout(iconLpt);
+  iconEl.ontouchmove = () => clearTimeout(iconLpt);
+  iconEl.oncontextmenu = e => { e.preventDefault(); openTagPicker(); };
+
+  // Close picker when clicking outside (attach once per openDetail call, self-removing)
+  setTimeout(() => {
+    document.addEventListener('click', function closePicker(e) {
+      if (!recRow.contains(e.target)) {
+        tagPicker.classList.remove('open');
+        document.removeEventListener('click', closePicker);
+      }
+    });
+  }, 0);
 
   // Notes
   const notesRow = document.getElementById('detail-notes-row');
@@ -2181,10 +2312,11 @@ function initMap() {
   });
   map.on('click', () => {
     if (!isDesktop()) {
+      const buddy = document.getElementById('buddy-panel');
+      const buddyOpen = buddy && buddy.classList.contains('open');
+      if (buddyOpen) { closeBuddy(); return; }
       const sheet = document.getElementById('mobile-sheet');
       if (sheet && sheet.classList.contains('open')) closeSheetOnly();
-      const buddy = document.getElementById('buddy-panel');
-      if (buddy && buddy.classList.contains('open')) closeBuddy();
     }
   });
 }
