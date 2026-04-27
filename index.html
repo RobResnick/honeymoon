@@ -557,7 +557,6 @@
       .nav-icon-img { width: 24px; height: 24px; display: block; }
       .nav-label { font-size: 11px; font-weight: 500; }
 
-      .nav-btn.active svg path, .nav-btn.active svg circle { fill: var(--blue) !important; }
       #nav-list svg path { fill: #3c4043; }
       #nav-add svg path { fill: #3c4043; }
       #nav-list.active svg path, #nav-add.active svg path { fill: var(--blue) !important; }
@@ -576,15 +575,17 @@
       /* ── BUDDY LIST ── */
       #buddy-btn {
         position: fixed; top: 70px; left: 0;
-        z-index: 601;
-        width: 44px; height: 80px;
-        border-radius: 0 24px 24px 0;
-        background: #fff; border: none;
-        box-shadow: 2px 0 12px rgba(0,0,0,0.18), 1px 0 4px rgba(0,0,0,0.10);
+        z-index: 250; /* below mobile-sheet (300) so sheet covers it when open */
+        width: 40px; height: 76px;
+        border-radius: 0 20px 20px 0;
+        background: #111; border: none;
+        box-shadow: 2px 0 12px rgba(0,0,0,0.35), 1px 0 4px rgba(0,0,0,0.18);
         display: flex; align-items: center; justify-content: center;
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         padding: 0;
+        gap: 0;
+        flex-direction: column;
       }
       #buddy-panel {
         position: fixed; top: 0; bottom: 0;
@@ -831,8 +832,24 @@
   <div class="bottom-nav" id="bottom-nav">
     <button class="nav-btn active" id="nav-map" onclick="setMode('map')">
       <div class="nav-pill">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="22" height="26">
+          <defs>
+            <clipPath id="nav-pin-clip">
+              <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"/>
+            </clipPath>
+          </defs>
+          <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"
+            fill="#8B2018" opacity="0.18" transform="translate(4,4)"/>
+          <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"
+            fill="#D94F3D"/>
+          <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 130 180 A 58 58 0 0 0 155 90 A 58 58 0 0 0 100 38 Z"
+            fill="#B03A2E" clip-path="url(#nav-pin-clip)"/>
+          <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"
+            fill="none" stroke="#2A1210" stroke-width="5" stroke-linejoin="round"/>
+          <path d="M 100 132 C 88 122 63 108 63 88 C 63 74 72 65 83 65 C 90 65 96 69 100 76 C 104 69 110 65 117 65 C 128 65 137 74 137 88 C 137 108 112 122 100 132 Z"
+            fill="white"/>
+          <path d="M 100 132 C 88 122 63 108 63 88 C 63 74 72 65 83 65 C 90 65 96 69 100 76 C 104 69 110 65 117 65 C 128 65 137 74 137 88 C 137 108 112 122 100 132 Z"
+            fill="none" stroke="#2A1210" stroke-width="4.5" stroke-linejoin="round"/>
         </svg>
       </div>
       <span class="nav-label">Map</span>
@@ -859,7 +876,11 @@
 
 <!-- BUDDY LIST -->
 <button id="buddy-btn" onclick="toggleBuddy()" title="Buddy List">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="26" height="26"><defs><clipPath id="b-tongue"><path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z"/></clipPath><radialGradient id="b-ts" cx="48%" cy="38%" r="65%" fx="48%" fy="35%"><stop offset="0%" stop-color="#EA4335"/><stop offset="70%" stop-color="#EA4335"/><stop offset="100%" stop-color="#c0291c"/></radialGradient></defs><g transform="translate(100,105) scale(0.8) translate(-100,-96)" clip-path="url(#b-tongue)"><path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z" fill="url(#b-ts)"/><rect x="42" y="43" width="116" height="6" rx="3" fill="white"/><rect x="97.5" y="43" width="5" height="90" rx="2.5" fill="white"/></g></svg>
+  <svg width="10" height="46" viewBox="0 0 10 46" style="display:block">
+    <circle cx="5" cy="7"  r="4.5" fill="#1A73E8"/>
+    <circle cx="5" cy="23" r="4.5" fill="#f29900"/>
+    <circle cx="5" cy="39" r="4.5" fill="#34A853"/>
+  </svg>
 </button>
 <div id="buddy-backdrop" onclick="closeBuddy()"></div>
 <div id="buddy-panel">

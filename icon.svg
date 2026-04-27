@@ -1,18 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <defs>
-    <clipPath id="tongue">
-      <path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z"/>
-    </clipPath>
-    <radialGradient id="tongue-shade" cx="48%" cy="38%" r="65%" fx="48%" fy="35%">
-      <stop offset="0%"   stop-color="#EA4335"/>
-      <stop offset="70%"  stop-color="#EA4335"/>
-      <stop offset="100%" stop-color="#c0291c"/>
-    </radialGradient>
-  </defs>
   <rect width="200" height="200" fill="white"/>
-  <g transform="translate(100,105) scale(0.8) translate(-100,-96)" clip-path="url(#tongue)">
-    <path d="M 42 28 Q 30 28 30 40 L 30 88 Q 30 158 100 160 Q 170 158 170 88 L 170 40 Q 170 28 158 28 Z" fill="url(#tongue-shade)"/>
-    <rect x="42" y="43" width="116" height="6" rx="3" fill="white"/>
-    <rect x="97.5" y="43" width="5" height="90" rx="2.5" fill="white"/>
+  <!-- Pin content scaled to 75% and centered: translate(25,10) scale(0.75)
+       gives ~41px horizontal padding, ~19px vertical padding, shadow fits comfortably -->
+  <g transform="translate(25,10) scale(0.75)">
+    <defs>
+      <clipPath id="pin-clip">
+        <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"/>
+      </clipPath>
+    </defs>
+    <!-- Drop shadow -->
+    <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"
+      fill="#8B2018" opacity="0.18" transform="translate(4,4)"/>
+    <!-- Main pin body -->
+    <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"
+      fill="#D94F3D"/>
+    <!-- Right-side shading -->
+    <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 130 180 A 58 58 0 0 0 155 90 A 58 58 0 0 0 100 38 Z"
+      fill="#B03A2E" clip-path="url(#pin-clip)"/>
+    <!-- Outline -->
+    <path d="M 100 12 A 78 78 0 0 1 178 90 L 100 228 L 22 90 A 78 78 0 0 1 100 12 Z"
+      fill="none" stroke="#2A1210" stroke-width="5" stroke-linejoin="round"/>
+    <!-- Heart -->
+    <path d="M 100 132 C 88 122 63 108 63 88 C 63 74 72 65 83 65 C 90 65 96 69 100 76 C 104 69 110 65 117 65 C 128 65 137 74 137 88 C 137 108 112 122 100 132 Z"
+      fill="white"/>
+    <!-- Heart outline -->
+    <path d="M 100 132 C 88 122 63 108 63 88 C 63 74 72 65 83 65 C 90 65 96 69 100 76 C 104 69 110 65 117 65 C 128 65 137 74 137 88 C 137 108 112 122 100 132 Z"
+      fill="none" stroke="#2A1210" stroke-width="4.5" stroke-linejoin="round"/>
   </g>
 </svg>
