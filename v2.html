@@ -539,15 +539,7 @@
       .suggestion-item:last-child { border-bottom: none; }
       .suggestion-item:active { background: rgba(255,255,255,0.06); }
 
-      /* Recenter: injected into Leaflet zoom bar via JS; hide the fixed button */
       .recenter-btn { display: none !important; }
-
-      /* Leaflet recenter button inside zoom bar */
-      .leaflet-recenter-btn {
-        display: flex !important; align-items: center; justify-content: center;
-        border-top: 1px solid rgba(255,255,255,0.08) !important;
-      }
-      .leaflet-recenter-btn:hover { color: var(--blue); }
       .recenter-icon-fit { display: none; }
       .recenter-icon-locate { display: block; }
 
@@ -2393,22 +2385,6 @@ function initMap() {
     }, { enableHighAccuracy: false, timeout: 8000 });
   }
 
-  // Inject recenter into Leaflet zoom control (mobile only)
-  if (!isDesktop()) {
-    setTimeout(() => {
-      const zoomBar = document.querySelector('.leaflet-control-zoom');
-      if (zoomBar && !zoomBar.querySelector('.leaflet-recenter-btn')) {
-        const btn = document.createElement('a');
-        btn.href = '#';
-        btn.className = 'leaflet-control-zoom-out leaflet-recenter-btn';
-        btn.title = 'Recenter';
-        btn.setAttribute('role', 'button');
-        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>`;
-        btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); recenterBtnClick(); };
-        zoomBar.appendChild(btn);
-      }
-    }, 300);
-  }
   // Re-render mobile list when map moves
   map.on('moveend', () => {
     if (!isDesktop()) {
