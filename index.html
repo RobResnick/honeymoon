@@ -728,6 +728,87 @@
       }
       #buddy-btn { display: flex; }
       #buddy-panel { display: flex; }
+
+      /* ── COMPASS BUTTON ── */
+      .compass-btn {
+        position: fixed;
+        bottom: 120px; right: 12px;
+        z-index: 400;
+        width: 44px; height: 44px;
+        border-radius: 12px;
+        background: rgba(17,17,17,0.92);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .compass-btn.heading-up {
+        border-color: rgba(221,79,65,0.7);
+        box-shadow: 0 0 0 2px rgba(221,79,65,0.35), 0 4px 20px rgba(0,0,0,0.45);
+      }
+
+      /* ── NEARBY BANNER ── */
+      .nearby-banner {
+        position: fixed;
+        bottom: 120px; left: 50%; transform: translateX(-50%);
+        z-index: 450;
+        background: rgba(17,17,17,0.92);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+        border-radius: 24px;
+        padding: 10px 18px;
+        font-size: 14px; font-weight: 500;
+        color: var(--text);
+        cursor: pointer;
+        white-space: nowrap;
+        -webkit-tap-highlight-color: transparent;
+        animation: nearby-fadein 0.25s ease;
+      }
+      @keyframes nearby-fadein {
+        from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+        to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+      }
+
+      /* ── PLACE LABELS (zoom ≥ 15) ── */
+      .map-place-label {
+        background: rgba(17,17,17,0.85);
+        color: #e8eaed;
+        font-size: 11px; font-weight: 500;
+        padding: 2px 7px;
+        border-radius: 10px;
+        white-space: nowrap;
+        pointer-events: none;
+        position: absolute;
+        bottom: 100%; left: 50%; transform: translateX(-50%);
+        margin-bottom: 3px;
+        font-family: 'Google Sans', sans-serif;
+      }
+
+      /* ── RECENT SEARCH CHIPS ── */
+      .recent-chips-wrap {
+        padding: 12px 16px 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+      }
+      .recent-chips-label {
+        font-size: 10px; font-weight: 600; text-transform: uppercase;
+        letter-spacing: .06em; color: var(--text3); margin-bottom: 8px;
+      }
+      .recent-chips-row {
+        display: flex; gap: 8px; flex-wrap: wrap;
+      }
+      .recent-chip {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 20px; padding: 5px 13px;
+        font-size: 13px; color: var(--text2);
+        cursor: pointer; font-family: inherit;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .recent-chip:active { background: rgba(255,255,255,0.12); }
     }
 
     /* ════════════════════════════════
@@ -892,6 +973,20 @@
   <!-- Autocomplete suggestions -->
   <div class="search-suggestions" id="search-suggestions"></div>
 
+  <!-- COMPASS BUTTON (mobile only) -->
+  <button class="compass-btn" id="compass-btn" onclick="toggleCompass()" title="Compass" style="display:none">
+    <svg id="compass-svg" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Outer ring -->
+      <circle cx="14" cy="14" r="12" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+      <!-- North needle (red) -->
+      <polygon id="compass-north" points="14,4 16.2,14 14,12.5 11.8,14" fill="#DD4F41"/>
+      <!-- South needle (white) -->
+      <polygon points="14,24 16.2,14 14,15.5 11.8,14" fill="rgba(255,255,255,0.4)"/>
+      <!-- N label -->
+      <text x="14" y="3" text-anchor="middle" font-size="5" fill="rgba(255,255,255,0.6)" font-family="sans-serif">N</text>
+    </svg>
+  </button>
+
   <!-- MOBILE BOTTOM SHEET -->
   <div class="mobile-sheet" id="mobile-sheet">
     <div class="mobile-sheet-handle" id="sheet-handle"></div>
@@ -1025,6 +1120,13 @@
     <div class="detail-row" id="detail-recommended-row" style="display:none;border-top:none;padding-top:0;position:relative">
       <div id="detail-recommended-people" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"></div>
       <div id="detail-tag-picker"></div>
+    </div>
+
+    <div class="detail-row" id="detail-directions-row" style="display:none;border-top:none;padding-top:0">
+      <button id="detail-directions-btn" onclick="fetchDirections()" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--text);padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        Directions
+      </button>
     </div>
 
     <div class="detail-row" id="detail-notes-row" style="display:none; flex-direction: column; align-items: flex-start">
@@ -1674,6 +1776,7 @@ async function loadRecs(fromServer = true) {
   renderList();
   if (map) renderMapMarkers();
   renderMobileList();
+  if (!isDesktop()) setTimeout(maybeShowNearbyBanner, 200);
   document.getElementById('rec-count').textContent = filtered.length + (filtered.length === 1 ? ' place' : ' places');
   // Show fix button if there are ⚠️ (failed) places the user can manually retry
   const fixBtn = document.getElementById('fix-location-btn');
@@ -1788,7 +1891,24 @@ function renderMobileList() {
             ).join('');
           }
         }
-        html = cityHtml + (filtered.length ? filtered.map(cardHtml).join('') : noMatch);
+        if (filtered.length) {
+          html = cityHtml + filtered.map(cardHtml).join('');
+        } else {
+          // Feature 5: show recent chips instead of "No matches" when sheet is open
+          const sheetEl = document.getElementById('mobile-sheet');
+          const sheetIsOpen = sheetEl && sheetEl.classList.contains('open');
+          const recentArr = getRecentSearches();
+          if (sheetIsOpen && recentArr.length > 0 && allRecs.length > 0) {
+            html = cityHtml + `<div class="recent-chips-wrap">
+              <div class="recent-chips-label">Recent</div>
+              <div class="recent-chips-row">
+                ${recentArr.map(s => `<button class="recent-chip" onclick="applyRecentSearch('${esc(s).replace(/'/g,"\\'")}')">${esc(s)}</button>`).join('')}
+              </div>
+            </div>`;
+          } else {
+            html = cityHtml + noMatch;
+          }
+        }
       } else if (map) {
         // No filter → show only places in current map viewport
         const bounds = map.getBounds();
@@ -1796,7 +1916,20 @@ function renderMobileList() {
           && bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
         const sectionLabel = s => `<div style="padding:10px 16px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">${s}</div>`;
         const recentSearches = getRecentSearches();
-        const recentSearchHtml = recentSearches.length >= 10
+        // Feature 5: recent search chips — show when sheet is open and no filter active
+        const sheet = document.getElementById('mobile-sheet');
+        const sheetOpen = sheet && sheet.classList.contains('open');
+        let recentChipsHtml = '';
+        if (sheetOpen && recentSearches.length > 0) {
+          recentChipsHtml = `<div class="recent-chips-wrap">
+            <div class="recent-chips-label">Recent</div>
+            <div class="recent-chips-row">
+              ${recentSearches.map(s => `<button class="recent-chip" onclick="applyRecentSearch('${esc(s).replace(/'/g,"\\'")}')">${esc(s)}</button>`).join('')}
+            </div>
+          </div>`;
+        }
+        // Fallback: old-style inline chips for >= 10 searches (kept for legacy)
+        const recentSearchHtml = (!sheetOpen && recentSearches.length >= 10)
           ? sectionLabel('Recently searched') +
             `<div style="display:flex;gap:8px;flex-wrap:wrap;padding:6px 16px 12px">` +
             recentSearches.map(s => `<button onclick="applyRecentSearch(this.dataset.q)" data-q="${esc(s)}" style="border:1px solid var(--border);background:var(--card);border-radius:20px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--text);font-family:inherit">${esc(s)}</button>`).join('') +
@@ -1810,10 +1943,12 @@ function renderMobileList() {
             haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) < NEARBY_KM
           );
           const label = allNearby ? sectionLabel('Nearby') : '';
-          html = recentSearchHtml + label + inBounds.map(cardHtml).join('');
+          html = recentChipsHtml + recentSearchHtml + label + inBounds.map(cardHtml).join('');
         } else {
-          // Nothing in viewport (rare on load before location resolves)
-          html = recentSearchHtml || noMatch;
+          // Nothing in viewport — show recent chips if sheet is open
+          html = recentChipsHtml + (recentSearchHtml || noMatch);
+          // Feature 4: show nearby banner when in map mode (sheet closed) and nothing in view
+          if (!sheetOpen) setTimeout(maybeShowNearbyBanner, 100);
         }
       } else {
         html = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
@@ -1945,6 +2080,7 @@ function makeDetailEditable(el, field, r) {
 function openDetail(id) {
   const r = allRecs.find(x => x.id === id);
   if (!r) return;
+  _detailRecId = id;
   const myItem = _currentUser && r.user_id === _currentUser.id;
 
   const srcColor = getRecSourceColor(r);
@@ -1986,6 +2122,14 @@ function openDetail(id) {
   // Maps links (top-right)
   document.getElementById('detail-google-maps-link').href = mapsUrl(r);
   document.getElementById('detail-apple-maps-link').href = appleMapsUrl(r);
+
+  // Directions button — show only on mobile when user location is known and rec has coords
+  const directionsRow = document.getElementById('detail-directions-row');
+  if (!isDesktop() && _userLocation && r.latitude && r.longitude) {
+    directionsRow.style.display = 'flex';
+  } else {
+    directionsRow.style.display = 'none';
+  }
 
   // Phone
   const phoneRow = document.getElementById('detail-phone-row');
@@ -2155,8 +2299,23 @@ function openDetail(id) {
     if (!rec) return;
     if (newNotes !== (rec.notes || '').trim()) {
       if (newNotes) {
-        await api('/api/recommendations/' + this._recId, 'PUT', { ...rec, notes: newNotes });
-        rec.notes = newNotes;
+        // Feature 7: detect map URL and extract coords
+        const coords = extractMapCoords(newNotes);
+        if (coords) {
+          const strippedNotes = stripMapsUrl(newNotes);
+          await api('/api/recommendations/' + this._recId, 'PUT', {
+            ...rec, notes: strippedNotes,
+            latitude: coords.lat, longitude: coords.lng
+          });
+          rec.notes = strippedNotes;
+          rec.latitude = coords.lat;
+          rec.longitude = coords.lng;
+          renderMapMarkers();
+          showToast('📍 Location updated!');
+        } else {
+          await api('/api/recommendations/' + this._recId, 'PUT', { ...rec, notes: newNotes });
+          rec.notes = newNotes;
+        }
       } else {
         await api('/api/recommendations/' + this._recId, 'PUT', { ...rec, notes: '' });
         rec.notes = '';
@@ -2172,6 +2331,7 @@ function openDetail(id) {
 
 function closeDetailModal() {
   document.getElementById('detail-overlay').classList.remove('open');
+  removeRouteLine();
 }
 // Close detail modal when clicking outside it.
 // _detailJustOpened prevents the same tap that opened it from immediately closing it.
@@ -2193,6 +2353,7 @@ function setMode(mode) {
   const sheet = document.getElementById('mobile-sheet');
 
   if (mode === 'list') {
+    removeNearbyBanner();
     document.getElementById('nav-list').classList.add('active');
     sheet.classList.add('open');
     expandSearchFilters();
@@ -2371,26 +2532,51 @@ function initMap() {
   // Show all dots immediately so the map isn't blank while waiting for geolocation
   if (markers.length) recenterMap();
 
+  // Show compass button on mobile
+  const compassBtn = document.getElementById('compass-btn');
+  if (compassBtn) compassBtn.style.display = 'flex';
+
   // Then try to get user location and re-center to show 2 nearest dots
   if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos => {
+    navigator.geolocation.watchPosition(pos => {
       _userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       if (locationDot) map.removeLayer(locationDot);
       locationDot = L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
         radius: 9, fillColor: '#4285F4', color: 'white',
         weight: 3, fillOpacity: 1, zIndexOffset: 1000
       }).addTo(map);
-      centerOnUserWithDots(pos.coords.latitude, pos.coords.longitude);
+      // Update cone if heading available and zoom high enough
+      if (map.getZoom() >= 14) {
+        updateHeadingCone(pos.coords.latitude, pos.coords.longitude, _currentHeading);
+      }
     }, () => {
       // No location available — already showing all markers, nothing to do
-    }, { enableHighAccuracy: false, timeout: 8000 });
+    }, { enableHighAccuracy: true, timeout: 8000 });
+    // Initial center (one-shot, fast)
+    navigator.geolocation.getCurrentPosition(pos => {
+      _userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      centerOnUserWithDots(pos.coords.latitude, pos.coords.longitude);
+    }, () => {}, { enableHighAccuracy: false, timeout: 8000 });
   }
+
+  // Re-render markers on zoomend to show/hide labels and heading cone
+  map.on('zoomend', () => {
+    renderMapMarkers();
+    if (_userLocation) {
+      if (map.getZoom() >= 14) {
+        updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
+      } else {
+        hideHeadingCone();
+      }
+    }
+  });
 
   // Re-render mobile list when map moves
   map.on('moveend', () => {
     if (!isDesktop()) {
       const sheet = document.getElementById('mobile-sheet');
       if (sheet && sheet.classList.contains('open')) renderMobileList();
+      else maybeShowNearbyBanner();
     }
   });
   map.on('click', () => {
@@ -2452,9 +2638,15 @@ function renderMapMarkers() {
     }
     if (!lat || !lng) return;
     const srcColor = getRecSourceColor(r);
+    const showLabel = map && map.getZoom() >= 15;
+    const cleanName = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
+    const labelHtml = showLabel
+      ? `<div class="map-place-label">${esc(cleanName)}</div>`
+      : '';
+    const pinHtml = `<div style="position:relative;display:inline-block">${typeIconHtml(r.type, 30, srcColor)}${labelHtml}</div>`;
     const icon = L.divIcon({
       className: '',
-      html: typeIconHtml(r.type, 30, srcColor),
+      html: pinHtml,
       iconSize: [30, 30], iconAnchor: [8, 28], popupAnchor: [7, -30]
     });
     const m = L.marker([lat, lng], { icon, _srcColor: srcColor });
@@ -3176,6 +3368,223 @@ function setupDesktopFilters() {
     if (el) el.addEventListener('change', updateDesktopList);
   });
   updateDesktopList(); // initial state
+}
+
+// ════════════════════════════════════════════════════════
+// FEATURE 1: COMPASS / NORTH LOCK BUTTON
+// ════════════════════════════════════════════════════════
+let _compassMode = 'north-up'; // 'north-up' | 'heading-up'
+let _currentHeading = 0;
+let _compassPermissionGranted = false;
+
+function updateCompassNeedle(heading) {
+  const svg = document.getElementById('compass-svg');
+  if (svg) svg.style.transform = `rotate(${-heading}deg)`;
+}
+
+function applyHeadingToMap(heading) {
+  _currentHeading = heading;
+  updateCompassNeedle(heading);
+  if (_compassMode === 'heading-up') {
+    const mapEl = document.getElementById('map');
+    const searchBar = document.getElementById('map-search-bar');
+    const bottomNav = document.getElementById('bottom-nav');
+    if (mapEl) mapEl.style.transform = `rotate(${-heading}deg)`;
+    if (searchBar) searchBar.style.transform = `rotate(${heading}deg)`;
+    if (bottomNav) bottomNav.style.transform = `rotate(${heading}deg)`;
+  }
+  // Update heading cone
+  if (_headingCone && _userLocation && map && map.getZoom() >= 14) {
+    updateHeadingCone(_userLocation.lat, _userLocation.lng, heading);
+  }
+}
+
+function startDeviceOrientation() {
+  window.addEventListener('deviceorientation', function(e) {
+    let heading = 0;
+    if (e.webkitCompassHeading != null) {
+      heading = e.webkitCompassHeading; // iOS
+    } else if (e.alpha != null) {
+      heading = 360 - e.alpha; // Android
+    }
+    applyHeadingToMap(heading);
+  }, true);
+}
+
+async function toggleCompass() {
+  if (_compassMode === 'north-up') {
+    // Switch to heading-up — request permission on iOS 13+
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function' &&
+        !_compassPermissionGranted) {
+      try {
+        const perm = await DeviceOrientationEvent.requestPermission();
+        if (perm !== 'granted') { showToast('Compass permission denied'); return; }
+        _compassPermissionGranted = true;
+        startDeviceOrientation();
+      } catch(e) { showToast('Compass not available'); return; }
+    } else if (!_compassPermissionGranted) {
+      _compassPermissionGranted = true;
+      startDeviceOrientation();
+    }
+    _compassMode = 'heading-up';
+    document.getElementById('compass-btn').classList.add('heading-up');
+  } else {
+    // Switch back to north-up
+    _compassMode = 'north-up';
+    document.getElementById('compass-btn').classList.remove('heading-up');
+    const mapEl = document.getElementById('map');
+    const searchBar = document.getElementById('map-search-bar');
+    const bottomNav = document.getElementById('bottom-nav');
+    if (mapEl) mapEl.style.transform = '';
+    if (searchBar) searchBar.style.transform = '';
+    if (bottomNav) bottomNav.style.transform = '';
+    // Keep needle showing current heading
+    updateCompassNeedle(_currentHeading);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// FEATURE 2: DIRECTIONS LINE (OSRM ROUTING)
+// ════════════════════════════════════════════════════════
+let _routeLine = null;
+let _detailRecId = null; // track which rec is open in detail modal
+
+function removeRouteLine() {
+  if (_routeLine && map) { map.removeLayer(_routeLine); _routeLine = null; }
+}
+
+async function fetchDirections() {
+  if (!_userLocation || !_detailRecId) return;
+  const r = allRecs.find(x => x.id === _detailRecId);
+  if (!r || !r.latitude || !r.longitude) return;
+  const userLat = _userLocation.lat, userLng = _userLocation.lng;
+  const recLat = parseFloat(r.latitude), recLng = parseFloat(r.longitude);
+  const btn = document.getElementById('detail-directions-btn');
+  if (btn) { btn.innerHTML = '<span class="spinner"></span> Routing…'; btn.disabled = true; }
+  try {
+    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${recLng},${recLat}?overview=full&geometries=geojson`);
+    const data = await res.json();
+    if (!data.routes || !data.routes[0]) { showToast('No route found'); return; }
+    const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+    removeRouteLine();
+    _routeLine = L.polyline(coords, { color: '#4fa3f7', weight: 4, opacity: 0.8 }).addTo(map);
+    closeDetailModal();
+    map.flyToBounds(_routeLine.getBounds().pad(0.2), { animate: true, duration: 1.2 });
+  } catch(e) {
+    showToast('Routing failed');
+  } finally {
+    if (btn) { btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg> Directions'; btn.disabled = false; }
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// FEATURE 3: HEADING CONE ON BLUE DOT
+// ════════════════════════════════════════════════════════
+let _headingCone = null;
+
+function updateHeadingCone(lat, lng, heading) {
+  if (!map) return;
+  if (_headingCone) { map.removeLayer(_headingCone); _headingCone = null; }
+  if (map.getZoom() < 14) return;
+
+  const R = 80; // meters
+  const halfAngle = 30; // 60° total cone
+  const toRad = d => d * Math.PI / 180;
+
+  // Build cone polygon: origin + arc points
+  const points = [[lat, lng]];
+  for (let a = -halfAngle; a <= halfAngle; a += 5) {
+    const bearing = toRad(heading + a);
+    const dLat = (R / 111320) * Math.cos(bearing);
+    const dLng = (R / (111320 * Math.cos(toRad(lat)))) * Math.sin(bearing);
+    points.push([lat + dLat, lng + dLng]);
+  }
+  points.push([lat, lng]);
+
+  _headingCone = L.polygon(points, {
+    color: 'rgba(66,133,244,0.4)',
+    fillColor: 'rgba(66,133,244,0.2)',
+    fillOpacity: 1,
+    weight: 1,
+    interactive: false
+  }).addTo(map);
+}
+
+function hideHeadingCone() {
+  if (_headingCone && map) { map.removeLayer(_headingCone); _headingCone = null; }
+}
+
+// ════════════════════════════════════════════════════════
+// FEATURE 4: "NEARBY" TOAST/BANNER
+// ════════════════════════════════════════════════════════
+let _nearbyBanner = null;
+let _nearbyBannerTimer = null;
+
+function removeNearbyBanner() {
+  if (_nearbyBanner) { _nearbyBanner.remove(); _nearbyBanner = null; }
+  clearTimeout(_nearbyBannerTimer);
+}
+
+function maybeShowNearbyBanner() {
+  if (isDesktop()) return;
+  if (!_userLocation) return;
+  const sheet = document.getElementById('mobile-sheet');
+  if (sheet && sheet.classList.contains('open')) return;
+  if (!map) return;
+  // Check if any markers are in current viewport
+  const bounds = map.getBounds();
+  const inView = filtered.filter(r => r.latitude && r.longitude &&
+    bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
+  if (inView.length > 0) { removeNearbyBanner(); return; }
+  // Check places within 3km of user
+  const nearby = allRecs.filter(r => r.latitude && r.longitude &&
+    haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) < 3);
+  if (!nearby.length) { removeNearbyBanner(); return; }
+  // Show banner
+  removeNearbyBanner();
+  const banner = document.createElement('div');
+  banner.className = 'nearby-banner';
+  banner.textContent = `${nearby.length} place${nearby.length !== 1 ? 's' : ''} nearby →`;
+  banner.onclick = () => {
+    removeNearbyBanner();
+    centerOnUserWithDots(_userLocation.lat, _userLocation.lng);
+  };
+  document.body.appendChild(banner);
+  _nearbyBanner = banner;
+  _nearbyBannerTimer = setTimeout(removeNearbyBanner, 6000);
+}
+
+// ════════════════════════════════════════════════════════
+// FEATURE 5: RECENT SEARCH CHIPS (already wired — enhance renderMobileList)
+// ════════════════════════════════════════════════════════
+// The existing renderMobileList already handles recent searches with recentSearches.length >= 10
+// We enhance it to show chips when filtered is empty AND allRecs exists (no minimum count)
+// — handled inline in the patched renderMobileList below
+
+// ════════════════════════════════════════════════════════
+// FEATURE 6: PLACE NAME LABELS AT ZOOM >= 15
+// handled in renderMapMarkersWithLabels (replaces renderMapMarkers)
+// ════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════
+// FEATURE 7: EXTRACT MAP COORDS FROM NOTES
+// ════════════════════════════════════════════════════════
+function extractMapCoords(text) {
+  // Google Maps /@lat,lng
+  let m = text.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  // Apple Maps ll=lat,lng
+  m = text.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  // Google Maps q=lat,lng
+  m = text.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  return null;
+}
+
+function stripMapsUrl(text) {
+  return text.replace(/https?:\/\/\S*(maps|goo\.gl)\S*/gi, '').replace(/\s+/g, ' ').trim();
 }
 
 // ── INIT ──
