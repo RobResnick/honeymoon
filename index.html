@@ -3393,11 +3393,7 @@ function applyHeadingToMap(heading) {
   updateCompassNeedle(heading);
   if (_compassMode === 'heading-up') {
     const mapEl = document.getElementById('map');
-    const searchBar = document.getElementById('map-search-bar');
-    const bottomNav = document.getElementById('bottom-nav');
     if (mapEl) mapEl.style.transform = `rotate(${-heading}deg)`;
-    if (searchBar) searchBar.style.transform = `rotate(${heading}deg)`;
-    if (bottomNav) bottomNav.style.transform = `rotate(${heading}deg)`;
   }
   // Update heading cone
   if (_headingCone && _userLocation && map && map.getZoom() >= 14) {
@@ -3440,11 +3436,7 @@ async function toggleCompass() {
     _compassMode = 'north-up';
     document.getElementById('compass-btn').classList.remove('heading-up');
     const mapEl = document.getElementById('map');
-    const searchBar = document.getElementById('map-search-bar');
-    const bottomNav = document.getElementById('bottom-nav');
     if (mapEl) mapEl.style.transform = '';
-    if (searchBar) searchBar.style.transform = '';
-    if (bottomNav) bottomNav.style.transform = '';
     // Keep needle showing current heading
     updateCompassNeedle(_currentHeading);
   }
