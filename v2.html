@@ -470,6 +470,29 @@
       }
       #map-view { display: block !important; position: absolute; inset: 0; }
 
+      /* ── SEARCH BAR RECENTER BUTTON ── */
+      .search-recenter-btn {
+        position: relative; flex-shrink: 0;
+        width: 30px; height: 30px; border-radius: 50%;
+        background: linear-gradient(135deg, #DD4F41, #c44035);
+        border: none; cursor: pointer; display: flex;
+        align-items: center; justify-content: center;
+        box-shadow: 0 2px 8px rgba(221,79,65,0.4);
+        -webkit-tap-highlight-color: transparent;
+      }
+      .search-recenter-btn:active { transform: scale(0.92); }
+      .search-recenter-ring {
+        position: absolute; inset: -4px; border-radius: 50%;
+        border: 1.5px solid rgba(221,79,65,0.45);
+        animation: recenter-pulse 2.4s ease-out infinite;
+        pointer-events: none;
+      }
+      @keyframes recenter-pulse {
+        0%   { transform: scale(1);   opacity: 0.7; }
+        70%  { transform: scale(1.6); opacity: 0; }
+        100% { transform: scale(1.6); opacity: 0; }
+      }
+
       /* ── FLOATING SEARCH BAR ── */
       .map-search-bar {
         position: fixed; top: 12px; left: 12px; right: 12px;
@@ -864,6 +887,13 @@
         onkeydown="handleSearchKey(event)"
         onfocus="onSearchFocus()" />
       <button id="map-search-clear" onclick="clearMapSearch()" style="display:none;border:none;background:none;padding:0;cursor:pointer;color:var(--text3);line-height:1;font-size:20px;flex-shrink:0">×</button>
+      <button class="search-recenter-btn" onclick="recenterBtnClick()" title="Center map">
+        <span class="search-recenter-ring"></span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="14" height="17" style="position:relative;z-index:1;flex-shrink:0">
+          <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="white" opacity="0.9"/>
+          <path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="#DD4F41"/>
+        </svg>
+      </button>
     </form>
   </div>
   <!-- Autocomplete suggestions -->
@@ -1111,7 +1141,9 @@ const TYPE_PATHS = {
 function typeIconHtml(type, size = 26, overrideColor) {
   const color = overrideColor || TYPE_COLORS[type] || '#5f6368';
   const path = TYPE_PATHS[type] || TYPE_PATHS.other;
-  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:0"><svg viewBox="0 0 24 24" width="${Math.round(size*0.54)}" height="${Math.round(size*0.54)}" fill="white" style="display:block">${path}</svg></div>`;
+  const iconSize = Math.round(size * 0.5);
+  // Teardrop/pin shape: rotated square with rounded top-right, bottom-right, bottom-left + pointed bottom-left corner
+  return `<div style="width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:0;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:1.5px solid rgba(255,255,255,0.18)"><svg viewBox="0 0 24 24" width="${iconSize}" height="${iconSize}" fill="white" style="display:block;transform:rotate(45deg)">${path}</svg></div>`;
 }
 
 // v2: rounded-square icon for list rows
@@ -2438,8 +2470,8 @@ function renderMapMarkers() {
     const srcColor = getRecSourceColor(r);
     const icon = L.divIcon({
       className: '',
-      html: typeIconHtml(r.type, 32, srcColor),
-      iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -16]
+      html: typeIconHtml(r.type, 30, srcColor),
+      iconSize: [30, 30], iconAnchor: [8, 28], popupAnchor: [7, -30]
     });
     const m = L.marker([lat, lng], { icon });
     m.on('click', () => openDetail(r.id));
