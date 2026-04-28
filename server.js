@@ -704,6 +704,11 @@ app.get('/api/filters', requireAuth, async (req, res) => {
   });
 });
 
+app.get('/v2', (req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(path.join(__dirname, 'v2.html'));
+});
+
 app.get('*', (req, res) => {
   res.set('Cache-Control', 'no-cache');
   res.sendFile(path.join(__dirname, 'index.html'));
