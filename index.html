@@ -227,13 +227,14 @@
 
     /* ── MARKER CLUSTERS ── */
     .cluster-icon {
-      background: #111; color: white;
-      border-radius: 50%; border: 2.5px solid white;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Google Sans', sans-serif; font-weight: 600;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      color: white; display: flex; align-items: center; justify-content: center;
+      font-family: 'Google Sans', sans-serif; font-weight: 700;
+      border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+      border: 2px solid rgba(255,255,255,0.25);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.45);
       line-height: 1;
     }
+    .cluster-icon span { transform: rotate(45deg); display: block; }
     .cluster-sm { width: 32px; height: 32px; font-size: 12px; }
     .cluster-md { width: 40px; height: 40px; font-size: 13px; }
     .cluster-lg { width: 48px; height: 48px; font-size: 14px; }
@@ -497,7 +498,7 @@
       .map-search-bar {
         position: fixed; top: 12px; left: 12px; right: 12px;
         display: flex; flex-direction: column; gap: 6px;
-        background: rgba(15,19,25,0.88);
+        background: rgba(17,17,17,0.92);
         backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         border-radius: 28px;
         padding: 14px 14px 10px;
@@ -548,7 +549,7 @@
         display: flex; flex-direction: column;
         position: fixed; left: 0; right: 0; bottom: 107px;
         top: 165px;
-        background: rgba(13,17,23,0.94);
+        background: rgba(17,17,17,0.96);
         backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
         border-radius: 20px 20px 0 0;
         border-top: 1px solid rgba(255,255,255,0.08);
@@ -588,7 +589,7 @@
       .bottom-nav {
         display: flex; position: fixed;
         bottom: 0; left: 0; right: 0; height: 107px;
-        background: rgba(13,17,23,0.96);
+        background: rgba(17,17,17,0.98);
         backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
         border-top: 1px solid rgba(255,255,255,0.07);
         z-index: 500;
@@ -901,8 +902,13 @@
   <div class="bottom-nav" id="bottom-nav">
     <button class="nav-btn active" id="nav-map" onclick="setMode('map')">
       <div class="nav-pill">
-        <!-- Inactive: full red with shadow + outline -->
+        <!-- Inactive: grey -->
         <svg class="pin-inactive" xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="20" height="25">
+          <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="#5f6368"/>
+          <path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="rgba(255,255,255,0.5)"/>
+        </svg>
+        <!-- Active: red with detail -->
+        <svg class="pin-active" xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="20" height="25">
           <defs>
             <clipPath id="nav-pin-clip">
               <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z"/>
@@ -910,12 +916,6 @@
           </defs>
           <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="#DD4F41"/>
           <path d="M 420 105 C 460 130 500 180 515 240 C 528 290 520 340 500 383 L 420 470 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 200 492 130 420 105 Z" fill="#AE3E34" opacity="0.6" clip-path="url(#nav-pin-clip)"/>
-          <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="none" stroke="#1A0A08" stroke-width="12" stroke-linejoin="round"/>
-          <path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="white"/>
-        </svg>
-        <!-- Active: solid blue -->
-        <svg class="pin-active" xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="20" height="25">
-          <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="var(--blue)"/>
           <path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="white"/>
         </svg>
       </div>
@@ -2223,13 +2223,15 @@ function visibleRecCount() {
 // Center on user, zoom out until the list would show 2+ places.
 function centerOnUserWithDots(lat, lng) {
   if (!map) return;
-  map.setView([lat, lng], 14, { animate: false });
-  for (let z = 14; z >= 8; z--) {
-    if (visibleRecCount() >= 2) break;
-    if (z > 8) map.setZoom(z - 1, { animate: false });
-  }
-  if (visibleRecCount() < 2) map.setZoom(11, { animate: false });
-  map.panTo([lat, lng], { animate: true, duration: 0.4 });
+  // Fly smoothly to location then check how many dots are visible
+  map.flyTo([lat, lng], 14, { animate: true, duration: 1.2 });
+  setTimeout(() => {
+    for (let z = 14; z >= 8; z--) {
+      if (visibleRecCount() >= 2) break;
+      if (z > 8) map.setZoom(z - 1, { animate: false });
+    }
+    if (visibleRecCount() < 2) map.setZoom(11, { animate: false });
+  }, 1300);
 }
 
 function goToCurrentLocation() {
@@ -2356,8 +2358,7 @@ function enableMapInteraction() {
 
 function initMap() {
   if (map) { renderMapMarkers(); return; }
-  map = L.map('map', { zoomControl: false }).setView([43, 12], 5);
-  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  map = L.map('map', { zoomControl: false }).setView([43, 12], 6);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19, subdomains: 'abcd'
@@ -2416,7 +2417,7 @@ function recenterMap() {
 function renderMapMarkers() {
   if (markerCluster) map.removeLayer(markerCluster);
   markerCluster = L.markerClusterGroup({
-    maxClusterRadius: 48,
+    maxClusterRadius: 30,
     spiderfyOnMaxZoom: true,
     showCoverageOnHover: false,
     zoomToBoundsOnClick: true,
@@ -2425,11 +2426,18 @@ function renderMapMarkers() {
       const n = cluster.getChildCount();
       const cls = n < 10 ? 'cluster-sm' : n < 50 ? 'cluster-md' : 'cluster-lg';
       const sz  = n < 10 ? 32 : n < 50 ? 40 : 48;
+      // dominant color = most common person color among children
+      const colorCount = {};
+      cluster.getAllChildMarkers().forEach(m => {
+        const c = m.options._srcColor || '#555';
+        colorCount[c] = (colorCount[c] || 0) + 1;
+      });
+      const color = Object.keys(colorCount).sort((a,b) => colorCount[b]-colorCount[a])[0] || '#555';
       return L.divIcon({
-        html: `<div class="cluster-icon ${cls}">${n}</div>`,
+        html: `<div class="cluster-icon ${cls}" style="background:${color}"><span>${n}</span></div>`,
         className: '',
         iconSize: [sz, sz],
-        iconAnchor: [sz/2, sz/2]
+        iconAnchor: [sz/2, sz]
       });
     }
   });
@@ -2449,7 +2457,7 @@ function renderMapMarkers() {
       html: typeIconHtml(r.type, 30, srcColor),
       iconSize: [30, 30], iconAnchor: [8, 28], popupAnchor: [7, -30]
     });
-    const m = L.marker([lat, lng], { icon });
+    const m = L.marker([lat, lng], { icon, _srcColor: srcColor });
     m.on('click', () => openDetail(r.id));
     markerCluster.addLayer(m);
     markers.push(m);
@@ -2924,7 +2932,7 @@ function startFolderRename(fid) {
   popup.innerHTML = `
     <div style="background:#1a1a1a;border-radius:10px;padding:20px;width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.5);position:relative">
       <button onclick="confirmDeleteFolder('${fid}')"
-        style="position:absolute;top:10px;right:10px;background:none;border:none;color:#888;font-size:10px;cursor:pointer;padding:4px 8px;letter-spacing:.03em">Delete</button>
+        style="position:absolute;top:12px;right:14px;background:none;border:none;color:#c04040;font-size:11px;cursor:pointer;padding:6px 10px;letter-spacing:.03em">Delete</button>
       <input id="folder-rename-input" value="${esc(label)}"
         style="width:100%;background:#111;border:1px solid #333;border-radius:6px;color:#fff;font-size:15px;padding:8px 10px;outline:none;box-sizing:border-box;margin-top:4px"
         onkeydown="if(event.key==='Enter'){saveFolderLabel('${fid}',this.value);}" />
@@ -2953,6 +2961,8 @@ function saveFolderLabel(fid, val) {
 function confirmDeleteFolder(fid) {
   const label = _folderLabels[fid] || fid;
   if (!confirm(`Delete "${label}"? Members will move to Unassigned.`)) return;
+  const popup = document.getElementById('folder-rename-popup');
+  if (popup) popup.remove();
   deleteFolder(fid);
 }
 
