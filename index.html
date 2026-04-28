@@ -2101,7 +2101,13 @@ function openDetail(id) {
 
   const metaEl = document.getElementById('detail-meta');
   const metaParts = [r.city, r.neighborhood, r.type ? r.type.charAt(0).toUpperCase()+r.type.slice(1) : ''].filter(Boolean);
-  metaEl.textContent = metaParts.join(' · ');
+  let distBadge = '';
+  if (_userLocation && r.latitude && r.longitude) {
+    const km = haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude));
+    const distStr = km < 1 ? `${Math.round(km * 1000)} m` : km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;
+    distBadge = ` <span contenteditable="false" style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:20px;padding:1px 8px;font-size:11px;color:var(--text2);vertical-align:middle;margin-left:4px">📍 ${distStr}</span>`;
+  }
+  metaEl.innerHTML = metaParts.join(' · ') + distBadge;
   metaEl.contentEditable = myItem ? 'true' : 'false';
   metaEl.style.cursor = myItem ? 'text' : '';
   metaEl.style.borderBottom = '';
