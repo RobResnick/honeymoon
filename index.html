@@ -222,7 +222,7 @@
 
     /* ── MAP ── */
     #map-view { flex: 1; display: none; position: relative; }
-    #map { height: 100%; width: 100%; }
+    #map { height: 100%; width: 100%; background: #111; }
     #map .leaflet-tile-pane { filter: brightness(0.85) saturate(0.8); }
 
     /* ── MARKER CLUSTERS ── */
@@ -1672,6 +1672,16 @@ function saveRecentSearch(q) {
 function getRecentSearches() {
   return JSON.parse(localStorage.getItem('hm_recent_searches') || '[]');
 }
+function saveRecentPlace(id) {
+  if (!id) return;
+  let recent = JSON.parse(localStorage.getItem('hm_recent_places') || '[]');
+  recent = [id, ...recent.filter(i => i !== id)].slice(0, 8);
+  localStorage.setItem('hm_recent_places', JSON.stringify(recent));
+}
+function getRecentPlaces() {
+  return JSON.parse(localStorage.getItem('hm_recent_places') || '[]')
+    .map(id => allRecs.find(r => r.id === id)).filter(Boolean);
+}
 function applyRecentSearch(q) {
   const inp = document.getElementById('map-search-input');
   if (inp) inp.value = q;
@@ -1737,7 +1747,7 @@ function detectCoordState() {
     // Check if coords are at city center (city-level fallback)
     const cityKey = (r.city || '').toLowerCase().trim();
     const cc = _cityCoords[cityKey];
-    const atCityCenter = cc && Math.abs(lat - cc.latitude) < 0.012 && Math.abs(lng - cc.longitude) < 0.012;
+    const atCityCenter = cc && Math.abs(lat - cc.latitude) < 0.003 && Math.abs(lng - cc.longitude) < 0.003;
     if (atCityCenter) {
       (r.geocode_attempted ? _failedCoords : _pendingCoords).add(r.id);
       return;
@@ -1754,6 +1764,33 @@ function detectCoordState() {
   });
 }
 
+// Search term → place types that should match (in addition to text match)
+const SEARCH_SYNONYMS = {
+  food:['restaurant','cafe','bar','market'], dinner:['restaurant'], lunch:['restaurant','cafe'],
+  breakfast:['cafe','restaurant'], brunch:['cafe','restaurant'],
+  coffee:['cafe'], cafe:['cafe'], cafes:['cafe'], espresso:['cafe'], cappuccino:['cafe'],
+  tea:['cafe'], pastry:['cafe'], bakery:['cafe'], gelato:['cafe','restaurant'],
+  drink:['bar'], drinks:['bar'], bar:['bar'], bars:['bar'], cocktail:['bar'], cocktails:['bar'],
+  beer:['bar'], wine:['bar','shop'], aperitivo:['bar'], aperol:['bar'], nightlife:['bar'],
+  restaurant:['restaurant'], restaurants:['restaurant'], pizza:['restaurant'], pasta:['restaurant'],
+  sushi:['restaurant'], ramen:['restaurant'], steak:['restaurant'], seafood:['restaurant'],
+  shop:['shop','market'], shops:['shop','market'], shopping:['shop','market'],
+  store:['shop','market'], stores:['shop','market'], boutique:['shop'],
+  market:['market','shop'], markets:['market','shop'], grocery:['market'], groceries:['market'],
+  supermarket:['market'], flea:['market'], vintage:['shop'], clothes:['shop'],
+  clothing:['shop'], fashion:['shop'], bookstore:['shop'], books:['shop'],
+  museum:['museum'], museums:['museum'], gallery:['museum','attraction'], galleries:['museum','attraction'],
+  art:['museum','attraction'], exhibit:['museum','attraction'],
+  attraction:['attraction'], attractions:['attraction'], sightseeing:['attraction','museum','church','neighborhood'],
+  sight:['attraction','museum','church'], sights:['attraction','museum','church'],
+  landmark:['attraction','church'], tour:['attraction','museum'],
+  hotel:['hotel'], hotels:['hotel'], stay:['hotel'], accommodation:['hotel'], hostel:['hotel'],
+  beach:['beach'], beaches:['beach'], swim:['beach'], coast:['beach'],
+  church:['church'], churches:['church'], cathedral:['church'], chapel:['church'], basilica:['church'],
+  neighborhood:['neighborhood'], neighbourhood:['neighborhood'], area:['neighborhood'],
+  district:['neighborhood'], quarter:['neighborhood'],
+};
+
 async function loadRecs(fromServer = true) {
   if (fromServer) allRecs = await api('/api/recommendations') || [];
   detectCoordState();
@@ -1763,8 +1800,13 @@ async function loadRecs(fromServer = true) {
     if (type   && r.type !== type) return false;
     if (person && !(r.recommended_by||'').toLowerCase().split(',').map(p=>p.trim()).includes(person)) return false;
     if (search) {
-      const hay = [r.name, r.city, r.notes, r.recommended_by].join(' ').toLowerCase();
-      if (!hay.includes(search)) return false;
+      const hay = [r.name, r.city, r.neighborhood, r.notes, r.recommended_by, r.type].join(' ').toLowerCase();
+      const synonymTypes = SEARCH_SYNONYMS[search] || SEARCH_SYNONYMS[search.replace(/s$/, '')];
+      if (synonymTypes) {
+        if (!synonymTypes.includes(r.type) && !hay.includes(search)) return false;
+      } else {
+        if (!hay.includes(search)) return false;
+      }
     }
     // Filter by buddy visibility — recommended_by is the source of truth
     if (r.recommended_by) {
@@ -1894,17 +1936,12 @@ function renderMobileList() {
         if (filtered.length) {
           html = cityHtml + filtered.map(cardHtml).join('');
         } else {
-          // Feature 5: show recent chips instead of "No matches" when sheet is open
           const sheetEl = document.getElementById('mobile-sheet');
           const sheetIsOpen = sheetEl && sheetEl.classList.contains('open');
-          const recentArr = getRecentSearches();
-          if (sheetIsOpen && recentArr.length > 0 && allRecs.length > 0) {
-            html = cityHtml + `<div class="recent-chips-wrap">
-              <div class="recent-chips-label">Recent</div>
-              <div class="recent-chips-row">
-                ${recentArr.map(s => `<button class="recent-chip" onclick="applyRecentSearch('${esc(s).replace(/'/g,"\\'")}')">${esc(s)}</button>`).join('')}
-              </div>
-            </div>`;
+          const recentRecs = sheetIsOpen ? getRecentPlaces() : [];
+          if (recentRecs.length > 0) {
+            const sl = s => `<div style="padding:10px 16px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">${s}</div>`;
+            html = cityHtml + sl('Recent') + recentRecs.map(cardHtml).join('');
           } else {
             html = cityHtml + noMatch;
           }
@@ -1915,39 +1952,24 @@ function renderMobileList() {
         const inBounds = filtered.filter(r => r.latitude && r.longitude
           && bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
         const sectionLabel = s => `<div style="padding:10px 16px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">${s}</div>`;
-        const recentSearches = getRecentSearches();
-        // Feature 5: recent search chips — show when sheet is open and no filter active
         const sheet = document.getElementById('mobile-sheet');
         const sheetOpen = sheet && sheet.classList.contains('open');
-        let recentChipsHtml = '';
-        if (sheetOpen && recentSearches.length > 0) {
-          recentChipsHtml = `<div class="recent-chips-wrap">
-            <div class="recent-chips-label">Recent</div>
-            <div class="recent-chips-row">
-              ${recentSearches.map(s => `<button class="recent-chip" onclick="applyRecentSearch('${esc(s).replace(/'/g,"\\'")}')">${esc(s)}</button>`).join('')}
-            </div>
-          </div>`;
-        }
-        // Fallback: old-style inline chips for >= 10 searches (kept for legacy)
-        const recentSearchHtml = (!sheetOpen && recentSearches.length >= 10)
-          ? sectionLabel('Recently searched') +
-            `<div style="display:flex;gap:8px;flex-wrap:wrap;padding:6px 16px 12px">` +
-            recentSearches.map(s => `<button onclick="applyRecentSearch(this.dataset.q)" data-q="${esc(s)}" style="border:1px solid var(--border);background:var(--card);border-radius:20px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--text);font-family:inherit">${esc(s)}</button>`).join('') +
-            `</div>`
-          : '';
+        // Recent places section (shown when sheet is open)
+        const recentRecs = sheetOpen ? getRecentPlaces() : [];
+        const recentHtml = recentRecs.length > 0 ? sectionLabel('Recent') + recentRecs.map(cardHtml).join('') : '';
         // List = whatever dots are currently in the map frame
         if (inBounds.length > 0) {
-          // "Nearby" label only if user location exists AND every visible dot is within 3 miles
           const allNearby = _userLocation && inBounds.every(r =>
             r.latitude && r.longitude &&
             haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) < NEARBY_KM
           );
-          const label = allNearby ? sectionLabel('Nearby') : '';
-          html = recentChipsHtml + recentSearchHtml + label + inBounds.map(cardHtml).join('');
+          // Show "Nearby" or "On map" label above map results when recent section is also showing
+          const mapLabel = recentHtml ? sectionLabel(allNearby ? 'Nearby' : 'On map')
+                         : allNearby ? sectionLabel('Nearby') : '';
+          html = recentHtml + mapLabel + inBounds.map(cardHtml).join('');
         } else {
-          // Nothing in viewport — show recent chips if sheet is open
-          html = recentChipsHtml + (recentSearchHtml || noMatch);
-          // Feature 4: show nearby banner when in map mode (sheet closed) and nothing in view
+          // Nothing in viewport — show recent places if sheet is open
+          html = recentHtml || noMatch;
           if (!sheetOpen) setTimeout(maybeShowNearbyBanner, 100);
         }
       } else {
@@ -2080,6 +2102,7 @@ function makeDetailEditable(el, field, r) {
 function openDetail(id) {
   const r = allRecs.find(x => x.id === id);
   if (!r) return;
+  saveRecentPlace(id);
   _detailRecId = id;
   const myItem = _currentUser && r.user_id === _currentUser.id;
 
@@ -2358,6 +2381,7 @@ function setMode(mode) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   const sheet = document.getElementById('mobile-sheet');
 
+  const compassBtn = document.getElementById('compass-btn');
   if (mode === 'list') {
     removeNearbyBanner();
     document.getElementById('nav-list').classList.add('active');
@@ -2366,12 +2390,14 @@ function setMode(mode) {
     if (!map) initMap();
     renderMobileList(); // re-render with current map viewport bounds
     disableMapInteraction();
+    if (compassBtn) compassBtn.style.display = 'none';
   } else if (mode === 'map') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
     collapseSearchFilters();
     if (!map) initMap();
     enableMapInteraction();
+    if (compassBtn) compassBtn.style.display = 'flex';
   } else if (mode === 'add') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
@@ -2551,10 +2577,7 @@ function initMap() {
         radius: 9, fillColor: '#4285F4', color: 'white',
         weight: 3, fillOpacity: 1, zIndexOffset: 1000
       }).addTo(map);
-      // Update cone if heading available and zoom high enough
-      if (map.getZoom() >= 14) {
-        updateHeadingCone(pos.coords.latitude, pos.coords.longitude, _currentHeading);
-      }
+      updateHeadingCone(pos.coords.latitude, pos.coords.longitude, _currentHeading);
     }, () => {
       // No location available — already showing all markers, nothing to do
     }, { enableHighAccuracy: true, timeout: 8000 });
@@ -2568,13 +2591,7 @@ function initMap() {
   // Re-render markers on zoomend to show/hide labels and heading cone
   map.on('zoomend', () => {
     renderMapMarkers();
-    if (_userLocation) {
-      if (map.getZoom() >= 14) {
-        updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
-      } else {
-        hideHeadingCone();
-      }
-    }
+    if (_userLocation) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
   });
 
   // Re-render mobile list when map moves
@@ -3396,9 +3413,7 @@ function applyHeadingToMap(heading) {
     if (mapEl) mapEl.style.transform = `rotate(${-heading}deg)`;
   }
   // Update heading cone
-  if (_headingCone && _userLocation && map && map.getZoom() >= 14) {
-    updateHeadingCone(_userLocation.lat, _userLocation.lng, heading);
-  }
+  if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, heading);
 }
 
 function startDeviceOrientation() {
@@ -3431,13 +3446,14 @@ async function toggleCompass() {
     }
     _compassMode = 'heading-up';
     document.getElementById('compass-btn').classList.add('heading-up');
+    if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
   } else {
     // Switch back to north-up
     _compassMode = 'north-up';
     document.getElementById('compass-btn').classList.remove('heading-up');
     const mapEl = document.getElementById('map');
     if (mapEl) mapEl.style.transform = '';
-    // Keep needle showing current heading
+    hideHeadingCone();
     updateCompassNeedle(_currentHeading);
   }
 }
@@ -3477,40 +3493,51 @@ async function fetchDirections() {
 }
 
 // ════════════════════════════════════════════════════════
-// FEATURE 3: HEADING CONE ON BLUE DOT
+// FEATURE 3: HEADING CONE (FLASHLIGHT) ON BLUE DOT
 // ════════════════════════════════════════════════════════
-let _headingCone = null;
+// Fixed screen-pixel size, gradient, only visible in heading-up mode.
+// The cone SVG is rotated +heading degrees so that after the map's
+// CSS rotate(-heading), it appears pointing "up" on screen = user's direction.
+let _headingCone = null;   // L.marker instance
+let _headingConeSvg = null; // SVG DOM element (for cheap rotation updates)
 
 function updateHeadingCone(lat, lng, heading) {
   if (!map) return;
-  if (_headingCone) { map.removeLayer(_headingCone); _headingCone = null; }
-  if (map.getZoom() < 14) return;
+  if (_compassMode !== 'heading-up') { hideHeadingCone(); return; }
 
-  const R = 80; // meters
-  const halfAngle = 30; // 60° total cone
-  const toRad = d => d * Math.PI / 180;
+  const SIZE = 180, HALF = SIZE / 2;
 
-  // Build cone polygon: origin + arc points
-  const points = [[lat, lng]];
-  for (let a = -halfAngle; a <= halfAngle; a += 5) {
-    const bearing = toRad(heading + a);
-    const dLat = (R / 111320) * Math.cos(bearing);
-    const dLng = (R / (111320 * Math.cos(toRad(lat)))) * Math.sin(bearing);
-    points.push([lat + dLat, lng + dLng]);
+  if (!_headingCone) {
+    if (!map.getPane('conePane')) {
+      map.createPane('conePane');
+      map.getPane('conePane').style.zIndex = '350';
+      map.getPane('conePane').style.pointerEvents = 'none';
+    }
+    const iconHtml = `<svg width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}"
+      style="overflow:visible;transform-origin:${HALF}px ${SIZE}px"
+      xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="hcg" gradientUnits="userSpaceOnUse" cx="${HALF}" cy="${SIZE}" r="${SIZE}">
+          <stop offset="0%"   stop-color="#4285f4" stop-opacity="0.65"/>
+          <stop offset="75%"  stop-color="#4285f4" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#4285f4" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <path d="M${HALF},${SIZE} L${HALF-55},0 L${HALF+55},0 Z" fill="url(#hcg)"/>
+    </svg>`;
+    const icon = L.divIcon({ html: iconHtml, iconSize: [SIZE, SIZE], iconAnchor: [HALF, SIZE], className: '' });
+    _headingCone = L.marker([lat, lng], { icon, interactive: false, pane: 'conePane' }).addTo(map);
+    _headingConeSvg = _headingCone.getElement()?.querySelector('svg');
+  } else {
+    _headingCone.setLatLng([lat, lng]);
   }
-  points.push([lat, lng]);
-
-  _headingCone = L.polygon(points, {
-    color: 'rgba(66,133,244,0.4)',
-    fillColor: 'rgba(66,133,244,0.2)',
-    fillOpacity: 1,
-    weight: 1,
-    interactive: false
-  }).addTo(map);
+  // Rotate the SVG so cone points at geographic bearing `heading`.
+  // Map has CSS rotate(-heading), so SVG must rotate +heading to appear pointing up on screen.
+  if (_headingConeSvg) _headingConeSvg.style.transform = `rotate(${heading}deg)`;
 }
 
 function hideHeadingCone() {
-  if (_headingCone && map) { map.removeLayer(_headingCone); _headingCone = null; }
+  if (_headingCone && map) { map.removeLayer(_headingCone); _headingCone = null; _headingConeSvg = null; }
 }
 
 // ════════════════════════════════════════════════════════
