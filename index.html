@@ -132,9 +132,10 @@
       border-color: rgba(240,228,212,0.14) !important;
     }
     [data-theme="luxury"] #buddy-btn svg circle { fill: #e5ac81 !important; }
-    /* Nav map label same color as inactive nav buttons */
+    /* Nav map label same color as inactive nav buttons — always tan */
     [data-theme="luxury"] #nav-map { color: #e5ac81 !important; }
-    [data-theme="luxury"] #nav-map.active { color: #f0e4d4 !important; }
+    [data-theme="luxury"] #nav-map.active { color: #e5ac81 !important; }
+    [data-theme="luxury"] #nav-map .nav-label { color: #e5ac81 !important; }
     /* Inactive pin inside center circle — match unpressed nav icon color */
     [data-theme="luxury"] #nav-map .pin-inactive path { fill: #e5ac81 !important; opacity: 0.7 !important; }
     /* Tag borders in luxury */
@@ -504,7 +505,6 @@
     }
     .add-places-textarea:focus { outline: none; box-shadow: none; }
     .add-places-textarea::placeholder { color: var(--text3); }
-    .add-places-textarea:focus::placeholder { color: transparent; }
     .add-go-btn {
       margin: 14px 20px 32px; background: var(--blue); color: white;
       border: none; border-radius: 24px; padding: 15px;
@@ -592,6 +592,46 @@
       -webkit-tap-highlight-color: transparent;
     }
     .detail-tag-option:hover, .detail-tag-option:active { background: var(--bg2); }
+
+    /* ── INLINE EDIT POPUP ── */
+    .inline-edit-overlay {
+      position: fixed; inset: 0; z-index: 6000;
+      background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .inline-edit-box {
+      background: var(--bg2); border-radius: 16px;
+      padding: 20px; width: 100%; max-width: 340px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .inline-edit-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--text2); margin-bottom: 10px;
+    }
+    .inline-edit-input {
+      width: 100%; border: none; outline: none;
+      font-size: 16px; color: var(--text); background: var(--bg);
+      border-radius: 10px; padding: 12px 14px;
+      font-family: inherit; box-sizing: border-box;
+    }
+    .inline-edit-actions {
+      display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end;
+    }
+    .inline-edit-cancel {
+      padding: 9px 18px; border-radius: 20px; border: none;
+      background: transparent; color: var(--text2); font-size: 14px;
+      font-weight: 500; cursor: pointer; font-family: inherit;
+    }
+    .inline-edit-save {
+      padding: 9px 22px; border-radius: 20px; border: none;
+      background: var(--blue); color: white; font-size: 14px;
+      font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+    .detail-name-edit-hint {
+      font-size: 11px; color: var(--text3); cursor: pointer;
+      margin-left: 6px; opacity: 0.7; vertical-align: middle;
+    }
 
     /* ── TOAST ── */
     .toast {
@@ -787,14 +827,14 @@
       .nav-btn.active { color: #e8eaed; }
       .nav-btn svg { display: block; }
       .nav-label { font-size: 10px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
-      #nav-map .nav-label { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-family: 'Google Sans', sans-serif; }
+      #nav-map .nav-label { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; font-family: 'Google Sans', sans-serif; margin-top: 4px; }
 
       /* Center circle button — absolute so it sits above the notch */
       #nav-map {
         position: absolute; left: 50%; transform: translateX(-50%);
         bottom: 16px; width: 80px; height: 107px;
         display: flex; flex-direction: column;
-        align-items: center; justify-content: flex-start; gap: 7px;
+        align-items: center; justify-content: flex-start; gap: 12px;
         border: none; background: none; cursor: pointer;
         padding: 0; z-index: 2; color: #5f6368;
         font-family: 'Google Sans', sans-serif; transition: color 0.15s;
@@ -1456,6 +1496,19 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- INLINE EDIT POPUP -->
+<div class="inline-edit-overlay" id="inline-edit-overlay" style="display:none" onclick="if(event.target===this)closeInlineEdit()">
+  <div class="inline-edit-box">
+    <div class="inline-edit-label" id="inline-edit-label">Edit</div>
+    <input class="inline-edit-input" id="inline-edit-input" type="text"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();saveInlineEdit();}if(event.key==='Escape')closeInlineEdit();" />
+    <div class="inline-edit-actions">
+      <button class="inline-edit-cancel" onclick="closeInlineEdit()">Cancel</button>
+      <button class="inline-edit-save" onclick="saveInlineEdit()">Save</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const TYPE_ICONS = {
@@ -2397,6 +2450,27 @@ function makeDetailEditable(el, field, r) {
   };
 }
 
+// ── INLINE EDIT POPUP ──
+let _inlineEditCallback = null;
+function openInlineEdit(label, currentVal, callback) {
+  const overlay = document.getElementById('inline-edit-overlay');
+  document.getElementById('inline-edit-label').textContent = label;
+  const inp = document.getElementById('inline-edit-input');
+  inp.value = currentVal || '';
+  _inlineEditCallback = callback;
+  overlay.style.display = 'flex';
+  setTimeout(() => { inp.focus(); inp.select(); }, 80);
+}
+function closeInlineEdit() {
+  document.getElementById('inline-edit-overlay').style.display = 'none';
+  _inlineEditCallback = null;
+}
+function saveInlineEdit() {
+  const val = document.getElementById('inline-edit-input').value.trim();
+  if (_inlineEditCallback && val) _inlineEditCallback(val);
+  closeInlineEdit();
+}
+
 function openDetail(id) {
   const r = allRecs.find(x => x.id === id);
   if (!r) return;
@@ -2405,20 +2479,25 @@ function openDetail(id) {
   const myItem = _currentUser && r.user_id === _currentUser.id;
 
   const srcColor = getRecSourceColor(r);
-  document.getElementById('detail-icon').innerHTML = typeIconHtml(r.type, 40, srcColor);
+  document.getElementById('detail-icon').innerHTML = typeEmojiIcon(r.type, 48);
 
   const nameEl = document.getElementById('detail-name');
-  nameEl.textContent = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
-  nameEl.contentEditable = myItem ? 'true' : 'false';
-  nameEl.style.cursor = myItem ? 'text' : '';
-  nameEl.style.borderBottom = '';
-  if (myItem) {
-    nameEl.onblur = async function() {
-      const newVal = this.innerText.trim();
-      const rec = allRecs.find(x => x.id === r.id);
-      if (rec && newVal && newVal !== rec.name) { rec.name = newVal; await api('/api/recommendations/'+r.id,'PUT',{...rec}); }
-    };
-  }
+  const cleanName = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
+  nameEl.textContent = cleanName;
+  nameEl.contentEditable = 'false';
+  nameEl.style.cursor = myItem ? 'pointer' : '';
+  nameEl.onclick = myItem ? () => {
+    const rec = allRecs.find(x => x.id === r.id);
+    if (!rec) return;
+    openInlineEdit('Name', rec.name, async val => {
+      if (val && val !== rec.name) {
+        rec.name = val;
+        await api('/api/recommendations/'+r.id, 'PUT', {...rec});
+        nameEl.textContent = val.replace(/^[\p{Emoji}\s]+/u, '').trim() || val;
+        renderList();
+      }
+    });
+  } : null;
 
   const metaEl = document.getElementById('detail-meta');
   const metaParts = [r.city, r.neighborhood, r.type ? r.type.charAt(0).toUpperCase()+r.type.slice(1) : ''].filter(Boolean);
@@ -2432,22 +2511,23 @@ function openDetail(id) {
     else distStr = ` · ${Math.round(miles)} mi`;
   }
   metaEl.innerHTML = metaParts.join(' · ') + distStr;
-  metaEl.contentEditable = myItem ? 'true' : 'false';
-  metaEl.style.cursor = myItem ? 'text' : '';
-  metaEl.style.borderBottom = '';
-  if (myItem) {
-    metaEl.title = 'Edit: City · Neighborhood · Type';
-    metaEl.onblur = async function() {
-      const parts = this.innerText.split('·').map(s=>s.trim()).filter(Boolean);
-      const rec = allRecs.find(x => x.id === r.id);
-      if (!rec) return;
-      // Update city if first part changed
-      if (parts[0] && parts[0] !== rec.city) { rec.city = parts[0]; }
-      await api('/api/recommendations/'+r.id,'PUT',{...rec});
+  metaEl.contentEditable = 'false';
+  metaEl.style.cursor = myItem ? 'pointer' : '';
+  metaEl.onclick = myItem ? () => {
+    const rec = allRecs.find(x => x.id === r.id);
+    if (!rec) return;
+    const cur = [rec.city, rec.neighborhood].filter(Boolean).join(' · ');
+    openInlineEdit('Location (City · Neighborhood)', cur, async val => {
+      const parts = val.split('·').map(s => s.trim()).filter(Boolean);
+      rec.city = parts[0] || rec.city;
+      rec.neighborhood = parts[1] || '';
+      await api('/api/recommendations/'+r.id, 'PUT', {...rec});
+      const newParts = [rec.city, rec.neighborhood, rec.type ? rec.type.charAt(0).toUpperCase()+rec.type.slice(1) : ''].filter(Boolean);
+      metaEl.innerHTML = newParts.join(' · ') + distStr;
       document.getElementById('detail-google-maps-link').href = mapsUrl(rec);
       document.getElementById('detail-apple-maps-link').href = appleMapsUrl(rec);
-    };
-  }
+    });
+  } : null;
 
   // Maps links (top-right)
   document.getElementById('detail-google-maps-link').href = mapsUrl(r);
@@ -2703,6 +2783,7 @@ function setMode(mode) {
   } else if (mode === 'add') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
+    if (compassBtn) compassBtn.style.display = 'flex';
     openAddDrawer();
   }
 }
@@ -2870,15 +2951,17 @@ function disableMapInteraction() {
 }
 function enableMapInteraction() {
   if (!map) return;
-  if (_compassMode !== 'heading-up') map.dragging.enable(); // keep disabled in rotation mode
-  map.touchZoom.enable();
+  if (_compassMode !== 'heading-up') {
+    map.dragging.enable();
+    map.touchZoom.enable();
+  }
   map.doubleClickZoom.enable();
   map.scrollWheelZoom.enable();
 }
 
 function initMap() {
   if (map) { renderMapMarkers(); return; }
-  map = L.map('map', { zoomControl: isDesktop(), doubleClickZoom: false }).setView([43, 12], 6);
+  map = L.map('map', { zoomControl: isDesktop() }).setView([43, 12], 6);
   const _theme = document.documentElement.getAttribute('data-theme');
   const _tileUrl = _theme === 'light'
     ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
@@ -2934,10 +3017,6 @@ function initMap() {
       else maybeShowNearbyBanner();
     }
     updateOffCenterState();
-  });
-  // Double-tap blank map → zoom in + center
-  map.on('dblclick', e => {
-    map.setView(e.latlng, map.getZoom() + 1, { animate: true, duration: 0.4 });
   });
   map.on('click', () => {
     if (!isDesktop()) {
@@ -3114,7 +3193,6 @@ function openAddDrawer() {
   }
   document.getElementById('parse-results').innerHTML = '';
   document.getElementById('add-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('raw-input')?.focus(), 300);
 }
 
 function closeAddDrawer(e) {
@@ -3831,24 +3909,21 @@ function startDeviceOrientation() {
 
 async function toggleCompass() {
   if (_compassMode === 'north-up') {
-    // Switch to heading-up — request permission on iOS 13+
+    // Switch to heading-up — always try to get permission / start listener
     if (typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission === 'function' &&
-        !_compassPermissionGranted) {
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
         const perm = await DeviceOrientationEvent.requestPermission();
         if (perm !== 'granted') { showToast('Compass permission denied'); return; }
         _compassPermissionGranted = true;
         localStorage.setItem('hm_orientation_granted', '1');
-        startDeviceOrientation();
       } catch(e) { showToast('Compass not available'); return; }
-    } else if (!_compassPermissionGranted) {
-      _compassPermissionGranted = true;
-      startDeviceOrientation();
     }
+    _compassPermissionGranted = true;
+    startDeviceOrientation();
     _compassMode = 'heading-up';
     document.getElementById('compass-btn').classList.add('heading-up');
-    if (map) map.dragging.disable(); // disable pan — rotated map drag is disorienting
+    if (map) { map.dragging.disable(); map.touchZoom.disable(); } // lock all panning
     if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
   } else {
     // Switch back to north-up
@@ -3857,7 +3932,7 @@ async function toggleCompass() {
     const mapEl = document.getElementById('map');
     if (mapEl) mapEl.style.transform = '';
     document.documentElement.style.setProperty('--mr-heading', '0deg');
-    if (map) map.dragging.enable(); // re-enable pan
+    if (map) { map.dragging.enable(); map.touchZoom.enable(); } // re-enable pan
     // Re-draw cone for north-up mode (same SVG rotation formula still works)
     if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
     updateCompassNeedle(_currentHeading);
