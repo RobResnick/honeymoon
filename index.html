@@ -3562,7 +3562,8 @@ async function toggleCompass() {
     const mapEl = document.getElementById('map');
     if (mapEl) mapEl.style.transform = '';
     document.documentElement.style.setProperty('--mr-heading', '0deg');
-    hideHeadingCone();
+    // Re-draw cone for north-up mode (same SVG rotation formula still works)
+    if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
     updateCompassNeedle(_currentHeading);
   }
 }
@@ -3612,7 +3613,10 @@ let _headingConeSvg = null; // SVG DOM element (for cheap rotation updates)
 
 function updateHeadingCone(lat, lng, heading) {
   if (!map) return;
-  if (_compassMode !== 'heading-up') { hideHeadingCone(); return; }
+  // Show cone whenever orientation is being tracked, regardless of north/heading-up mode.
+  // North-up: cone SVG rotates +heading → points at heading on stationary map.
+  // Heading-up: map rotates -heading, cone SVG rotates +heading → cone stays pointing "up" (your direction).
+  if (!_compassPermissionGranted) { hideHeadingCone(); return; }
 
   const SIZE = 180, HALF = SIZE / 2;
 
