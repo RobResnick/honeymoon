@@ -1511,20 +1511,27 @@ function getThemeBg() {
   return 'rgba(30,30,30,0.92)';
 }
 
+// Map pins: colored teardrop with SVG icon inside
 function typeIconHtml(type, size = 26, overrideColor) {
-  const emoji = TYPE_EMOJI[type] || TYPE_EMOJI.other;
-  const emojiSize = Math.round(size * 0.68);
-  const bg = getThemeBg();
-  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;font-size:${emojiSize}px;box-shadow:0 1px 4px rgba(0,0,0,0.3)">${emoji}</div>`;
+  const color = overrideColor || getTypeColor(type);
+  const path = TYPE_PATHS[type] || TYPE_PATHS.other;
+  const iconSize = Math.round(size * 0.5);
+  return `<div style="width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:0;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:1.5px solid rgba(255,255,255,0.18)"><svg viewBox="0 0 24 24" width="${iconSize}" height="${iconSize}" fill="white" style="display:block;transform:rotate(45deg)">${path}</svg></div>`;
 }
 
-// v2: rounded-square icon for list rows
-function typeIconHtmlSquare(type, size = 38, overrideColor) {
+// Emoji on off-white circle — for list rows and search results
+function typeEmojiIcon(type, size = 38) {
   const emoji = TYPE_EMOJI[type] || TYPE_EMOJI.other;
-  const emojiSize = Math.round(size * 0.58);
+  const emojiSize = Math.round(size * 0.56);
   const radius = Math.round(size * 0.27);
-  const bg = getThemeBg();
+  const t = document.documentElement.getAttribute('data-theme');
+  const bg = t === 'light' ? 'rgba(0,0,0,0.07)' : t === 'luxury' ? 'rgba(240,228,212,0.14)' : 'rgba(255,255,255,0.12)';
   return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;font-size:${emojiSize}px">${emoji}</div>`;
+}
+
+// v2: rounded-square icon for list rows (emoji)
+function typeIconHtmlSquare(type, size = 38, overrideColor) {
+  return typeEmojiIcon(type, size);
 }
 
 let sessionToken = localStorage.getItem('hm_token') || null;
@@ -1938,7 +1945,7 @@ function showSuggestions(q) {
   placeMatches.forEach(r => {
     const cleanName = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
     html += `<div class="suggestion-item" onclick="selectPlaceSuggestion(${r.id})">
-      ${typeIconHtml(r.type, 18)}
+      ${typeEmojiIcon(r.type, 28)}
       <span>${esc(cleanName)} ${r.city ? `<span style="color:var(--text2);font-size:12px">· ${esc(r.city)}</span>` : ''}</span>
     </div>`;
   });
