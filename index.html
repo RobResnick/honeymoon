@@ -48,72 +48,82 @@
        Pop colors: blue, pink, green, orange from LV flowers
        ══════════════════════════════════════ */
     [data-theme="luxury"] {
-      --blue: #6ac4d8;
-      --blue-light: rgba(106,196,216,0.18);
-      --blue-dark: #4ab0c8;
-      --red: #c8a040;
-      --red-light: rgba(200,160,64,0.18);
-      --green: #72b87a;
-      --purple: #e87a9c;
-      --purple-light: rgba(232,122,156,0.15);
-      --text: #f0ddb8;
-      --text2: #c89464;
-      --text3: #8a6440;
-      --border: rgba(200,148,80,0.18);
-      --bg: #1a0d07;
-      --bg2: #2a1a0e;
-      --card: #3a2214;
+      --blue: #86a8b4;
+      --blue-light: rgba(134,168,180,0.18);
+      --blue-dark: #6b8e9c;
+      --red: #eba871;
+      --red-light: rgba(235,168,113,0.18);
+      --green: #919b5f;
+      --purple: #e2919a;
+      --purple-light: rgba(226,145,154,0.15);
+      --text: #f0e4d4;
+      --text2: #e5ac81;
+      --text3: #87694f;
+      --border: rgba(135,105,79,0.22);
+      --bg: #1a1210;
+      --bg2: #251c18;
+      --card: #312421;
       --shadow: 0 2px 10px rgba(0,0,0,0.75);
       --shadow-md: 0 4px 20px rgba(0,0,0,0.75);
     }
     /* Frosted glass + surface overrides */
     [data-theme="luxury"] .map-search-bar {
-      background: rgba(42,18,8,0.93) !important;
-      border-color: rgba(200,148,80,0.2) !important;
+      background: rgba(37,28,24,0.94) !important;
+      border-color: rgba(135,105,79,0.22) !important;
     }
     [data-theme="luxury"] .mobile-sheet {
-      background: rgba(42,22,10,0.97) !important;
+      background: rgba(49,36,33,0.97) !important;
     }
-    [data-theme="luxury"] .bottom-nav {
-      background: rgba(26,13,7,0.98) !important;
-      border-top-color: rgba(200,148,80,0.12) !important;
+    /* Nav pill: warm tan pull-out color */
+    [data-theme="luxury"] .nav-bg {
+      background: rgba(135,105,79,0.93) !important;
+      border-color: rgba(240,228,212,0.12) !important;
     }
     [data-theme="luxury"] .compass-btn,
     [data-theme="luxury"] .nearby-banner,
     [data-theme="luxury"] .search-recenter-btn~.search-recenter-ring {
-      background: rgba(42,18,8,0.93) !important;
-      border-color: rgba(200,148,80,0.22) !important;
+      background: rgba(37,28,24,0.94) !important;
+      border-color: rgba(135,105,79,0.28) !important;
     }
     [data-theme="luxury"] .map-place-label {
-      background: rgba(42,18,8,0.9) !important;
-      color: #f0ddb8 !important;
+      background: rgba(37,28,24,0.92) !important;
+      color: #f0e4d4 !important;
     }
-    [data-theme="luxury"] #map { background: #1a0d07 !important; }
+    [data-theme="luxury"] #map { background: #1a1210 !important; }
     [data-theme="luxury"] #map .leaflet-tile-pane {
-      filter: brightness(0.72) saturate(0.45) sepia(0.28) !important;
+      filter: brightness(0.62) saturate(0.55) sepia(0.5) !important;
     }
-    [data-theme="luxury"] #buddy-panel { background: #2a1a0e !important; }
-    [data-theme="luxury"] #buddy-header { background: #1a0d07 !important; color: #8a6440 !important; }
+    [data-theme="luxury"] #buddy-panel { background: #251c18 !important; }
+    [data-theme="luxury"] #buddy-header { background: #1a1210 !important; color: #87694f !important; }
     [data-theme="luxury"] .search-recenter-btn {
-      background: linear-gradient(135deg, #c8a040, #a87e30) !important;
+      background: linear-gradient(135deg, #eba871, #c8843e) !important;
     }
     [data-theme="luxury"] .add-btn {
-      background: linear-gradient(135deg, #c8a040, #a87e30) !important;
+      background: linear-gradient(135deg, #eba871, #c8843e) !important;
     }
-    [data-theme="luxury"] #nav-map .pin-active path:first-child { fill: #c8a040 !important; }
+    [data-theme="luxury"] #nav-map .pin-active path:first-child { fill: #eba871 !important; }
+    /* Inactive nav icons: warm tan; active: cream */
+    [data-theme="luxury"] #nav-add svg path,
+    [data-theme="luxury"] #nav-list svg path { fill: #e5ac81 !important; }
+    [data-theme="luxury"] #nav-add.active svg path,
+    [data-theme="luxury"] #nav-list.active svg path { fill: #f0e4d4 !important; }
+    [data-theme="luxury"] #nav-add,
+    [data-theme="luxury"] #nav-list { color: #e5ac81 !important; }
+    [data-theme="luxury"] #nav-add.active,
+    [data-theme="luxury"] #nav-list.active { color: #f0e4d4 !important; }
     [data-theme="luxury"] .nav-center-circle {
-      background: rgba(42,20,8,0.97) !important;
-      border-color: rgba(200,148,80,0.28) !important;
-      box-shadow: 0 -2px 16px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(200,148,80,0.1) !important;
+      background: rgba(49,36,33,0.97) !important;
+      border-color: rgba(240,228,212,0.18) !important;
+      box-shadow: 0 4px 22px rgba(0,0,0,0.65), 0 1px 6px rgba(0,0,0,0.4) !important;
     }
     [data-theme="luxury"] #nav-map.active .nav-center-circle {
-      background: rgba(60,28,10,0.99) !important;
-      box-shadow: 0 -2px 20px rgba(0,0,0,0.65), 0 6px 20px rgba(0,0,0,0.55), 0 0 12px rgba(200,148,80,0.15) !important;
+      background: rgba(65,46,40,0.99) !important;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.7), 0 0 14px rgba(235,168,113,0.2) !important;
     }
-    [data-theme="luxury"] .rec-card { border-color: rgba(200,148,80,0.1) !important; }
+    [data-theme="luxury"] .rec-card { border-color: rgba(135,105,79,0.14) !important; }
     [data-theme="luxury"] .compass-btn.heading-up {
-      border-color: rgba(200,160,64,0.7) !important;
-      box-shadow: 0 0 0 2px rgba(200,160,64,0.35), 0 4px 20px rgba(0,0,0,0.45) !important;
+      border-color: rgba(235,168,113,0.65) !important;
+      box-shadow: 0 0 0 2px rgba(235,168,113,0.3), 0 4px 20px rgba(0,0,0,0.45) !important;
     }
 
     body {
@@ -632,7 +642,7 @@
       /* ── BOTTOM SHEET ── */
       .mobile-sheet {
         display: flex; flex-direction: column;
-        position: fixed; left: 0; right: 0; bottom: 107px;
+        position: fixed; left: 0; right: 0; bottom: 122px;
         top: 165px;
         background: rgba(17,17,17,0.96);
         backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
@@ -673,50 +683,67 @@
       /* ── BOTTOM NAV ── */
       .bottom-nav {
         display: flex; position: fixed;
-        bottom: 0; left: 0; right: 0; height: 107px;
+        bottom: 0; left: 0; right: 0; height: 122px;
+        z-index: 500; overflow: visible;
+        /* no background — handled by .nav-bg pill */
+      }
+      /* Floating pill background with circular notch cut out */
+      .nav-bg {
+        position: absolute;
+        left: 14px; right: 14px; bottom: 16px; height: 64px;
         background: rgba(17,17,17,0.98);
         backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
-        border-top: 1px solid rgba(255,255,255,0.07);
-        z-index: 500; overflow: visible; align-items: flex-end;
+        border-radius: 32px;
+        border: 1px solid rgba(255,255,255,0.08);
+        /* Notch: transparent circle of r=33px whose center is 14px above pill top */
+        mask-image: radial-gradient(circle 33px at 50% -14px, transparent 33px, white 34px);
+        -webkit-mask-image: radial-gradient(circle 33px at 50% -14px, transparent 33px, white 34px);
+        pointer-events: none; z-index: 0;
       }
       .nav-btn {
         flex: 1; display: flex; flex-direction: column;
-        align-items: center; justify-content: flex-end; gap: 0;
-        border: none; background: none; color: var(--text);
+        align-items: center; justify-content: flex-end;
+        border: none; background: none; color: #5f6368;
         font-family: 'Google Sans', sans-serif; cursor: pointer;
-        padding: 0 4px 16px; transition: color 0.15s;
-        -webkit-tap-highlight-color: transparent;
+        padding: 0 4px 26px; transition: color 0.15s;
+        -webkit-tap-highlight-color: transparent; z-index: 1;
       }
       .nav-pill {
         padding: 4px 18px; border-radius: 16px; margin-bottom: 4px;
         transition: background 0.2s;
         display: flex; align-items: center; justify-content: center;
       }
-      .nav-btn { color: #5f6368; }
       .nav-btn.active .nav-pill { background: rgba(255,255,255,0.1); }
       .nav-btn.active { color: #e8eaed; }
       .nav-btn svg { display: block; }
       .nav-label { font-size: 10px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
 
-      /* Center raised logo button */
+      /* Center circle button — absolute so it sits above the notch */
       #nav-map {
-        flex: 1.2; position: relative; padding-bottom: 10px; justify-content: flex-end;
+        position: absolute; left: 50%; transform: translateX(-50%);
+        bottom: 16px; width: 80px; height: 107px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: flex-start; gap: 7px;
+        border: none; background: none; cursor: pointer;
+        padding: 0; z-index: 2; color: #5f6368;
+        font-family: 'Google Sans', sans-serif; transition: color 0.15s;
+        -webkit-tap-highlight-color: transparent;
       }
+      #nav-map.active { color: #e8eaed; }
       .nav-center-circle {
-        width: 62px; height: 62px; border-radius: 50%;
-        background: rgba(38,38,38,0.96);
+        width: 58px; height: 58px; border-radius: 50%;
+        background: rgba(36,36,36,0.97);
         backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
         border: 1.5px solid rgba(255,255,255,0.13);
-        box-shadow: 0 -2px 16px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.4);
+        box-shadow: 0 4px 22px rgba(0,0,0,0.55), 0 1px 6px rgba(0,0,0,0.35);
         display: flex; align-items: center; justify-content: center;
-        margin-bottom: 5px;
-        margin-top: -30px;
+        flex-shrink: 0;
         transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
       }
       #nav-map.active .nav-center-circle {
-        background: rgba(55,55,55,0.98);
-        box-shadow: 0 -2px 20px rgba(0,0,0,0.55), 0 6px 20px rgba(0,0,0,0.5);
-        transform: scale(1.06);
+        background: rgba(52,52,52,0.99);
+        box-shadow: 0 6px 28px rgba(0,0,0,0.65), 0 1px 6px rgba(0,0,0,0.4);
+        transform: scale(1.05);
       }
       #nav-map .pin-active { display: none; }
       #nav-map.active .pin-inactive { display: none; }
@@ -726,7 +753,7 @@
       #nav-list.active svg path, #nav-add.active svg path { fill: #e8eaed !important; }
 
       /* Toast above bottom nav */
-      .toast { bottom: 121px; }
+      .toast { bottom: 136px; }
 
       /* Modals on mobile: slide up from bottom */
       .modal-overlay { align-items: flex-end; padding: 0; }
@@ -1121,6 +1148,7 @@
 
   <!-- MOBILE BOTTOM NAV -->
   <div class="bottom-nav" id="bottom-nav">
+    <div class="nav-bg"></div>
     <button class="nav-btn" id="nav-add" onclick="setMode('add')">
       <div class="nav-pill">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
