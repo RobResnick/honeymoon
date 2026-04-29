@@ -102,15 +102,13 @@
       background: linear-gradient(135deg, #eba871, #c8843e) !important;
     }
     [data-theme="luxury"] #nav-map .pin-active path:first-child { fill: #eba871 !important; }
-    /* Inactive nav icons: warm tan; active: cream */
+    /* Nav: all labels/icons always warm orange, cream when active */
+    [data-theme="luxury"] .nav-btn { color: #e5ac81 !important; }
+    [data-theme="luxury"] .nav-btn.active { color: #f0e4d4 !important; }
     [data-theme="luxury"] #nav-add svg path,
     [data-theme="luxury"] #nav-list svg path { fill: #e5ac81 !important; }
     [data-theme="luxury"] #nav-add.active svg path,
     [data-theme="luxury"] #nav-list.active svg path { fill: #f0e4d4 !important; }
-    [data-theme="luxury"] #nav-add,
-    [data-theme="luxury"] #nav-list { color: #e5ac81 !important; }
-    [data-theme="luxury"] #nav-add.active,
-    [data-theme="luxury"] #nav-list.active { color: #f0e4d4 !important; }
     [data-theme="luxury"] .nav-center-circle {
       background: rgba(49,36,33,0.45) !important;
       border-color: rgba(240,228,212,0.2) !important;
@@ -133,7 +131,7 @@
     [data-theme="luxury"] .modal { background: #312421 !important; }
     /* Buddy tab */
     [data-theme="luxury"] #buddy-btn {
-      background: rgba(135,105,79,0.42) !important;
+      background: rgba(135,105,79,0.72) !important;
       border-color: rgba(240,228,212,0.14) !important;
     }
     [data-theme="luxury"] #buddy-btn svg circle { fill: #e5ac81 !important; }
@@ -146,6 +144,43 @@
     [data-theme="luxury"] .tag.person,
     [data-theme="luxury"] .tag.city { border-color: rgba(134,168,180,0.4) !important; }
     [data-theme="luxury"] .tag.type { border-color: rgba(226,145,154,0.4) !important; }
+
+    [data-theme="light"] {
+      --blue: #1a73e8;
+      --blue-light: rgba(26,115,232,0.12);
+      --blue-dark: #1558b0;
+      --red: #d93025;
+      --red-light: rgba(217,48,37,0.1);
+      --green: #188038;
+      --text: #202124;
+      --text2: #5f6368;
+      --text3: #9aa0a6;
+      --border: rgba(0,0,0,0.1);
+      --bg: #ffffff;
+      --bg2: #f1f3f4;
+      --card: #ffffff;
+      --shadow: 0 2px 10px rgba(0,0,0,0.15);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    [data-theme="light"] .map-search-bar,
+    [data-theme="light"] .nav-bg,
+    [data-theme="light"] .nav-center-circle,
+    [data-theme="light"] .compass-btn {
+      background: rgba(255,255,255,0.6) !important;
+      border-color: rgba(0,0,0,0.1) !important;
+    }
+    [data-theme="light"] #buddy-btn {
+      background: rgba(255,255,255,0.82) !important;
+      border-color: rgba(0,0,0,0.15) !important;
+    }
+    [data-theme="light"] .mobile-sheet { background: rgba(255,255,255,0.97) !important; }
+    [data-theme="light"] #map .leaflet-tile-pane { filter: none !important; }
+    [data-theme="light"] .nav-btn { color: #5f6368 !important; }
+    [data-theme="light"] .nav-btn.active { color: #1a73e8 !important; }
+    [data-theme="light"] #nav-list svg path,
+    [data-theme="light"] #nav-add svg path { fill: #5f6368 !important; }
+    [data-theme="light"] #nav-list.active svg path,
+    [data-theme="light"] #nav-add.active svg path { fill: #1a73e8 !important; }
 
     body {
       font-family: 'Roboto', Arial, sans-serif;
@@ -448,10 +483,10 @@
       color: var(--text); font-family: inherit; min-width: 70px; max-width: 120px;
     }
     .add-places-section {
-      flex: 1; display: flex; flex-direction: column; padding: 14px 20px 0; min-height: 0;
+      display: flex; flex-direction: column; padding: 14px 20px 0; flex-shrink: 0;
     }
     .add-places-textarea {
-      flex: 1; border: none; outline: none; resize: none; min-height: 100px;
+      border: none; outline: none; resize: none; height: 130px;
       font-size: 15px; line-height: 1.7; color: var(--text);
       background: transparent; font-family: inherit; padding: 4px 4px 4px 8px;
       -webkit-appearance: none; box-shadow: none;
@@ -715,7 +750,7 @@
       .nav-bg {
         position: absolute;
         left: 14px; right: 14px; bottom: 16px; height: 64px;
-        background: rgba(17,17,17,0.32);
+        background: rgba(17,17,17,0.18);
         backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
         border-radius: 32px;
         border: 1px solid rgba(255,255,255,0.08);
@@ -789,11 +824,11 @@
 
       /* ── BUDDY LIST ── */
       #buddy-btn {
-        position: fixed; top: 80px; left: 0;
+        position: fixed; top: 92px; left: 0;
         z-index: 250;
         width: 24px; height: 48px;
         border-radius: 0 12px 12px 0;
-        background: rgba(22,28,36,0.42);
+        background: rgba(22,28,36,0.72);
         backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(255,255,255,0.08); border-left: none;
         box-shadow: 2px 0 12px rgba(0,0,0,0.4);
@@ -863,21 +898,32 @@
       }
       #buddy-settings-popup {
         display: none; position: absolute; bottom: 60px; left: 12px; right: 12px;
-        background: #161f2e; border-radius: 14px;
+        background: var(--bg2); border-radius: 14px;
+        border: 1px solid var(--border);
         box-shadow: 0 8px 28px rgba(0,0,0,0.5);
         overflow: hidden;
       }
       #buddy-settings-popup.visible { display: block; }
       .buddy-settings-row {
         display: flex; align-items: center; gap: 10px;
-        padding: 13px 16px; cursor: pointer; color: #c8d8f0;
+        padding: 13px 16px; cursor: pointer; color: var(--text);
         font-size: 14px; border: none; background: none;
         width: 100%; text-align: left; font-family: inherit;
         -webkit-tap-highlight-color: transparent;
       }
       .buddy-settings-row:active { background: rgba(255,255,255,0.06); }
-      .buddy-settings-row + .buddy-settings-row { border-top: 1px solid #1e2d42; }
-      .buddy-settings-row.danger { color: #e8453c; }
+      .buddy-settings-row + .buddy-settings-row { border-top: 1px solid var(--border); }
+      .buddy-settings-row.danger { color: var(--red); }
+      /* Theme picker inline */
+      #theme-picker { display: none; padding: 8px 12px 12px; gap: 8px; flex-wrap: wrap; }
+      #theme-picker.open { display: flex; }
+      .theme-option {
+        flex: 1; min-width: 70px; padding: 8px 6px; border-radius: 10px; border: 1.5px solid var(--border);
+        background: var(--card); color: var(--text); font-size: 12px; font-weight: 500;
+        text-align: center; cursor: pointer; font-family: inherit;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .theme-option.active { border-color: var(--red); color: var(--red); }
       #buddy-backdrop {
         display: none; /* not used — map stays interactive while buddy is open */
       }
@@ -1229,10 +1275,15 @@
         <svg viewBox="0 0 24 24" fill="#555" width="18" height="18"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
       </button>
       <div id="buddy-settings-popup">
-        <button class="buddy-settings-row" onclick="toggleTheme()">
+        <button class="buddy-settings-row" onclick="toggleThemePicker()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-          <span id="theme-toggle-label">Dark mode</span>
+          Themes
         </button>
+        <div id="theme-picker">
+          <button class="theme-option" id="theme-opt-luxury" onclick="setTheme('luxury')">Luxury</button>
+          <button class="theme-option" id="theme-opt-dark" onclick="setTheme('dark')">Dark</button>
+          <button class="theme-option" id="theme-opt-light" onclick="setTheme('light')">Light</button>
+        </div>
         <button class="buddy-settings-row" onclick="resetBuddyList()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
           Reset filters
@@ -1252,21 +1303,20 @@
   <div class="drawer" id="add-drawer">
     <div class="drawer-handle" id="drawer-handle"></div>
     <div class="parse-area">
+      <!-- Places textarea -->
+      <div class="add-places-section">
+        <textarea id="raw-input" class="add-places-textarea" placeholder="Paste texts, links, lists, Instagram posts…"></textarea>
+      </div>
+      <!-- City -->
+      <div class="add-inline-row">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#d93025"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>
+        <input type="text" id="input-city" placeholder="Anywhere" list="city-suggestions" autocomplete="off" class="add-row-input" onfocus="this.value=''" />
+        <datalist id="city-suggestions"></datalist>
+      </div>
       <!-- Add to: person chips -->
       <div class="add-section">
         <div class="add-row-label">Add to</div>
         <div class="add-person-chips" id="add-person-chips"></div>
-      </div>
-      <!-- City -->
-      <div class="add-inline-row">
-        <span class="add-row-label">City</span>
-        <input type="text" id="input-city" placeholder="Anywhere" list="city-suggestions" autocomplete="off" class="add-row-input" />
-        <datalist id="city-suggestions"></datalist>
-      </div>
-      <!-- Places textarea -->
-      <div class="add-places-section">
-        <div class="add-row-label">Places</div>
-        <textarea id="raw-input" class="add-places-textarea" placeholder="Paste texts, links, lists, Instagram posts…"></textarea>
       </div>
       <button class="add-go-btn" onclick="parseInput()" id="parse-btn">Add</button>
     </div>
@@ -2332,13 +2382,16 @@ function openDetail(id) {
 
   const metaEl = document.getElementById('detail-meta');
   const metaParts = [r.city, r.neighborhood, r.type ? r.type.charAt(0).toUpperCase()+r.type.slice(1) : ''].filter(Boolean);
-  let distBadge = '';
+  let distStr = '';
   if (_userLocation && r.latitude && r.longitude) {
     const km = haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude));
-    const distStr = km < 1 ? `${Math.round(km * 1000)} m` : km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;
-    distBadge = ` <span contenteditable="false" style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:20px;padding:1px 8px;font-size:11px;color:var(--text2);vertical-align:middle;margin-left:4px">📍 ${distStr}</span>`;
+    const feet = km * 3280.84;
+    const miles = km * 0.621371;
+    if (feet < 1000) distStr = ` · ${Math.round(feet)} ft`;
+    else if (miles < 10) distStr = ` · ${miles.toFixed(1)} mi`;
+    else distStr = ` · ${Math.round(miles)} mi`;
   }
-  metaEl.innerHTML = metaParts.join(' · ') + distBadge;
+  metaEl.innerHTML = metaParts.join(' · ') + distStr;
   metaEl.contentEditable = myItem ? 'true' : 'false';
   metaEl.style.cursor = myItem ? 'text' : '';
   metaEl.style.borderBottom = '';
@@ -2360,13 +2413,8 @@ function openDetail(id) {
   document.getElementById('detail-google-maps-link').href = mapsUrl(r);
   document.getElementById('detail-apple-maps-link').href = appleMapsUrl(r);
 
-  // Directions button — show only on mobile when user location is known and rec has coords
-  const directionsRow = document.getElementById('detail-directions-row');
-  if (!isDesktop() && _userLocation && r.latitude && r.longitude) {
-    directionsRow.style.display = 'flex';
-  } else {
-    directionsRow.style.display = 'none';
-  }
+  // Directions button — hidden for now
+  document.getElementById('detail-directions-row').style.display = 'none';
 
   // Phone
   const phoneRow = document.getElementById('detail-phone-row');
@@ -2643,15 +2691,16 @@ function centerOnUserWithDots(lat, lng) {
 
 function goToCurrentLocation() {
   if (!map) return;
+  if (_userLocation) {
+    // Already have location — just pan, no zoom change
+    map.panTo([_userLocation.lat, _userLocation.lng], { animate: true, duration: 0.6 });
+    return;
+  }
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
       _userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      centerOnUserWithDots(pos.coords.latitude, pos.coords.longitude);
-    }, () => {
-      if (markers.length) recenterMap();
-    }, { enableHighAccuracy: true, timeout: 6000 });
-  } else if (markers.length) {
-    recenterMap();
+      map.panTo([pos.coords.latitude, pos.coords.longitude], { animate: true, duration: 0.6 });
+    }, () => {}, { enableHighAccuracy: true, timeout: 6000 });
   }
 }
 
@@ -2757,7 +2806,7 @@ function disableMapInteraction() {
 }
 function enableMapInteraction() {
   if (!map) return;
-  map.dragging.enable();
+  if (_compassMode !== 'heading-up') map.dragging.enable(); // keep disabled in rotation mode
   map.touchZoom.enable();
   map.doubleClickZoom.enable();
   map.scrollWheelZoom.enable();
@@ -3550,9 +3599,7 @@ function toggleBuddyPerson(name) {
 
 function toggleBuddySettings() {
   document.getElementById('buddy-settings-popup').classList.toggle('visible');
-  // Update theme label
-  const lbl = document.getElementById('theme-toggle-label');
-  if (lbl) lbl.textContent = (localStorage.getItem('hm_theme') || 'luxury') === 'luxury' ? 'Dark mode' : 'Luxury mode';
+  updateThemePickerActive();
 }
 
 function resetBuddyList() {
@@ -3620,6 +3667,8 @@ function setupDesktopFilters() {
 let _compassMode = 'north-up'; // 'north-up' | 'heading-up'
 let _currentHeading = 0;
 let _compassPermissionGranted = false;
+let _orientationListenerActive = false;
+let _hasOrientationData = false; // true once real device data arrives
 
 function updateCompassNeedle(heading) {
   const svg = document.getElementById('compass-svg');
@@ -3640,12 +3689,20 @@ function applyHeadingToMap(heading) {
 }
 
 function startDeviceOrientation() {
+  if (_orientationListenerActive) return; // prevent duplicate listeners
+  _orientationListenerActive = true;
   window.addEventListener('deviceorientation', function(e) {
-    let heading = 0;
+    let heading = null;
     if (e.webkitCompassHeading != null) {
       heading = e.webkitCompassHeading; // iOS
     } else if (e.alpha != null) {
       heading = 360 - e.alpha; // Android
+    }
+    if (heading === null) return;
+    if (!_hasOrientationData) {
+      _hasOrientationData = true;
+      // Show cone now that we have real data
+      if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, heading);
     }
     applyHeadingToMap(heading);
   }, true);
@@ -3734,7 +3791,7 @@ function updateHeadingCone(lat, lng, heading) {
   // Show cone whenever orientation is being tracked, regardless of north/heading-up mode.
   // North-up: cone SVG rotates +heading → points at heading on stationary map.
   // Heading-up: map rotates -heading, cone SVG rotates +heading → cone stays pointing "up" (your direction).
-  if (!_compassPermissionGranted) { hideHeadingCone(); return; }
+  if (!_hasOrientationData) { hideHeadingCone(); return; }
 
   const SIZE = 90, HALF = SIZE / 2;
 
@@ -3852,14 +3909,29 @@ function setTheme(name) {
   }
   localStorage.setItem('hm_theme', name);
 }
-function toggleTheme() {
-  const cur = localStorage.getItem('hm_theme') || 'dark';
-  setTheme(cur === 'luxury' ? 'dark' : 'luxury');
+function setTheme(name) {
+  if (name === 'luxury') document.documentElement.setAttribute('data-theme', 'luxury');
+  else if (name === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  else document.documentElement.removeAttribute('data-theme');
+  localStorage.setItem('hm_theme', name);
+  updateThemePickerActive();
+}
+function toggleThemePicker() {
+  const picker = document.getElementById('theme-picker');
+  if (picker) { picker.classList.toggle('open'); updateThemePickerActive(); }
+}
+function updateThemePickerActive() {
+  const cur = localStorage.getItem('hm_theme') || 'luxury';
+  ['luxury','dark','light'].forEach(t => {
+    const el = document.getElementById('theme-opt-' + t);
+    if (el) el.classList.toggle('active', t === cur);
+  });
 }
 // Apply saved theme on load
 (function() {
-  const t = localStorage.getItem('hm_theme') || 'luxury'; // luxury is default
+  const t = localStorage.getItem('hm_theme') || 'luxury';
   if (t === 'luxury') document.documentElement.setAttribute('data-theme', 'luxury');
+  else if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
 })();
 
 // ── INIT ──
