@@ -68,16 +68,16 @@
     }
     /* Frosted glass + surface overrides */
     [data-theme="luxury"] .map-search-bar {
-      background: rgba(37,28,24,0.94) !important;
+      background: rgba(37,28,24,0.6) !important;
       border-color: rgba(135,105,79,0.22) !important;
     }
     [data-theme="luxury"] .mobile-sheet {
       background: rgba(49,36,33,0.97) !important;
     }
-    /* Nav pill: warm tan pull-out color */
+    /* Nav pill: warm tan pull-out color, glassy */
     [data-theme="luxury"] .nav-bg {
-      background: rgba(135,105,79,0.93) !important;
-      border-color: rgba(240,228,212,0.12) !important;
+      background: rgba(135,105,79,0.62) !important;
+      border-color: rgba(240,228,212,0.14) !important;
     }
     [data-theme="luxury"] .compass-btn,
     [data-theme="luxury"] .nearby-banner,
@@ -136,11 +136,12 @@
       background: rgba(135,105,79,0.88) !important;
       border-color: rgba(240,228,212,0.12) !important;
     }
+    [data-theme="luxury"] #buddy-btn svg circle { fill: #e5ac81 !important; }
     /* Nav map label same color as inactive nav buttons */
     [data-theme="luxury"] #nav-map { color: #e5ac81 !important; }
     [data-theme="luxury"] #nav-map.active { color: #f0e4d4 !important; }
-    /* Inactive pin inside center circle — warm brown to match pill */
-    [data-theme="luxury"] #nav-map .pin-inactive path { fill: #a07850 !important; opacity: 1 !important; }
+    /* Inactive pin inside center circle — subtle ghost on dark bg */
+    [data-theme="luxury"] #nav-map .pin-inactive path { fill: rgba(255,255,255,0.18) !important; opacity: 1 !important; }
     /* Tag borders in luxury */
     [data-theme="luxury"] .tag.person,
     [data-theme="luxury"] .tag.city { border-color: rgba(134,168,180,0.4) !important; }
@@ -452,9 +453,12 @@
     .add-places-textarea {
       flex: 1; border: none; outline: none; resize: none; min-height: 100px;
       font-size: 15px; line-height: 1.7; color: var(--text);
-      background: transparent; font-family: inherit; padding: 4px 0;
+      background: transparent; font-family: inherit; padding: 4px 4px 4px 8px;
+      -webkit-appearance: none; box-shadow: none;
     }
+    .add-places-textarea:focus { outline: none; box-shadow: none; }
     .add-places-textarea::placeholder { color: var(--text3); }
+    .add-places-textarea:focus::placeholder { color: transparent; }
     .add-go-btn {
       margin: 14px 20px 32px; background: var(--blue); color: white;
       border: none; border-radius: 24px; padding: 15px;
@@ -613,8 +617,8 @@
       .map-search-bar {
         position: fixed; top: 12px; left: 12px; right: 12px;
         display: flex; flex-direction: column; gap: 6px;
-        background: rgba(17,17,17,0.92);
-        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        background: rgba(17,17,17,0.55);
+        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
         border-radius: 28px;
         padding: 14px 14px 10px;
         border: 1px solid rgba(255,255,255,0.08);
@@ -711,7 +715,7 @@
       .nav-bg {
         position: absolute;
         left: 14px; right: 14px; bottom: 16px; height: 64px;
-        background: rgba(17,17,17,0.98);
+        background: rgba(17,17,17,0.55);
         backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
         border-radius: 32px;
         border: 1px solid rgba(255,255,255,0.08);
@@ -1198,7 +1202,7 @@
       </div>
       <span class="nav-label">Map</span>
     </button>
-    <button class="nav-btn" id="nav-list" onclick="setMode('list')">
+    <button class="nav-btn" id="nav-list" onclick="toggleList()">
       <div class="nav-pill">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
           <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
@@ -2578,6 +2582,12 @@ document.addEventListener('click', function(e) {
 });
 
 // ── MOBILE NAV + SWIPE ──
+function toggleList() {
+  const sheet = document.getElementById('mobile-sheet');
+  if (sheet && sheet.classList.contains('open')) setMode('map');
+  else setMode('list');
+}
+
 function setMode(mode) {
   // Close buddy panel whenever user taps List, Add, or Map nav
   const buddy = document.getElementById('buddy-panel');
@@ -2777,8 +2787,9 @@ function initMap() {
     navigator.geolocation.watchPosition(pos => {
       _userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       if (locationDot) map.removeLayer(locationDot);
+      const _locBlue = getComputedStyle(document.documentElement).getPropertyValue('--blue').trim() || '#4285F4';
       locationDot = L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
-        radius: 9, fillColor: '#4285F4', color: 'white',
+        radius: 9, fillColor: _locBlue, color: 'white',
         weight: 3, fillOpacity: 1, zIndexOffset: 1000
       }).addTo(map);
       updateHeadingCone(pos.coords.latitude, pos.coords.longitude, _currentHeading);
@@ -3736,9 +3747,9 @@ function updateHeadingCone(lat, lng, heading) {
       xmlns="http://www.w3.org/2000/svg">
       <defs>
         <radialGradient id="hcg" gradientUnits="userSpaceOnUse" cx="${HALF}" cy="${SIZE}" r="${SIZE}">
-          <stop offset="0%"   stop-color="#4285f4" stop-opacity="0.65"/>
-          <stop offset="75%"  stop-color="#4285f4" stop-opacity="0.15"/>
-          <stop offset="100%" stop-color="#4285f4" stop-opacity="0"/>
+          <stop offset="0%"   stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--blue').trim()||'#4285f4'}" stop-opacity="0.65"/>
+          <stop offset="75%"  stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--blue').trim()||'#4285f4'}" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--blue').trim()||'#4285f4'}" stop-opacity="0"/>
         </radialGradient>
       </defs>
       <path d="M${HALF},${SIZE} L${HALF-55},0 L${HALF+55},0 Z" fill="url(#hcg)"/>
