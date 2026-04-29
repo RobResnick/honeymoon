@@ -40,6 +40,73 @@
       --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
     }
 
+    /* ══════════════════════════════════════
+       LUXURY MODE — LV bag palette
+       Background: dark espresso #1a0d07
+       Text: warm ivory #f0ddb8
+       Accent: vachetta leather tan #c89464
+       Pop colors: blue, pink, green, orange from LV flowers
+       ══════════════════════════════════════ */
+    [data-theme="luxury"] {
+      --blue: #6ac4d8;
+      --blue-light: rgba(106,196,216,0.18);
+      --blue-dark: #4ab0c8;
+      --red: #c8a040;
+      --red-light: rgba(200,160,64,0.18);
+      --green: #72b87a;
+      --purple: #e87a9c;
+      --purple-light: rgba(232,122,156,0.15);
+      --text: #f0ddb8;
+      --text2: #c89464;
+      --text3: #8a6440;
+      --border: rgba(200,148,80,0.18);
+      --bg: #1a0d07;
+      --bg2: #2a1a0e;
+      --card: #3a2214;
+      --shadow: 0 2px 10px rgba(0,0,0,0.75);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.75);
+    }
+    /* Frosted glass + surface overrides */
+    [data-theme="luxury"] .map-search-bar {
+      background: rgba(42,18,8,0.93) !important;
+      border-color: rgba(200,148,80,0.2) !important;
+    }
+    [data-theme="luxury"] .mobile-sheet {
+      background: rgba(42,22,10,0.97) !important;
+    }
+    [data-theme="luxury"] .bottom-nav {
+      background: rgba(26,13,7,0.98) !important;
+      border-top-color: rgba(200,148,80,0.12) !important;
+    }
+    [data-theme="luxury"] .compass-btn,
+    [data-theme="luxury"] .nearby-banner,
+    [data-theme="luxury"] .search-recenter-btn~.search-recenter-ring {
+      background: rgba(42,18,8,0.93) !important;
+      border-color: rgba(200,148,80,0.22) !important;
+    }
+    [data-theme="luxury"] .map-place-label {
+      background: rgba(42,18,8,0.9) !important;
+      color: #f0ddb8 !important;
+    }
+    [data-theme="luxury"] #map { background: #1a0d07 !important; }
+    [data-theme="luxury"] #map .leaflet-tile-pane {
+      filter: brightness(0.72) saturate(0.45) sepia(0.28) !important;
+    }
+    [data-theme="luxury"] #buddy-panel { background: #2a1a0e !important; }
+    [data-theme="luxury"] #buddy-header { background: #1a0d07 !important; color: #8a6440 !important; }
+    [data-theme="luxury"] .search-recenter-btn {
+      background: linear-gradient(135deg, #c8a040, #a87e30) !important;
+    }
+    [data-theme="luxury"] .add-btn {
+      background: linear-gradient(135deg, #c8a040, #a87e30) !important;
+    }
+    [data-theme="luxury"] #nav-map .pin-active path:first-child { fill: #c8a040 !important; }
+    [data-theme="luxury"] .rec-card { border-color: rgba(200,148,80,0.1) !important; }
+    [data-theme="luxury"] .compass-btn.heading-up {
+      border-color: rgba(200,160,64,0.7) !important;
+      box-shadow: 0 0 0 2px rgba(200,160,64,0.35), 0 4px 20px rgba(0,0,0,0.45) !important;
+    }
+
     body {
       font-family: 'Roboto', Arial, sans-serif;
       background: var(--bg);
@@ -469,7 +536,16 @@
         position: fixed; top: 0; left: 0; right: 0;
         bottom: 0; z-index: 1;
       }
-      #map-view { display: block !important; position: absolute; inset: 0; }
+      #map-view { display: block !important; position: absolute; inset: 0; overflow: hidden; }
+      /* Square map larger than screen diagonal → covers all corners on any rotation */
+      #map {
+        position: absolute !important;
+        width: 130vmax !important; height: 130vmax !important;
+        left: calc(50% - 65vmax) !important; top: calc(50% - 65vmax) !important;
+      }
+      /* Counter-rotation wrappers: keep markers upright while map rotates */
+      .mcr-pin { transform-origin: 8px 28px; transform: rotate(var(--mr-heading, 0deg)); }
+      .mcr-cluster { transform-origin: 50% 100%; transform: rotate(var(--mr-heading, 0deg)); }
 
       /* ── SEARCH BAR RECENTER BUTTON ── */
       .search-recenter-btn {
@@ -859,6 +935,28 @@
       .recenter-btn { bottom: 20px; left: 10px; }
       .recenter-icon-fit { display: block; }
       .recenter-icon-locate { display: none; }
+
+      /* Hide mobile-only controls on desktop */
+      .compass-btn { display: none !important; }
+
+      /* Desktop zoom buttons (Leaflet default, positioned top-right) */
+      .leaflet-control-zoom { border: none !important; }
+      .leaflet-control-zoom a {
+        background: var(--card) !important;
+        color: var(--text) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+        width: 32px !important; height: 32px !important;
+        line-height: 30px !important;
+        font-size: 18px !important;
+        margin-bottom: 4px !important;
+        box-shadow: var(--shadow) !important;
+      }
+      .leaflet-control-zoom a:hover { background: var(--bg2) !important; }
+
+      /* Desktop buddy panel */
+      #buddy-btn { display: flex !important; }
+      #buddy-panel { z-index: 500; }
     }
 
     @media (min-width: 600px) and (hover: none) {
@@ -1051,6 +1149,10 @@
         <svg viewBox="0 0 24 24" fill="#555" width="18" height="18"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
       </button>
       <div id="buddy-settings-popup">
+        <button class="buddy-settings-row" onclick="toggleTheme()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <span id="theme-toggle-label">Dark mode</span>
+        </button>
         <button class="buddy-settings-row" onclick="resetBuddyList()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
           Reset filters
@@ -2551,7 +2653,7 @@ function enableMapInteraction() {
 
 function initMap() {
   if (map) { renderMapMarkers(); return; }
-  map = L.map('map', { zoomControl: false }).setView([43, 12], 6);
+  map = L.map('map', { zoomControl: isDesktop() }).setView([43, 12], 6);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19, subdomains: 'abcd'
@@ -2643,7 +2745,7 @@ function renderMapMarkers() {
       });
       const color = Object.keys(colorCount).sort((a,b) => colorCount[b]-colorCount[a])[0] || '#555';
       return L.divIcon({
-        html: `<div class="cluster-icon ${cls}" style="background:${color}"><span>${n}</span></div>`,
+        html: `<div class="mcr-cluster" style="width:${sz}px;height:${sz}px"><div class="cluster-icon ${cls}" style="background:${color}"><span>${n}</span></div></div>`,
         className: '',
         iconSize: [sz, sz],
         iconAnchor: [sz/2, sz]
@@ -2666,7 +2768,7 @@ function renderMapMarkers() {
     const labelHtml = showLabel
       ? `<div class="map-place-label">${esc(cleanName)}</div>`
       : '';
-    const pinHtml = `<div style="position:relative;display:inline-block">${typeIconHtml(r.type, 30, srcColor)}${labelHtml}</div>`;
+    const pinHtml = `<div class="mcr-pin" style="position:relative;display:inline-block">${typeIconHtml(r.type, 30, srcColor)}${labelHtml}</div>`;
     const icon = L.divIcon({
       className: '',
       html: pinHtml,
@@ -3332,6 +3434,9 @@ function toggleBuddyPerson(name) {
 
 function toggleBuddySettings() {
   document.getElementById('buddy-settings-popup').classList.toggle('visible');
+  // Update theme label
+  const lbl = document.getElementById('theme-toggle-label');
+  if (lbl) lbl.textContent = (localStorage.getItem('hm_theme') || 'luxury') === 'luxury' ? 'Dark mode' : 'Luxury mode';
 }
 
 function resetBuddyList() {
@@ -3411,6 +3516,8 @@ function applyHeadingToMap(heading) {
   if (_compassMode === 'heading-up') {
     const mapEl = document.getElementById('map');
     if (mapEl) mapEl.style.transform = `rotate(${-heading}deg)`;
+    // Counter-rotate markers so they stay upright
+    document.documentElement.style.setProperty('--mr-heading', `${heading}deg`);
   }
   // Update heading cone
   if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, heading);
@@ -3438,6 +3545,7 @@ async function toggleCompass() {
         const perm = await DeviceOrientationEvent.requestPermission();
         if (perm !== 'granted') { showToast('Compass permission denied'); return; }
         _compassPermissionGranted = true;
+        localStorage.setItem('hm_orientation_granted', '1');
         startDeviceOrientation();
       } catch(e) { showToast('Compass not available'); return; }
     } else if (!_compassPermissionGranted) {
@@ -3453,6 +3561,7 @@ async function toggleCompass() {
     document.getElementById('compass-btn').classList.remove('heading-up');
     const mapEl = document.getElementById('map');
     if (mapEl) mapEl.style.transform = '';
+    document.documentElement.style.setProperty('--mr-heading', '0deg');
     hideHeadingCone();
     updateCompassNeedle(_currentHeading);
   }
@@ -3612,6 +3721,25 @@ function stripMapsUrl(text) {
   return text.replace(/https?:\/\/\S*(maps|goo\.gl)\S*/gi, '').replace(/\s+/g, ' ').trim();
 }
 
+// ── THEME ──
+function setTheme(name) {
+  if (name === 'luxury') {
+    document.documentElement.setAttribute('data-theme', 'luxury');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  localStorage.setItem('hm_theme', name);
+}
+function toggleTheme() {
+  const cur = localStorage.getItem('hm_theme') || 'dark';
+  setTheme(cur === 'luxury' ? 'dark' : 'luxury');
+}
+// Apply saved theme on load
+(function() {
+  const t = localStorage.getItem('hm_theme') || 'luxury'; // luxury is default
+  if (t === 'luxury') document.documentElement.setAttribute('data-theme', 'luxury');
+})();
+
 // ── INIT ──
 if (isDesktop()) {
   document.getElementById('list-view').style.display = 'block';
@@ -3620,6 +3748,11 @@ if (isDesktop()) {
 } else {
   setTimeout(() => { initMap(); initSheetSwipe(); initDrawerSwipe(); }, 100);
   document.getElementById('nav-map').classList.add('active');
+  // Auto-start device orientation if user previously granted permission
+  if (localStorage.getItem('hm_orientation_granted') === '1') {
+    _compassPermissionGranted = true;
+    startDeviceOrientation();
+  }
   // Hide suggestions when tapping outside search bar
   document.addEventListener('touchstart', e => {
     const bar = document.getElementById('map-search-bar');
