@@ -101,6 +101,15 @@
       background: linear-gradient(135deg, #c8a040, #a87e30) !important;
     }
     [data-theme="luxury"] #nav-map .pin-active path:first-child { fill: #c8a040 !important; }
+    [data-theme="luxury"] .nav-center-circle {
+      background: rgba(42,20,8,0.97) !important;
+      border-color: rgba(200,148,80,0.28) !important;
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(200,148,80,0.1) !important;
+    }
+    [data-theme="luxury"] #nav-map.active .nav-center-circle {
+      background: rgba(60,28,10,0.99) !important;
+      box-shadow: 0 -2px 20px rgba(0,0,0,0.65), 0 6px 20px rgba(0,0,0,0.55), 0 0 12px rgba(200,148,80,0.15) !important;
+    }
     [data-theme="luxury"] .rec-card { border-color: rgba(200,148,80,0.1) !important; }
     [data-theme="luxury"] .compass-btn.heading-up {
       border-color: rgba(200,160,64,0.7) !important;
@@ -668,18 +677,18 @@
         background: rgba(17,17,17,0.98);
         backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
         border-top: 1px solid rgba(255,255,255,0.07);
-        z-index: 500;
+        z-index: 500; overflow: visible; align-items: flex-end;
       }
       .nav-btn {
         flex: 1; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; gap: 0;
+        align-items: center; justify-content: flex-end; gap: 0;
         border: none; background: none; color: var(--text);
         font-family: 'Google Sans', sans-serif; cursor: pointer;
-        padding: 8px 4px 10px; transition: color 0.15s;
+        padding: 0 4px 16px; transition: color 0.15s;
         -webkit-tap-highlight-color: transparent;
       }
       .nav-pill {
-        padding: 4px 18px; border-radius: 16px; margin-bottom: 3px;
+        padding: 4px 18px; border-radius: 16px; margin-bottom: 4px;
         transition: background 0.2s;
         display: flex; align-items: center; justify-content: center;
       }
@@ -687,9 +696,28 @@
       .nav-btn.active .nav-pill { background: rgba(255,255,255,0.1); }
       .nav-btn.active { color: #e8eaed; }
       .nav-btn svg { display: block; }
-      .nav-icon-img { width: 24px; height: 24px; display: block; }
       .nav-label { font-size: 10px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
 
+      /* Center raised logo button */
+      #nav-map {
+        flex: 1.2; position: relative; padding-bottom: 10px; justify-content: flex-end;
+      }
+      .nav-center-circle {
+        width: 62px; height: 62px; border-radius: 50%;
+        background: rgba(38,38,38,0.96);
+        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+        border: 1.5px solid rgba(255,255,255,0.13);
+        box-shadow: 0 -2px 16px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.4);
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 5px;
+        margin-top: -30px;
+        transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+      }
+      #nav-map.active .nav-center-circle {
+        background: rgba(55,55,55,0.98);
+        box-shadow: 0 -2px 20px rgba(0,0,0,0.55), 0 6px 20px rgba(0,0,0,0.5);
+        transform: scale(1.06);
+      }
       #nav-map .pin-active { display: none; }
       #nav-map.active .pin-inactive { display: none; }
       #nav-map.active .pin-active { display: block; }
@@ -1093,15 +1121,23 @@
 
   <!-- MOBILE BOTTOM NAV -->
   <div class="bottom-nav" id="bottom-nav">
-    <button class="nav-btn active" id="nav-map" onclick="setMode('map')">
+    <button class="nav-btn" id="nav-add" onclick="setMode('add')">
       <div class="nav-pill">
-        <!-- Inactive: grey -->
-        <svg class="pin-inactive" xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="20" height="25">
-          <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="#5f6368"/>
-          <path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="rgba(255,255,255,0.5)"/>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
         </svg>
-        <!-- Active: red with detail -->
-        <svg class="pin-active" xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="20" height="25">
+      </div>
+      <span class="nav-label">Add</span>
+    </button>
+    <button class="nav-btn active" id="nav-map" onclick="setMode('map')">
+      <div class="nav-center-circle">
+        <!-- Inactive: grey pin -->
+        <svg class="pin-inactive" xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="26" height="32">
+          <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="rgba(255,255,255,0.45)"/>
+          <path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="rgba(255,255,255,0.25)"/>
+        </svg>
+        <!-- Active: red pin with detail -->
+        <svg class="pin-active" xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="26" height="32">
           <defs>
             <clipPath id="nav-pin-clip">
               <path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z"/>
@@ -1116,19 +1152,11 @@
     </button>
     <button class="nav-btn" id="nav-list" onclick="setMode('list')">
       <div class="nav-pill">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
           <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
         </svg>
       </div>
       <span class="nav-label">List</span>
-    </button>
-    <button class="nav-btn" id="nav-add" onclick="setMode('add')">
-      <div class="nav-pill">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-        </svg>
-      </div>
-      <span class="nav-label">Add</span>
     </button>
   </div>
 
