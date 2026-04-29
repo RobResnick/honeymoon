@@ -125,6 +125,26 @@
       border-color: rgba(235,168,113,0.65) !important;
       box-shadow: 0 0 0 2px rgba(235,168,113,0.3), 0 4px 20px rgba(0,0,0,0.45) !important;
     }
+    /* Add drawer */
+    [data-theme="luxury"] .drawer {
+      background: #312421 !important;
+      border-top-color: rgba(135,105,79,0.2) !important;
+    }
+    [data-theme="luxury"] .modal { background: #312421 !important; }
+    /* Buddy tab */
+    [data-theme="luxury"] #buddy-btn {
+      background: rgba(135,105,79,0.88) !important;
+      border-color: rgba(240,228,212,0.12) !important;
+    }
+    /* Nav map label same color as inactive nav buttons */
+    [data-theme="luxury"] #nav-map { color: #e5ac81 !important; }
+    [data-theme="luxury"] #nav-map.active { color: #f0e4d4 !important; }
+    /* Inactive pin inside center circle — warm brown to match pill */
+    [data-theme="luxury"] #nav-map .pin-inactive path { fill: #a07850 !important; opacity: 1 !important; }
+    /* Tag borders in luxury */
+    [data-theme="luxury"] .tag.person,
+    [data-theme="luxury"] .tag.city { border-color: rgba(134,168,180,0.4) !important; }
+    [data-theme="luxury"] .tag.type { border-color: rgba(226,145,154,0.4) !important; }
 
     body {
       font-family: 'Roboto', Arial, sans-serif;
@@ -649,7 +669,7 @@
         border-radius: 20px 20px 0 0;
         border-top: 1px solid rgba(255,255,255,0.08);
         z-index: 300;
-        transform: translateY(100%);
+        transform: translateY(calc(100% + 140px));
         transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
         overflow: hidden;
@@ -1375,6 +1395,19 @@ const TYPE_COLORS = {
   market: '#f29900', beach: '#00ACC1',
   neighborhood: '#34A853', other: '#5f6368'
 };
+const LUXURY_TYPE_COLORS = {
+  restaurant: '#eba871', bar: '#eba871', cafe: '#eba871',
+  museum: '#e2919a', attraction: '#e2919a', church: '#e2919a',
+  hotel: '#86a8b4', shop: '#86a8b4',
+  market: '#eba871', beach: '#919b5f',
+  neighborhood: '#919b5f', other: '#87694f'
+};
+function getTypeColor(type) {
+  if (document.documentElement.getAttribute('data-theme') === 'luxury') {
+    return LUXURY_TYPE_COLORS[type] || '#87694f';
+  }
+  return TYPE_COLORS[type] || '#5f6368';
+}
 const TYPE_PATHS = {
   restaurant: '<path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>',
   bar: '<path d="M21 5V3H3v2l8 9v5H6v2h12v-2h-5v-5l8-9z"/>',
@@ -1391,7 +1424,7 @@ const TYPE_PATHS = {
 };
 
 function typeIconHtml(type, size = 26, overrideColor) {
-  const color = overrideColor || TYPE_COLORS[type] || '#5f6368';
+  const color = overrideColor || getTypeColor(type);
   const path = TYPE_PATHS[type] || TYPE_PATHS.other;
   const iconSize = Math.round(size * 0.5);
   // Teardrop/pin shape: rotated square with rounded top-right, bottom-right, bottom-left + pointed bottom-left corner
@@ -1400,7 +1433,7 @@ function typeIconHtml(type, size = 26, overrideColor) {
 
 // v2: rounded-square icon for list rows
 function typeIconHtmlSquare(type, size = 38, overrideColor) {
-  const color = overrideColor || TYPE_COLORS[type] || '#5f6368';
+  const color = overrideColor || getTypeColor(type);
   const path = TYPE_PATHS[type] || TYPE_PATHS.other;
   const radius = Math.round(size * 0.27);
   const iconSize = Math.round(size * 0.52);
@@ -1419,7 +1452,13 @@ let pendingParseCount = 0, pendingRawInput = '';
 // ── SOURCE / FOLDER COLOR SYSTEM ──
 let _currentUser = null;
 const FOLDER_COLORS = { me: '#1A73E8', friends: '#f29900', internet: '#34A853', other: '#e8453c' };
+const LUXURY_FOLDER_COLORS = { me: '#86a8b4', friends: '#eba871', internet: '#919b5f', other: '#e2919a' };
 const FOLDER_LABELS = { me: 'Me', friends: 'Friends', internet: 'Internet', other: 'Other' };
+function getFolderColorThemed(fid) {
+  const isLux = document.documentElement.getAttribute('data-theme') === 'luxury';
+  const map = isLux ? LUXURY_FOLDER_COLORS : FOLDER_COLORS;
+  return map[fid] || null;
+}
 let _buddyFolders = JSON.parse(localStorage.getItem('hm_buddy_folders') || '{"friends":[],"internet":[],"other":[]}');
 let _folderStates = JSON.parse(localStorage.getItem('hm_folder_states') || '{"friends":true,"internet":true,"other":true}');
 let _folderExpanded = JSON.parse(localStorage.getItem('hm_folder_expanded') || '{"friends":true,"internet":true,"other":true}');
@@ -1433,6 +1472,7 @@ let _cityCoords = {}; // city name (lowercase) → {latitude, lng} from /api/cit
 
 // Color palette for unassigned people — distinct, not too dark/light
 const PERSON_PALETTE = ['#9334E6','#00897B','#FF6D00','#C62828','#1565C0','#558B2F','#F06292','#0288D1','#6D4C41','#546E7A'];
+const LUXURY_PERSON_PALETTE = ['#eba871','#86a8b4','#919b5f','#e2919a','#c8843e','#6b8e9c','#7a8a4f','#c87080','#87694f','#a07850'];
 
 // Distance between two lat/lng points in km
 function haversineKm(lat1, lng1, lat2, lng2) {
@@ -1459,24 +1499,30 @@ function getPersonFolder(name) {
 }
 
 function getPersonColor(name) {
-  if (!name) return FOLDER_COLORS.other;
-  if (isMe(name)) return FOLDER_COLORS.me;
+  const isLux = document.documentElement.getAttribute('data-theme') === 'luxury';
+  const folderMap = isLux ? LUXURY_FOLDER_COLORS : FOLDER_COLORS;
+  const palette = isLux ? LUXURY_PERSON_PALETTE : PERSON_PALETTE;
+  if (!name) return folderMap.other;
+  if (isMe(name)) return folderMap.me;
   const folder = getPersonFolder(name);
-  if (folder !== 'other') return FOLDER_COLORS[folder];
+  if (folder !== 'other') return folderMap[folder];
   // Unassigned: use stored color or assign new one from palette
-  if (!_personColors[name]) {
-    const used = new Set(Object.values(_personColors));
-    const pick = PERSON_PALETTE.find(c => !used.has(c)) || PERSON_PALETTE[Object.keys(_personColors).length % PERSON_PALETTE.length];
-    _personColors[name] = pick;
-    localStorage.setItem('hm_person_colors', JSON.stringify(_personColors));
+  const paletteKey = isLux ? 'hm_person_colors_luxury' : 'hm_person_colors';
+  let colors = JSON.parse(localStorage.getItem(paletteKey) || '{}');
+  if (!colors[name]) {
+    const used = new Set(Object.values(colors));
+    colors[name] = palette.find(c => !used.has(c)) || palette[Object.keys(colors).length % palette.length];
+    localStorage.setItem(paletteKey, JSON.stringify(colors));
   }
-  return _personColors[name];
+  return colors[name];
 }
 
 function getRecSourceColor(rec) {
-  if (!rec.recommended_by) return FOLDER_COLORS.other;
+  const isLux = document.documentElement.getAttribute('data-theme') === 'luxury';
+  const folderMap = isLux ? LUXURY_FOLDER_COLORS : FOLDER_COLORS;
+  if (!rec.recommended_by) return folderMap.other;
   const people = rec.recommended_by.split(',').map(p => p.trim()).filter(Boolean);
-  if (!people.length) return FOLDER_COLORS.other;
+  if (!people.length) return folderMap.other;
   return getPersonColor(people[0]);
 }
 
@@ -3269,10 +3315,13 @@ function openBuddy() {
 }
 
 function getFolderColor(fid) {
-  if (FOLDER_COLORS[fid]) return FOLDER_COLORS[fid];
-  // Custom folder: pick from PERSON_PALETTE
-  const customIdx = _folderOrder.indexOf(fid) - 3; // offset past built-ins
-  return PERSON_PALETTE[((customIdx % PERSON_PALETTE.length) + PERSON_PALETTE.length) % PERSON_PALETTE.length];
+  const isLux = document.documentElement.getAttribute('data-theme') === 'luxury';
+  const folderMap = isLux ? LUXURY_FOLDER_COLORS : FOLDER_COLORS;
+  const palette = isLux ? LUXURY_PERSON_PALETTE : PERSON_PALETTE;
+  if (folderMap[fid]) return folderMap[fid];
+  // Custom folder: pick from palette
+  const customIdx = _folderOrder.indexOf(fid) - 3;
+  return palette[((customIdx % palette.length) + palette.length) % palette.length];
 }
 
 let _folderLongPressTimer = null;
@@ -3413,7 +3462,7 @@ function renderBuddyNames() {
       return r.recommended_by.split(',').map(p => p.trim()).some(p => isMe(p));
     }).length;
     html = `<div class="buddy-me-row${meMuted?' muted':''}" onclick="toggleBuddyPerson('__me__')">
-      ${dot(FOLDER_COLORS.me, meMuted)}
+      ${dot(getFolderColor('me'), meMuted)}
       <span class="buddy-name">Me</span>
       <span style="margin-left:auto;font-size:10px;color:${meMuted?'#444':'#666'}">${meCount}</span>
     </div>`;
