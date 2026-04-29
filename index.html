@@ -68,7 +68,7 @@
     }
     /* Frosted glass + surface overrides */
     [data-theme="luxury"] .map-search-bar {
-      background: rgba(37,28,24,0.6) !important;
+      background: rgba(37,28,24,0.38) !important;
       border-color: rgba(135,105,79,0.22) !important;
     }
     [data-theme="luxury"] .mobile-sheet {
@@ -76,13 +76,13 @@
     }
     /* Nav pill: warm tan pull-out color, glassy */
     [data-theme="luxury"] .nav-bg {
-      background: rgba(135,105,79,0.62) !important;
+      background: rgba(135,105,79,0.38) !important;
       border-color: rgba(240,228,212,0.14) !important;
     }
     [data-theme="luxury"] .compass-btn,
     [data-theme="luxury"] .nearby-banner,
     [data-theme="luxury"] .search-recenter-btn~.search-recenter-ring {
-      background: rgba(37,28,24,0.94) !important;
+      background: rgba(37,28,24,0.42) !important;
       border-color: rgba(135,105,79,0.28) !important;
     }
     [data-theme="luxury"] .map-place-label {
@@ -112,13 +112,13 @@
     [data-theme="luxury"] #nav-add.active,
     [data-theme="luxury"] #nav-list.active { color: #f0e4d4 !important; }
     [data-theme="luxury"] .nav-center-circle {
-      background: rgba(49,36,33,0.97) !important;
-      border-color: rgba(240,228,212,0.18) !important;
-      box-shadow: 0 4px 22px rgba(0,0,0,0.65), 0 1px 6px rgba(0,0,0,0.4) !important;
+      background: rgba(49,36,33,0.45) !important;
+      border-color: rgba(240,228,212,0.2) !important;
+      box-shadow: 0 4px 22px rgba(0,0,0,0.4), 0 1px 6px rgba(0,0,0,0.25) !important;
     }
     [data-theme="luxury"] #nav-map.active .nav-center-circle {
-      background: rgba(65,46,40,0.99) !important;
-      box-shadow: 0 6px 28px rgba(0,0,0,0.7), 0 0 14px rgba(235,168,113,0.2) !important;
+      background: rgba(65,46,40,0.58) !important;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.5), 0 0 14px rgba(235,168,113,0.18) !important;
     }
     [data-theme="luxury"] .rec-card { border-color: rgba(135,105,79,0.14) !important; }
     [data-theme="luxury"] .compass-btn.heading-up {
@@ -133,8 +133,8 @@
     [data-theme="luxury"] .modal { background: #312421 !important; }
     /* Buddy tab */
     [data-theme="luxury"] #buddy-btn {
-      background: rgba(135,105,79,0.88) !important;
-      border-color: rgba(240,228,212,0.12) !important;
+      background: rgba(135,105,79,0.42) !important;
+      border-color: rgba(240,228,212,0.14) !important;
     }
     [data-theme="luxury"] #buddy-btn svg circle { fill: #e5ac81 !important; }
     /* Nav map label same color as inactive nav buttons */
@@ -617,7 +617,7 @@
       .map-search-bar {
         position: fixed; top: 12px; left: 12px; right: 12px;
         display: flex; flex-direction: column; gap: 6px;
-        background: rgba(17,17,17,0.55);
+        background: rgba(17,17,17,0.32);
         backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
         border-radius: 28px;
         padding: 14px 14px 10px;
@@ -715,7 +715,7 @@
       .nav-bg {
         position: absolute;
         left: 14px; right: 14px; bottom: 16px; height: 64px;
-        background: rgba(17,17,17,0.55);
+        background: rgba(17,17,17,0.32);
         backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
         border-radius: 32px;
         border: 1px solid rgba(255,255,255,0.08);
@@ -756,17 +756,17 @@
       #nav-map.active { color: #e8eaed; }
       .nav-center-circle {
         width: 58px; height: 58px; border-radius: 50%;
-        background: rgba(36,36,36,0.97);
+        background: rgba(36,36,36,0.42);
         backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-        border: 1.5px solid rgba(255,255,255,0.13);
-        box-shadow: 0 4px 22px rgba(0,0,0,0.55), 0 1px 6px rgba(0,0,0,0.35);
+        border: 1.5px solid rgba(255,255,255,0.18);
+        box-shadow: 0 4px 22px rgba(0,0,0,0.35), 0 1px 6px rgba(0,0,0,0.2);
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
         transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
       }
       #nav-map.active .nav-center-circle {
-        background: rgba(52,52,52,0.99);
-        box-shadow: 0 6px 28px rgba(0,0,0,0.65), 0 1px 6px rgba(0,0,0,0.4);
+        background: rgba(52,52,52,0.55);
+        box-shadow: 0 6px 28px rgba(0,0,0,0.45), 0 1px 6px rgba(0,0,0,0.3);
         transform: scale(1.05);
       }
       #nav-map .pin-active { display: none; }
@@ -793,7 +793,7 @@
         z-index: 250;
         width: 24px; height: 48px;
         border-radius: 0 12px 12px 0;
-        background: rgba(22,28,36,0.92);
+        background: rgba(22,28,36,0.42);
         backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(255,255,255,0.08); border-left: none;
         box-shadow: 2px 0 12px rgba(0,0,0,0.4);
@@ -891,7 +891,7 @@
         z-index: 400;
         width: 44px; height: 44px;
         border-radius: 12px;
-        background: rgba(17,17,17,0.92);
+        background: rgba(17,17,17,0.38);
         backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(255,255,255,0.08);
         box-shadow: 0 4px 20px rgba(0,0,0,0.45);
@@ -3670,6 +3670,7 @@ async function toggleCompass() {
     }
     _compassMode = 'heading-up';
     document.getElementById('compass-btn').classList.add('heading-up');
+    if (map) map.dragging.disable(); // disable pan — rotated map drag is disorienting
     if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
   } else {
     // Switch back to north-up
@@ -3678,6 +3679,7 @@ async function toggleCompass() {
     const mapEl = document.getElementById('map');
     if (mapEl) mapEl.style.transform = '';
     document.documentElement.style.setProperty('--mr-heading', '0deg');
+    if (map) map.dragging.enable(); // re-enable pan
     // Re-draw cone for north-up mode (same SVG rotation formula still works)
     if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
     updateCompassNeedle(_currentHeading);
@@ -3734,7 +3736,7 @@ function updateHeadingCone(lat, lng, heading) {
   // Heading-up: map rotates -heading, cone SVG rotates +heading → cone stays pointing "up" (your direction).
   if (!_compassPermissionGranted) { hideHeadingCone(); return; }
 
-  const SIZE = 180, HALF = SIZE / 2;
+  const SIZE = 90, HALF = SIZE / 2;
 
   if (!_headingCone) {
     if (!map.getPane('conePane')) {
@@ -3752,7 +3754,7 @@ function updateHeadingCone(lat, lng, heading) {
           <stop offset="100%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--blue').trim()||'#4285f4'}" stop-opacity="0"/>
         </radialGradient>
       </defs>
-      <path d="M${HALF},${SIZE} L${HALF-55},0 L${HALF+55},0 Z" fill="url(#hcg)"/>
+      <path d="M${HALF},${SIZE} L${HALF-28},0 L${HALF+28},0 Z" fill="url(#hcg)"/>
     </svg>`;
     const icon = L.divIcon({ html: iconHtml, iconSize: [SIZE, SIZE], iconAnchor: [HALF, SIZE], className: '' });
     _headingCone = L.marker([lat, lng], { icon, interactive: false, pane: 'conePane' }).addTo(map);
