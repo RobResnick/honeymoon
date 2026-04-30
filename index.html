@@ -2471,11 +2471,17 @@ function saveInlineEdit() {
   closeInlineEdit();
 }
 
+let _detailSwipeInitDone = false;
 function openDetail(id) {
   const r = allRecs.find(x => x.id === id);
   if (!r) return;
   saveRecentPlace(id);
   _detailRecId = id;
+
+  // Build swipe order only when opening fresh (not during a swipe navigation)
+  const isSwipeNav = _detailSwipeOrder.length > 0 && _detailSwipeOrder.includes(id);
+  if (!isSwipeNav) buildDetailSwipeOrder(id);
+
   const myItem = _currentUser && r.user_id === _currentUser.id;
 
   const srcColor = getRecSourceColor(r);
@@ -2731,12 +2737,16 @@ function openDetail(id) {
 
   _detailJustOpened = true; // prevent the opening tap from immediately closing via doc listener
   document.getElementById('detail-overlay').classList.add('open');
+  // Init swipe listener once
+  if (!_detailSwipeInitDone) { _detailSwipeInitDone = true; initDetailSwipe(); }
 }
 
 
 function closeDetailModal() {
   document.getElementById('detail-overlay').classList.remove('open');
   removeRouteLine();
+  _detailSwipeOrder = [];
+  _detailSwipeIndex = -1;
 }
 // Close detail modal when clicking outside it.
 // _detailJustOpened prevents the same tap that opened it from immediately closing it.
@@ -2748,6 +2758,89 @@ document.addEventListener('click', function(e) {
   const modal = overlay.querySelector('.modal');
   if (modal && !modal.contains(e.target)) closeDetailModal();
 });
+
+// ── DETAIL SWIPE (next / prev place in city) ──
+let _detailSwipeOrder = [];  // ordered rec IDs for current session
+let _detailSwipeIndex = -1;  // index of currently shown rec in that order
+
+function buildDetailSwipeOrder(currentId) {
+  // All recs with the same city as current, that have coordinates
+  const cur = allRecs.find(r => r.id === currentId);
+  if (!cur) return;
+  const sameCity = filtered.filter(r => r.latitude && r.longitude &&
+    r.city && cur.city && r.city.toLowerCase() === cur.city.toLowerCase());
+  if (sameCity.length < 2) { _detailSwipeOrder = [currentId]; _detailSwipeIndex = 0; return; }
+  // Build nearest-neighbor order starting from current
+  const remaining = sameCity.filter(r => r.id !== currentId);
+  const order = [cur];
+  while (remaining.length) {
+    const last = order[order.length - 1];
+    let best = null, bestDist = Infinity;
+    for (const r of remaining) {
+      const d = haversineKm(parseFloat(last.latitude), parseFloat(last.longitude),
+                            parseFloat(r.latitude), parseFloat(r.longitude));
+      if (d < bestDist) { bestDist = d; best = r; }
+    }
+    order.push(best);
+    remaining.splice(remaining.indexOf(best), 1);
+  }
+  _detailSwipeOrder = order.map(r => r.id);
+  _detailSwipeIndex = 0;
+}
+
+function initDetailSwipe() {
+  const modal = document.querySelector('#detail-overlay .modal');
+  if (!modal) return;
+  let startX = 0, startY = 0, isDragging = false;
+
+  modal.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isDragging = true;
+    modal.style.transition = 'none';
+  }, { passive: true });
+
+  modal.addEventListener('touchmove', e => {
+    if (!isDragging || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (Math.abs(dy) > Math.abs(dx) + 10) { isDragging = false; modal.style.transform = ''; return; }
+    const atStart = _detailSwipeIndex <= 0;
+    const atEnd = _detailSwipeIndex >= _detailSwipeOrder.length - 1;
+    let translate = dx;
+    if ((dx > 0 && atStart) || (dx < 0 && atEnd)) translate = dx * 0.2; // resist at edges
+    modal.style.transform = `translateX(${translate}px)`;
+  }, { passive: true });
+
+  modal.addEventListener('touchend', e => {
+    if (!isDragging) return;
+    isDragging = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    modal.style.transition = 'transform 0.25s cubic-bezier(0.4,0,0.2,1)';
+    if (Math.abs(dx) > 60) {
+      const goNext = dx < 0; // swipe left = next
+      const idx = _detailSwipeIndex + (goNext ? 1 : -1);
+      if (idx >= 0 && idx < _detailSwipeOrder.length) {
+        _detailSwipeIndex = idx;
+        modal.style.transform = `translateX(${goNext ? '-100%' : '100%'})`;
+        setTimeout(() => {
+          modal.style.transition = 'none';
+          modal.style.transform = `translateX(${goNext ? '100%' : '-100%'})`;
+          openDetail(_detailSwipeOrder[_detailSwipeIndex]);
+          requestAnimationFrame(() => {
+            modal.style.transition = 'transform 0.25s cubic-bezier(0.4,0,0.2,1)';
+            modal.style.transform = '';
+          });
+        }, 220);
+        return;
+      }
+    }
+    // Bounce back
+    modal.style.transform = '';
+    setTimeout(() => { modal.style.transition = ''; }, 250);
+  }, { passive: true });
+}
 
 // ── MOBILE NAV + SWIPE ──
 function toggleList() {
