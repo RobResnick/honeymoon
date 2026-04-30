@@ -2859,6 +2859,8 @@ function initDetailSwipe() {
     _previewIdx = -1;
   }
 
+  const GAP = 10; // px gap between swiping cards
+
   function getOrBuildPreview(goNext) {
     const nextIdx = _detailSwipeIndex + (goNext ? 1 : -1);
     if (nextIdx < 0 || nextIdx >= _detailSwipeOrder.length) return null;
@@ -2869,7 +2871,9 @@ function initDetailSwipe() {
     if (!nr) return null;
     _previewEl = document.createElement('div');
     _previewEl.className = 'modal';
-    _previewEl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;pointer-events:none;overflow:hidden;';
+    // Match the current modal's exact height so both cards sit at the same level
+    const modalH = modal.getBoundingClientRect().height;
+    _previewEl.style.cssText = `position:absolute;bottom:0;left:0;right:0;pointer-events:none;overflow:hidden;height:${modalH}px;`;
     const cleanNm = nr.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || nr.name;
     const metaParts = [nr.city, nr.neighborhood, nr.type ? nr.type.charAt(0).toUpperCase()+nr.type.slice(1) : ''].filter(Boolean);
     _previewEl.innerHTML = `
@@ -2912,7 +2916,8 @@ function initDetailSwipe() {
       modal.style.transform = `translateX(${dx}px)`;
       if (preview) {
         preview.style.transition = 'none';
-        preview.style.transform = `translateX(${(goNext ? window.innerWidth : -window.innerWidth) + dx}px)`;
+        const previewBase = goNext ? window.innerWidth + GAP : -window.innerWidth - GAP;
+        preview.style.transform = `translateX(${previewBase + dx}px)`;
       }
     }
   }, { passive: true });
@@ -2923,7 +2928,7 @@ function initDetailSwipe() {
     const dx = e.changedTouches[0].clientX - startX;
     const goNext = swipeDir === -1;
     const EASING = 'transform 0.2s cubic-bezier(0.4,0,0.2,1)';
-    if (Math.abs(dx) > 60 && swipeDir !== 0) {
+    if (Math.abs(dx) > window.innerWidth * 0.5 && swipeDir !== 0) {
       const nextIdx = _detailSwipeIndex + (goNext ? 1 : -1);
       if (nextIdx >= 0 && nextIdx < _detailSwipeOrder.length) {
         _detailSwipeIndex = nextIdx;
@@ -2948,7 +2953,8 @@ function initDetailSwipe() {
     modal.style.transform = '';
     if (_previewEl) {
       _previewEl.style.transition = EASING;
-      _previewEl.style.transform = `translateX(${goNext ? '100%' : '-100%'})`;
+      const bounceBase = goNext ? `calc(100% + ${GAP}px)` : `calc(-100% - ${GAP}px)`;
+      _previewEl.style.transform = `translateX(${bounceBase})`;
       setTimeout(clearPreview, 200);
     }
     swipeDir = 0;
@@ -3159,9 +3165,10 @@ function disableMapInteraction() {
 function enableMapInteraction() {
   if (!map) return;
   if (_compassMode === 'heading-up') {
-    // Orientation mode: pinch-zoom only, no drag, no dblclick-pan
+    // Orientation mode: custom pinch-zoom only (handled by our touchstart/move/end
+    // listeners so Leaflet's touchZoom is disabled to prevent the pan+snap cycle)
     map.dragging.disable();
-    map.touchZoom.enable();
+    map.touchZoom.disable();
     map.doubleClickZoom.disable();
   } else {
     // Default: full pan/zoom, native dblclick (zoom+pan to tapped point)
@@ -3247,6 +3254,7 @@ function initMap() {
       else maybeShowNearbyBanner();
     }
     updateOffCenterState();
+    requestAnimationFrame(hideOverlappingLabels);
   });
   map.on('click', () => {
     if (!isDesktop()) {
@@ -3257,6 +3265,44 @@ function initMap() {
       if (sheet && sheet.classList.contains('open')) closeSheetOnly();
     }
   });
+
+  // ── Custom pinch-zoom for heading-up mode ──────────────────────────────────
+  // Leaflet's built-in touchZoom uses finger midpoint as zoom center, which
+  // causes a visible pan+snap-back cycle in orientation mode. Instead we
+  // intercept 2-finger events ourselves and call setView with the user's fixed
+  // position, so the map zooms in place with zero drift.
+  let _pinchStartDist = 0, _pinchStartZoom = 0, _inCustomPinch = false;
+  const mapEl = document.getElementById('map');
+
+  mapEl.addEventListener('touchstart', e => {
+    if (_compassMode !== 'heading-up' || e.touches.length !== 2) return;
+    e.stopPropagation();
+    _inCustomPinch = true;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    _pinchStartDist = Math.sqrt(dx * dx + dy * dy) || 1;
+    _pinchStartZoom = map.getZoom();
+  }, { passive: true, capture: true });
+
+  mapEl.addEventListener('touchmove', e => {
+    if (!_inCustomPinch || _compassMode !== 'heading-up' || e.touches.length !== 2) return;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const newZoom = _pinchStartZoom + Math.log2(dist / _pinchStartDist);
+    const center = _userLocation
+      ? [_userLocation.lat, _userLocation.lng]
+      : map.getCenter();
+    map.setView(center, newZoom, { animate: false });
+  }, { passive: true, capture: true });
+
+  mapEl.addEventListener('touchend', e => {
+    if (!_inCustomPinch) return;
+    if (e.touches.length < 2) {
+      _inCustomPinch = false;
+      _pinchStartDist = 0;
+    }
+  }, { passive: true, capture: true });
 }
 
 function recenterMap() {
@@ -3324,6 +3370,30 @@ function renderMapMarkers() {
     markers.push(m);
   });
   map.addLayer(markerCluster);
+  // After markers render into DOM, hide any labels that overlap other labels
+  requestAnimationFrame(() => requestAnimationFrame(hideOverlappingLabels));
+}
+
+// Hide place-name labels on the map that overlap another label.
+// Runs after each marker render and on moveend.
+function hideOverlappingLabels() {
+  const labels = Array.from(document.querySelectorAll('.map-place-label'));
+  // Reset visibility so we re-evaluate from scratch
+  labels.forEach(el => { el.style.visibility = ''; });
+  const occupied = []; // array of DOMRect
+  labels.forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const overlaps = occupied.some(o =>
+      r.left < o.right + 3 && r.right > o.left - 3 &&
+      r.top  < o.bottom + 3 && r.bottom > o.top - 3
+    );
+    if (overlaps) {
+      el.style.visibility = 'hidden';
+    } else {
+      occupied.push(r);
+    }
+  });
 }
 
 // ── ADD DRAWER ──
@@ -4176,7 +4246,7 @@ async function toggleCompass() {
     document.getElementById('compass-btn').classList.add('heading-up');
     if (map) {
       map.dragging.disable();
-      map.touchZoom.enable();        // pinch zoom allowed; center snaps to user on zoomend
+      map.touchZoom.disable();       // custom pinch handler takes over in heading-up
       map.doubleClickZoom.disable(); // custom dblclick: zoom-only, no pan
     }
     // Snap to user immediately

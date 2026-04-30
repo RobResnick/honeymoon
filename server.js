@@ -294,8 +294,28 @@ app.post('/api/parse', requireAuth, async (req, res) => {
   if (urlMatch) {
     sourceUrl = urlMatch[1];
 
+    // For Google short links (maps.app.goo.gl / goo.gl), follow the redirect to get the final URL
+    // which contains the actual coordinates in its /@lat,lng pattern
+    if (/goo\.gl|maps\.app\.goo\.gl/.test(sourceUrl)) {
+      try {
+        const headResp = await fetch(sourceUrl, {
+          method: 'HEAD',
+          redirect: 'follow',
+          headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+        });
+        const finalUrl = headResp.url;
+        if (finalUrl && finalUrl !== sourceUrl) {
+          console.log(`Short URL resolved: ${sourceUrl} → ${finalUrl}`);
+          urlCoords = extractCoordsFromUrl(finalUrl);
+          sourceUrl = finalUrl;
+        }
+      } catch (e) {
+        console.error('Short URL redirect follow error:', e.message);
+      }
+    }
+
     // Extract coords from the URL itself before fetching (Google/Apple Maps URLs embed coords)
-    urlCoords = extractCoordsFromUrl(sourceUrl);
+    if (!urlCoords) urlCoords = extractCoordsFromUrl(sourceUrl);
 
     try {
       input = await fetchPageText(sourceUrl);
