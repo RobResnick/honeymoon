@@ -1572,14 +1572,13 @@ function typeIconHtml(type, size = 26, overrideColor) {
   return `<div style="width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:0;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:1.5px solid rgba(255,255,255,0.18)"><svg viewBox="0 0 24 24" width="${iconSize}" height="${iconSize}" fill="white" style="display:block;transform:rotate(45deg)">${path}</svg></div>`;
 }
 
-// Emoji on off-white circle — for list rows and search results
+// Emoji on bright circle — for list rows, search results, and detail view
 function typeEmojiIcon(type, size = 38) {
   const emoji = TYPE_EMOJI[type] || TYPE_EMOJI.other;
   const emojiSize = Math.round(size * 0.56);
-  const radius = Math.round(size * 0.27);
   const t = document.documentElement.getAttribute('data-theme');
-  const bg = t === 'light' ? 'rgba(0,0,0,0.07)' : t === 'luxury' ? 'rgba(240,228,212,0.14)' : 'rgba(255,255,255,0.12)';
-  return `<div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;font-size:${emojiSize}px">${emoji}</div>`;
+  const bg = t === 'light' ? 'rgba(0,0,0,0.08)' : t === 'luxury' ? 'rgba(240,228,212,0.22)' : 'rgba(255,255,255,0.18)';
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;font-size:${emojiSize}px">${emoji}</div>`;
 }
 
 // v2: rounded-square icon for list rows (emoji)
@@ -3044,11 +3043,16 @@ function disableMapInteraction() {
 }
 function enableMapInteraction() {
   if (!map) return;
-  if (_compassMode !== 'heading-up') {
+  if (_compassMode === 'heading-up') {
+    // In rotation mode: no drag/dblclick-zoom; touchZoom re-enabled (pinch only)
+    map.dragging.disable();
+    map.doubleClickZoom.disable();
+    map.touchZoom.enable();
+  } else {
     map.dragging.enable();
     map.touchZoom.enable();
+    map.doubleClickZoom.enable();
   }
-  map.doubleClickZoom.enable();
   map.scrollWheelZoom.enable();
 }
 
@@ -3096,11 +3100,24 @@ function initMap() {
     }, () => {}, { enableHighAccuracy: false, timeout: 8000 });
   }
 
-  // Re-render markers on zoomend to show/hide labels and heading cone
+  // Re-render markers on zoomend; in heading-up mode snap center back to user
   map.on('zoomend', () => {
     renderMapMarkers();
     if (_userLocation) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
+    if (_compassMode === 'heading-up' && _userLocation) {
+      map.panTo([_userLocation.lat, _userLocation.lng], { animate: false });
+    }
   });
+
+  // Custom dblclick: in heading-up just zoom (no center change); north-up uses default
+  map.on('dblclick', e => {
+    if (_compassMode === 'heading-up') {
+      map.setZoom(map.getZoom() + 1, { animate: true });
+    }
+  });
+
+  // Init 2-finger rotation for north-up mode
+  initMapRotation();
 
   // Re-render mobile list when map moves; update off-center pulse
   map.on('moveend', () => {
@@ -3954,9 +3971,42 @@ function setupDesktopFilters() {
 }
 
 // ════════════════════════════════════════════════════════
-// FEATURE 1: COMPASS / NORTH LOCK BUTTON
+// FEATURE 1: COMPASS / NORTH LOCK BUTTON + MAP ROTATION
 // ════════════════════════════════════════════════════════
 let _compassMode = 'north-up'; // 'north-up' | 'heading-up'
+let _mapBearing = 0; // user-rotated bearing (north-up manual twist, degrees)
+
+function getTouchAngle(touches) {
+  const dx = touches[1].clientX - touches[0].clientX;
+  const dy = touches[1].clientY - touches[0].clientY;
+  return Math.atan2(dy, dx) * 180 / Math.PI;
+}
+
+function initMapRotation() {
+  const container = map.getContainer();
+  let rotateStartAngle = null;
+  let rotateStartBearing = 0;
+
+  container.addEventListener('touchstart', e => {
+    if (_compassMode === 'heading-up' || e.touches.length !== 2) return;
+    rotateStartAngle = getTouchAngle(e.touches);
+    rotateStartBearing = _mapBearing;
+  }, { passive: true });
+
+  container.addEventListener('touchmove', e => {
+    if (_compassMode === 'heading-up' || e.touches.length !== 2 || rotateStartAngle === null) return;
+    const delta = getTouchAngle(e.touches) - rotateStartAngle;
+    _mapBearing = (rotateStartBearing + delta + 360) % 360;
+    const mapEl = document.getElementById('map');
+    if (mapEl) mapEl.style.transform = `rotate(${-_mapBearing}deg)`;
+    document.documentElement.style.setProperty('--mr-heading', `${_mapBearing}deg`);
+    updateCompassNeedle(_mapBearing);
+  }, { passive: true });
+
+  container.addEventListener('touchend', e => {
+    if (e.touches.length < 2) rotateStartAngle = null;
+  }, { passive: true });
+}
 let _currentHeading = 0;
 let _compassPermissionGranted = false;
 let _orientationListenerActive = false;
@@ -4014,19 +4064,29 @@ async function toggleCompass() {
     }
     _compassPermissionGranted = true;
     startDeviceOrientation();
+    _mapBearing = 0; // heading takes over rotation
     _compassMode = 'heading-up';
     document.getElementById('compass-btn').classList.add('heading-up');
-    if (map) { map.dragging.disable(); map.touchZoom.disable(); } // lock all panning
+    if (map) {
+      map.dragging.disable();
+      map.touchZoom.enable();       // pinch-to-zoom allowed (center snapped on zoomend)
+      map.doubleClickZoom.disable(); // custom handler zooms without pan
+    }
     if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
   } else {
     // Switch back to north-up
     _compassMode = 'north-up';
+    _mapBearing = 0;
     document.getElementById('compass-btn').classList.remove('heading-up');
     const mapEl = document.getElementById('map');
     if (mapEl) mapEl.style.transform = '';
     document.documentElement.style.setProperty('--mr-heading', '0deg');
-    if (map) { map.dragging.enable(); map.touchZoom.enable(); } // re-enable pan
-    // Re-draw cone for north-up mode (same SVG rotation formula still works)
+    if (map) {
+      map.dragging.enable();
+      map.touchZoom.enable();
+      map.doubleClickZoom.enable();
+    }
+    // Re-draw cone for north-up mode
     if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
     updateCompassNeedle(_currentHeading);
   }
