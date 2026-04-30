@@ -266,15 +266,37 @@ async function fetchPageText(url) {
   return text;
 }
 
+// Extract lat/lng from a Google Maps or Apple Maps URL without fetching the page
+function extractCoordsFromUrl(url) {
+  // Google Maps /@lat,lng,zoom
+  let m = url.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  // Google Maps embedded !3dLAT!4dLNG
+  m = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  // Apple Maps ll=lat,lng
+  m = url.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  // Generic q=lat,lng
+  m = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  return null;
+}
+
 app.post('/api/parse', requireAuth, async (req, res) => {
   let { input } = req.body;
   if (!input) return res.status(400).json({ error: 'Input required' });
 
   let sourceUrl = '';
+  let urlCoords = null; // coords extracted directly from the URL (no page fetch needed)
+
   const urlMatch = input.trim().match(/^(https?:\/\/[^\s]+)$/i);
   if (urlMatch) {
-    // Input is a URL — fetch the page and parse its content
     sourceUrl = urlMatch[1];
+
+    // Extract coords from the URL itself before fetching (Google/Apple Maps URLs embed coords)
+    urlCoords = extractCoordsFromUrl(sourceUrl);
+
     try {
       input = await fetchPageText(sourceUrl);
     } catch (err) {
@@ -283,7 +305,17 @@ app.post('/api/parse', requireAuth, async (req, res) => {
     }
   }
 
+  // Also check if the raw input (could be multi-line text) has embedded map URLs
+  if (!urlCoords) {
+    const anyMapUrl = input.match(/https?:\/\/[^\s]*(google\.com\/maps|maps\.apple\.com|goo\.gl)[^\s]*/i);
+    if (anyMapUrl) urlCoords = extractCoordsFromUrl(anyMapUrl[0]);
+  }
+
   try {
+    const coordHint = urlCoords
+      ? `\nNote: the URL contains GPS coordinates latitude=${urlCoords.latitude}, longitude=${urlCoords.longitude} — include these in your response.`
+      : '';
+
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -306,9 +338,11 @@ app.post('/api/parse', requireAuth, async (req, res) => {
 - notes: any additional details, descriptions, or context about the place
 - source_url: ${sourceUrl ? `"${sourceUrl}"` : 'any URL associated with this place (if present), otherwise empty string'}
 - phone: phone number if mentioned, otherwise empty string
-
+- latitude: GPS latitude as a number if available in the content or URL, otherwise null
+- longitude: GPS longitude as a number if available in the content or URL, otherwise null
+${coordHint}
 Return ONLY a valid JSON array, no other text. Extract every distinct place mentioned. Example:
-[{"name":"Trattoria da Mario","type":"restaurant","city":"Florence","neighborhood":"Santa Croce","address":"","recommended_by":"","notes":"Amazing pasta, cash only","source_url":"${sourceUrl}","phone":""}]
+[{"name":"Trattoria da Mario","type":"restaurant","city":"Florence","neighborhood":"Santa Croce","address":"","recommended_by":"","notes":"Amazing pasta, cash only","source_url":"${sourceUrl}","phone":"","latitude":null,"longitude":null}]
 
 Content to parse:
 ${input}`
@@ -322,8 +356,14 @@ ${input}`
     if (!jsonMatch) return res.status(422).json({ error: 'Could not parse input' });
 
     const parsed = JSON.parse(jsonMatch[0]);
-    // If we fetched a URL, make sure source_url is set on all results
-    if (sourceUrl) parsed.forEach(p => { if (!p.source_url) p.source_url = sourceUrl; });
+    // Inject source URL and any URL-extracted coords into all results
+    parsed.forEach(p => {
+      if (!p.source_url) p.source_url = sourceUrl;
+      if (urlCoords && (!p.latitude || !p.longitude)) {
+        p.latitude = urlCoords.latitude;
+        p.longitude = urlCoords.longitude;
+      }
+    });
     res.json({ recommendations: parsed });
   } catch (err) {
     console.error('Parse error:', err);

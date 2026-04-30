@@ -3302,7 +3302,7 @@ function renderMapMarkers() {
     }
     if (!lat || !lng) return;
     const srcColor = getRecSourceColor(r);
-    const showLabel = map && map.getZoom() >= 15;
+    const showLabel = map && map.getZoom() >= 13;
     const cleanName = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
     const labelHtml = showLabel
       ? `<div class="map-place-label">${esc(cleanName)}</div>`
@@ -3866,7 +3866,7 @@ function saveFolderLabel(fid, val) {
 
 function confirmDeleteFolder(fid) {
   const label = _folderLabels[fid] || fid;
-  if (!confirm(`Delete "${label}"? Members will move to Unassigned.`)) return;
+  if (!confirm(`Delete "${label}"? Members will move to Other.`)) return;
   const popup = document.getElementById('folder-rename-popup');
   if (popup) popup.remove();
   deleteFolder(fid);
@@ -3991,7 +3991,7 @@ function renderBuddyNames() {
   // ── Unassigned (excluding current user) ──
   const unassigned = displayPeople.filter(p => !assignedPeople.has(p));
   if (unassigned.length) {
-    html += `<div style="padding:8px 14px 2px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;border-top:1px solid #1a1a1a">Unassigned</div>`;
+    html += `<div style="padding:8px 14px 2px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;border-top:1px solid #1a1a1a">Other</div>`;
     for (const p of unassigned) html += personRow(p, getPersonColor(p), '');
   } else if (!displayPeople.length && !_currentUser) {
     html += '<div style="padding:16px 14px;font-size:12px;color:#555">No people yet.</div>';
