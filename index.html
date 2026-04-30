@@ -1388,8 +1388,8 @@
 <!-- DETAIL MODAL -->
 <div class="modal-overlay" id="detail-overlay">
   <div class="modal" style="position:relative">
-    <!-- Top-right: maps icons + close -->
-    <div style="position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:10px">
+    <!-- Top-right: maps icons stacked vertically -->
+    <div style="position:absolute;top:12px;right:12px;display:flex;flex-direction:column;align-items:center;gap:8px">
       <a id="detail-apple-maps-link" href="" target="_blank" title="Open in Apple Maps" style="display:flex;align-items:center">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect width="24" height="24" rx="5" fill="#1C86EE"/><path d="M12 4C8.13 4 5 7.13 5 11c0 3.5 4 9 7 11 3-2 7-7.5 7-11 0-3.87-3.13-7-7-7z" fill="white" opacity=".9"/><circle cx="12" cy="11" r="2.5" fill="#1C86EE"/></svg>
       </a>
@@ -2357,10 +2357,11 @@ function panToRec(id) {
   if (!r) return;
   if (!isDesktop()) closeSheetOnly();
   if (map && r.latitude && r.longitude) {
-    setTimeout(() => {
-      map.invalidateSize();
-      map.setView([parseFloat(r.latitude), parseFloat(r.longitude)], 16);
-    }, 50);
+    const lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
+    const targetZoom = Math.max(map.getZoom(), 15);
+    map.setZoom(targetZoom, { animate: false });
+    // After modal renders, center pin in visible area above detail modal
+    setTimeout(() => { map.invalidateSize(); panToVisibleCenter(lat, lng); }, 250);
   }
 }
 
@@ -2449,6 +2450,20 @@ function makeDetailEditable(el, field, r) {
   };
 }
 
+// ── LONG PRESS HELPER ──
+function addLongPress(el, callback, ms = 550) {
+  if (!el || !callback) return;
+  let timer = null;
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  el.addEventListener('touchstart', e => {
+    cancel();
+    timer = setTimeout(() => { timer = null; callback(e); }, ms);
+  }, { passive: true });
+  el.addEventListener('touchend', cancel, { passive: true });
+  el.addEventListener('touchmove', cancel, { passive: true });
+  el.addEventListener('touchcancel', cancel, { passive: true });
+}
+
 // ── INLINE EDIT POPUP ──
 let _inlineEditCallback = null;
 function openInlineEdit(label, currentVal, callback) {
@@ -2491,7 +2506,8 @@ function openDetail(id) {
   nameEl.textContent = cleanName;
   nameEl.contentEditable = 'false';
   nameEl.style.cursor = myItem ? 'pointer' : '';
-  nameEl.onclick = myItem ? () => {
+  nameEl.onclick = null;
+  addLongPress(nameEl, myItem ? () => {
     const rec = allRecs.find(x => x.id === r.id);
     if (!rec) return;
     openInlineEdit('Name', rec.name, async val => {
@@ -2502,7 +2518,7 @@ function openDetail(id) {
         renderList();
       }
     });
-  } : null;
+  } : null);
 
   const metaEl = document.getElementById('detail-meta');
   const metaParts = [r.city, r.neighborhood, r.type ? r.type.charAt(0).toUpperCase()+r.type.slice(1) : ''].filter(Boolean);
@@ -2518,7 +2534,8 @@ function openDetail(id) {
   metaEl.innerHTML = metaParts.join(' · ') + distStr;
   metaEl.contentEditable = 'false';
   metaEl.style.cursor = myItem ? 'pointer' : '';
-  metaEl.onclick = myItem ? () => {
+  metaEl.onclick = null;
+  addLongPress(metaEl, myItem ? () => {
     const rec = allRecs.find(x => x.id === r.id);
     if (!rec) return;
     const cur = [rec.city, rec.neighborhood].filter(Boolean).join(' · ');
@@ -2532,7 +2549,7 @@ function openDetail(id) {
       document.getElementById('detail-google-maps-link').href = mapsUrl(rec);
       document.getElementById('detail-apple-maps-link').href = appleMapsUrl(rec);
     });
-  } : null;
+  } : null);
 
   // Maps links (top-right)
   document.getElementById('detail-google-maps-link').href = mapsUrl(r);
@@ -2703,6 +2720,27 @@ function openDetail(id) {
       this.style.fontStyle = '';
     }
   };
+  // Real-time check: if user pastes a Maps URL, extract coords immediately
+  notesEl.addEventListener('input', function() {
+    const text = this.innerText.trim();
+    const coords = extractMapCoords(text);
+    if (coords) {
+      const rec = allRecs.find(x => x.id === this._recId);
+      if (!rec) return;
+      const strippedNotes = stripMapsUrl(text);
+      api('/api/recommendations/' + this._recId, 'PUT', {
+        ...rec, notes: strippedNotes, latitude: coords.lat, longitude: coords.lng
+      }).then(() => {
+        rec.notes = strippedNotes;
+        rec.latitude = coords.lat;
+        rec.longitude = coords.lng;
+        renderMapMarkers();
+        showToast('📍 Location updated!');
+        renderNotesContent(rec);
+      });
+    }
+  });
+
   notesEl.onblur = async function() {
     const newNotes = this.innerText.trim();
     const rec = allRecs.find(x => x.id === this._recId);
@@ -2738,6 +2776,24 @@ function openDetail(id) {
   document.getElementById('detail-overlay').classList.add('open');
   // Init swipe listener once
   if (!_detailSwipeInitDone) { _detailSwipeInitDone = true; initDetailSwipe(); }
+  // If called from swipe nav (map already showing), center the new place in visible area
+  if (isSwipeNav && map && r.latitude && r.longitude) {
+    setTimeout(() => panToVisibleCenter(parseFloat(r.latitude), parseFloat(r.longitude)), 50);
+  }
+}
+
+// Pan map so lat/lng appears centered in visible area between search bar and detail modal
+function panToVisibleCenter(lat, lng) {
+  if (!map) return;
+  const modal = document.querySelector('#detail-overlay .modal');
+  const modalH = modal ? modal.getBoundingClientRect().height : 300;
+  const searchBar = document.querySelector('.map-search-bar');
+  const searchBottom = searchBar ? searchBar.getBoundingClientRect().bottom : 60;
+  const visibleCenterY = searchBottom + (window.innerHeight - searchBottom - modalH) / 2;
+  const screenCenterY = window.innerHeight / 2;
+  const offsetY = screenCenterY - visibleCenterY;
+  map.panTo([lat, lng], { animate: true, duration: 0.3 });
+  setTimeout(() => map.panBy([0, offsetY], { animate: true, duration: 0.25 }), 320);
 }
 
 
@@ -2788,15 +2844,48 @@ function buildDetailSwipeOrder(currentId) {
 }
 
 function initDetailSwipe() {
+  const overlay = document.getElementById('detail-overlay');
   const modal = document.querySelector('#detail-overlay .modal');
-  if (!modal) return;
-  let startX = 0, startY = 0, isDragging = false;
+  if (!modal || !overlay) return;
+
+  let startX = 0, startY = 0, isDragging = false, swipeDir = 0;
+  let _previewEl = null, _previewIdx = -1;
+
+  function clearPreview() {
+    if (_previewEl) { _previewEl.remove(); _previewEl = null; }
+    _previewIdx = -1;
+  }
+
+  function getOrBuildPreview(goNext) {
+    const nextIdx = _detailSwipeIndex + (goNext ? 1 : -1);
+    if (nextIdx < 0 || nextIdx >= _detailSwipeOrder.length) return null;
+    if (_previewEl && _previewIdx === nextIdx) return _previewEl;
+    clearPreview();
+    _previewIdx = nextIdx;
+    const nr = allRecs.find(x => x.id === _detailSwipeOrder[nextIdx]);
+    if (!nr) return null;
+    _previewEl = document.createElement('div');
+    _previewEl.className = 'modal';
+    _previewEl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;pointer-events:none;overflow:hidden;';
+    const cleanNm = nr.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || nr.name;
+    const metaParts = [nr.city, nr.neighborhood, nr.type ? nr.type.charAt(0).toUpperCase()+nr.type.slice(1) : ''].filter(Boolean);
+    _previewEl.innerHTML = `
+      <div class="detail-header" style="padding:0 24px 0 0;margin-bottom:4px">
+        <div class="detail-icon">${typeEmojiIcon(nr.type, 48)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="detail-name">${esc(cleanNm)}</div>
+          <div class="detail-meta">${metaParts.join(' · ')}</div>
+        </div>
+      </div>`;
+    overlay.appendChild(_previewEl);
+    return _previewEl;
+  }
 
   modal.addEventListener('touchstart', e => {
     if (e.touches.length !== 1) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    isDragging = true;
+    isDragging = true; swipeDir = 0;
     modal.style.transition = 'none';
   }, { passive: true });
 
@@ -2804,40 +2893,63 @@ function initDetailSwipe() {
     if (!isDragging || e.touches.length !== 1) return;
     const dx = e.touches[0].clientX - startX;
     const dy = e.touches[0].clientY - startY;
-    if (Math.abs(dy) > Math.abs(dx) + 10) { isDragging = false; modal.style.transform = ''; return; }
-    const atStart = _detailSwipeIndex <= 0;
-    const atEnd = _detailSwipeIndex >= _detailSwipeOrder.length - 1;
-    let translate = dx;
-    if ((dx > 0 && atStart) || (dx < 0 && atEnd)) translate = dx * 0.2; // resist at edges
-    modal.style.transform = `translateX(${translate}px)`;
+    if (swipeDir === 0) {
+      if (Math.abs(dy) > Math.abs(dx) + 12) { isDragging = false; modal.style.transform = ''; clearPreview(); return; }
+      if (Math.abs(dx) > 8) swipeDir = dx < 0 ? -1 : 1;
+    }
+    if (swipeDir === 0) return;
+    const goNext = swipeDir === -1;
+    const atEdge = (goNext && _detailSwipeIndex >= _detailSwipeOrder.length - 1) ||
+                   (!goNext && _detailSwipeIndex <= 0);
+    if (atEdge) {
+      modal.style.transform = `translateX(${dx * 0.15}px)`;
+      clearPreview();
+    } else {
+      const preview = getOrBuildPreview(goNext);
+      modal.style.transform = `translateX(${dx}px)`;
+      if (preview) {
+        preview.style.transition = 'none';
+        preview.style.transform = `translateX(${(goNext ? window.innerWidth : -window.innerWidth) + dx}px)`;
+      }
+    }
   }, { passive: true });
 
   modal.addEventListener('touchend', e => {
     if (!isDragging) return;
     isDragging = false;
     const dx = e.changedTouches[0].clientX - startX;
-    modal.style.transition = 'transform 0.25s cubic-bezier(0.4,0,0.2,1)';
-    if (Math.abs(dx) > 60) {
-      const goNext = dx < 0; // swipe left = next
-      const idx = _detailSwipeIndex + (goNext ? 1 : -1);
-      if (idx >= 0 && idx < _detailSwipeOrder.length) {
-        _detailSwipeIndex = idx;
+    const goNext = swipeDir === -1;
+    const EASING = 'transform 0.2s cubic-bezier(0.4,0,0.2,1)';
+    if (Math.abs(dx) > 60 && swipeDir !== 0) {
+      const nextIdx = _detailSwipeIndex + (goNext ? 1 : -1);
+      if (nextIdx >= 0 && nextIdx < _detailSwipeOrder.length) {
+        _detailSwipeIndex = nextIdx;
+        modal.style.transition = EASING;
         modal.style.transform = `translateX(${goNext ? '-100%' : '100%'})`;
+        if (_previewEl) {
+          _previewEl.style.transition = EASING;
+          _previewEl.style.transform = 'translateX(0)';
+        }
         setTimeout(() => {
+          clearPreview();
           modal.style.transition = 'none';
-          modal.style.transform = `translateX(${goNext ? '100%' : '-100%'})`;
+          modal.style.transform = '';
+          swipeDir = 0;
           openDetail(_detailSwipeOrder[_detailSwipeIndex]);
-          requestAnimationFrame(() => {
-            modal.style.transition = 'transform 0.25s cubic-bezier(0.4,0,0.2,1)';
-            modal.style.transform = '';
-          });
-        }, 220);
+        }, 200);
         return;
       }
     }
     // Bounce back
+    modal.style.transition = EASING;
     modal.style.transform = '';
-    setTimeout(() => { modal.style.transition = ''; }, 250);
+    if (_previewEl) {
+      _previewEl.style.transition = EASING;
+      _previewEl.style.transform = `translateX(${goNext ? '100%' : '-100%'})`;
+      setTimeout(clearPreview, 200);
+    }
+    swipeDir = 0;
+    setTimeout(() => { modal.style.transition = ''; }, 200);
   }, { passive: true });
 }
 
@@ -4236,14 +4348,20 @@ function maybeShowNearbyBanner() {
 // FEATURE 7: EXTRACT MAP COORDS FROM NOTES
 // ════════════════════════════════════════════════════════
 function extractMapCoords(text) {
-  // Google Maps /@lat,lng
+  // Google Maps /@lat,lng,zoom (most common desktop/mobile share URL)
   let m = text.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
-  // Apple Maps ll=lat,lng
+  // Apple Maps or Google Maps ll=lat,lng
   m = text.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
-  // Google Maps q=lat,lng
+  // Google Maps q=lat,lng or !3d lat !4d lng format
   m = text.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  // Google Maps !3dLAT!4dLNG (embedded link format)
+  m = text.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  // Maps URL with lat,lng directly in path like /maps/place/.../@...
+  m = text.match(/maps\.google\.[a-z]+\/\?[^"'\s]*?[?&]?(?:ll|saddr|daddr)=(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
   return null;
 }
