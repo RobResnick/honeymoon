@@ -1191,7 +1191,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="20" height="25" class="header-logo"><defs><clipPath id="h-pin-clip"><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z"/></clipPath><radialGradient id="h-bevel" cx="38%" cy="30%" r="65%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#FF7A6A" stop-opacity="0.55"/><stop offset="100%" stop-color="#FF7A6A" stop-opacity="0"/></radialGradient></defs><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="#DD4F41"/><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="url(#h-bevel)"/><path d="M 420 105 C 460 130 500 180 515 240 C 528 290 520 340 500 383 L 420 470 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 200 492 130 420 105 Z" fill="#AE3E34" opacity="0.6" clip-path="url(#h-pin-clip)"/><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="none" stroke="#1A0A08" stroke-width="12" stroke-linejoin="round"/><path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="white"/></svg>
       <h1>Honeymaps</h1>
       <span class="header-count" id="rec-count"></span>
-      <button id="fix-location-btn" onclick="runFixNoLocation()" title="Retry finding locations for ⚠️ places" style="display:none;align-items:center;gap:4px;background:none;border:1px solid #f5a623;border-radius:14px;color:#f5a623;font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">⚠️ Retry locations</button>
+      <button id="fix-location-btn" onclick="openFixLocations()" title="Fix missing locations" style="display:none;align-items:center;gap:4px;background:none;border:1px solid #f5a623;border-radius:14px;color:#f5a623;font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">⚠️ Fix locations</button>
     </header>
     <div class="filter-bar" id="filter-bar">
       <input type="text" id="search-input" placeholder="Search places…"
@@ -1382,6 +1382,23 @@
       <button class="add-go-btn" onclick="parseInput()" id="parse-btn">Add</button>
     </div>
     <div id="parse-results" class="parse-results"></div>
+  </div>
+</div>
+
+<!-- FIX LOCATIONS OVERLAY -->
+<div class="modal-overlay" id="fix-loc-overlay" style="display:none;align-items:flex-start;padding-top:0;z-index:6000">
+  <div style="background:var(--card);width:100%;max-width:540px;height:100vh;overflow-y:auto;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:1">
+      <button onclick="closeFixLocations()" style="background:none;border:none;padding:6px;cursor:pointer;color:var(--text2);font-size:20px;line-height:1;flex-shrink:0">←</button>
+      <div style="flex:1">
+        <div style="font-size:16px;font-weight:600;color:var(--text)">Fix Missing Locations</div>
+        <div style="font-size:12px;color:var(--text3)" id="fix-loc-count">Loading…</div>
+      </div>
+    </div>
+    <div style="padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);line-height:1.5">
+      For each place, tap <strong>Search →</strong> to find it in Google Maps, then copy the URL from the address bar and paste it below. Works with Google Maps share links too.
+    </div>
+    <div id="fix-loc-list" style="flex:1;padding:8px 0"></div>
   </div>
 </div>
 
@@ -1918,7 +1935,9 @@ function onSearchFocus() {
   if (buddy && buddy.classList.contains('open')) closeBuddy();
   const val = document.getElementById('map-search-input')?.value || '';
   document.getElementById('map-search-clear').style.display = val ? 'block' : 'none';
-  if (val.length > 1) showSuggestions(val);
+  // On mobile, always hide the suggestion overlay — the list sheet handles search display
+  if (!isDesktop()) { hideSuggestions(); }
+  else if (val.length > 1) showSuggestions(val);
   if (!isDesktop()) {
     expandSearchFilters();
     const sheet = document.getElementById('mobile-sheet');
@@ -2275,10 +2294,15 @@ function renderMobileList() {
           )];
           if (matchingCities.length) {
             cityHtml = matchingCities.map(c =>
-              `<div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;background:var(--bg)" onclick="selectCityInList('${esc(c)}')">
-                <span style="font-size:16px">📍</span>
-                <span style="font-size:14px;font-weight:500;font-family:'Google Sans',sans-serif">${esc(c)}</span>
-                <span style="font-size:12px;color:var(--text3);margin-left:auto">city →</span>
+              `<div class="rec-card" style="cursor:pointer" onclick="selectCityInList('${esc(c)}')">
+                <div class="rec-card-top" style="gap:13px;align-items:center">
+                  <div style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">📍</div>
+                  <div class="rec-card-info" style="min-width:0;flex:1;gap:2px">
+                    <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c)}</div>
+                    <div style="font-size:12px;color:var(--text3)">city</div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4;flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
               </div>`
             ).join('');
           }
@@ -2670,14 +2694,84 @@ function openDetail(id) {
 
   renderDetailTags();
 
-  // Long-press on the detail icon → open tag picker (use .on* to avoid accumulating listeners)
+  // Long-press on the detail icon → type picker (to change place type)
   const iconEl = document.getElementById('detail-icon');
   let iconLpt;
-  iconEl.style.cursor = 'pointer';
-  iconEl.ontouchstart = () => { iconLpt = setTimeout(() => openTagPicker(), 600); };
+  iconEl.style.cursor = myItem ? 'pointer' : '';
+
+  function openTypePicker() {
+    if (!myItem) return;
+    // Build a floating type-picker anchored to the icon
+    let tp = document.getElementById('detail-type-picker');
+    if (!tp) {
+      tp = document.createElement('div');
+      tp.id = 'detail-type-picker';
+      tp.style.cssText = `
+        position:fixed;z-index:9999;
+        background:var(--card);border:1px solid var(--border);border-radius:14px;
+        padding:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+        box-shadow:0 8px 32px rgba(0,0,0,0.4);
+      `;
+      document.body.appendChild(tp);
+    }
+    const TYPES = ['restaurant','bar','cafe','museum','attraction','hotel','shop','market','beach','church','neighborhood','other'];
+    const rec = allRecs.find(x => x.id === r.id);
+    tp.innerHTML = TYPES.map(t => {
+      const active = rec && rec.type === t;
+      return `<div data-type="${t}" style="
+        display:flex;flex-direction:column;align-items:center;gap:3px;
+        padding:8px 4px;border-radius:10px;cursor:pointer;
+        background:${active ? 'var(--accent)' : 'transparent'};
+        -webkit-tap-highlight-color:transparent;
+      ">
+        <span style="font-size:22px">${TYPE_EMOJI[t]}</span>
+        <span style="font-size:9px;color:var(--text2);text-transform:capitalize">${t}</span>
+      </div>`;
+    }).join('');
+    // Position near the icon
+    const iconRect = iconEl.getBoundingClientRect();
+    const tpW = 220, tpH = 160;
+    let left = iconRect.left;
+    let top = iconRect.bottom + 8;
+    if (left + tpW > window.innerWidth - 8) left = window.innerWidth - tpW - 8;
+    if (top + tpH > window.innerHeight - 8) top = iconRect.top - tpH - 8;
+    tp.style.left = left + 'px';
+    tp.style.top = top + 'px';
+    tp.style.display = 'grid';
+    tp.querySelectorAll('[data-type]').forEach(opt => {
+      opt.onclick = async e => {
+        e.stopPropagation();
+        tp.style.display = 'none';
+        const newType = opt.dataset.type;
+        const currRec = allRecs.find(x => x.id === r.id);
+        if (!currRec || currRec.type === newType) return;
+        currRec.type = newType;
+        await api('/api/recommendations/' + currRec.id, 'PUT', { ...currRec });
+        document.getElementById('detail-icon').innerHTML = typeEmojiIcon(newType, 48);
+        const mp = [currRec.city, currRec.neighborhood, newType.charAt(0).toUpperCase()+newType.slice(1)].filter(Boolean);
+        document.getElementById('detail-meta').textContent = mp.join(' · ');
+        renderList();
+        renderMapMarkers();
+      };
+    });
+    // Close on outside tap
+    setTimeout(() => {
+      function closeTypePicker(e) {
+        if (!tp.contains(e.target) && e.target !== iconEl) {
+          tp.style.display = 'none';
+          document.removeEventListener('touchstart', closeTypePicker);
+          document.removeEventListener('click', closeTypePicker);
+        }
+      }
+      document.addEventListener('touchstart', closeTypePicker, { passive: true });
+      document.addEventListener('click', closeTypePicker);
+    }, 0);
+  }
+
+  iconEl.ontouchstart = () => { iconLpt = setTimeout(() => openTypePicker(), 550); };
   iconEl.ontouchend = () => clearTimeout(iconLpt);
   iconEl.ontouchmove = () => clearTimeout(iconLpt);
-  iconEl.oncontextmenu = e => { e.preventDefault(); openTagPicker(); };
+  iconEl.oncontextmenu = e => { e.preventDefault(); if (myItem) openTypePicker(); };
 
   // Close picker when clicking outside (attach once per openDetail call, self-removing)
   setTimeout(() => {
@@ -3709,6 +3803,163 @@ async function runFixNoLocation(silent = false) {
   _suppressAutoFix = false;
   if (!silent && btn) { btn.disabled = false; }
   if (!silent) showToast(fixed > 0 ? `✅ Fixed ${fixed} location${fixed !== 1 ? 's' : ''}` : '✅ Done checking', 2500);
+}
+
+// ── FIX LOCATIONS PANEL ────────────────────────────────────────────────────
+// Manual tool: shows all ⚠️ places and lets user paste a Google Maps URL to fix each one.
+
+function clientExtractCoords(url) {
+  // Try every Google Maps URL format
+  let m = url.match(/\/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  m = url.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  m = url.match(/[?&]ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  m = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  // Google Maps short share: coords sometimes embedded as query param
+  m = url.match(/maps\.google\.[^/]*[?&][^?&]*@?(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  // Raw lat,lng
+  m = url.trim().match(/^(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)$/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  return null;
+}
+
+function openFixLocations() {
+  const overlay = document.getElementById('fix-loc-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  renderFixLocationsList();
+}
+
+function closeFixLocations() {
+  const overlay = document.getElementById('fix-loc-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function renderFixLocationsList() {
+  const list = document.getElementById('fix-loc-list');
+  const countEl = document.getElementById('fix-loc-count');
+  if (!list) return;
+
+  // Places that are at city-center or have no coords
+  const unlocated = allRecs.filter(r => _failedCoords.has(r.id) || _pendingCoords.has(r.id));
+  if (countEl) countEl.textContent = `${unlocated.length} place${unlocated.length !== 1 ? 's' : ''} need precise location`;
+
+  if (!unlocated.length) {
+    list.innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--text3)">✅ All places have precise locations</div>';
+    return;
+  }
+
+  // Group by city
+  const byCity = {};
+  unlocated.forEach(r => {
+    const c = r.city || 'Unknown';
+    if (!byCity[c]) byCity[c] = [];
+    byCity[c].push(r);
+  });
+
+  list.innerHTML = Object.entries(byCity).map(([city, recs]) => `
+    <div style="padding:8px 16px 2px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">${esc(city)}</div>
+    ${recs.map(r => `
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border)" id="fix-row-${r.id}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          ${typeEmojiIcon(r.type, 32)}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
+            <div style="font-size:12px;color:var(--text3)">${[r.city, r.neighborhood].filter(Boolean).join(' · ')}</div>
+          </div>
+          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + (r.city || ''))}" target="_blank"
+             style="flex-shrink:0;font-size:12px;color:var(--blue);white-space:nowrap;text-decoration:none;padding:4px 8px;border:1px solid var(--blue);border-radius:8px">Search →</a>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="fix-input-${r.id}" type="text" placeholder="Paste Google Maps URL or lat,lng…"
+            style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none"
+            oninput="fixLocPreview(${r.id}, this.value)" />
+          <button onclick="fixLocSave(${r.id})"
+            style="flex-shrink:0;background:var(--blue);color:white;border:none;border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:500">
+            Save
+          </button>
+        </div>
+        <div id="fix-preview-${r.id}" style="font-size:11px;color:var(--text3);margin-top:4px;min-height:14px"></div>
+      </div>
+    `).join('')}
+  `).join('');
+}
+
+function fixLocPreview(id, val) {
+  const previewEl = document.getElementById(`fix-preview-${id}`);
+  if (!previewEl) return;
+  if (!val.trim()) { previewEl.textContent = ''; return; }
+  const coords = clientExtractCoords(val.trim());
+  if (coords) {
+    previewEl.textContent = `✓ ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+    previewEl.style.color = '#4caf50';
+  } else {
+    previewEl.textContent = 'No coordinates found in that URL';
+    previewEl.style.color = '#f5a623';
+  }
+}
+
+async function fixLocSave(id) {
+  const inp = document.getElementById(`fix-input-${id}`);
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) return;
+
+  // If it's a goo.gl short link, resolve server-side first
+  if (/goo\.gl|maps\.app\.goo\.gl/.test(val)) {
+    const previewEl = document.getElementById(`fix-preview-${id}`);
+    if (previewEl) { previewEl.textContent = 'Resolving short link…'; previewEl.style.color = 'var(--text3)'; }
+    try {
+      const res = await api('/api/resolve-url', 'POST', { url: val });
+      if (res && res.lat && res.lng) {
+        await doFixLocSave(id, res.lat, res.lng);
+        return;
+      }
+    } catch(e) {}
+    if (previewEl) { previewEl.textContent = 'Could not resolve short link'; previewEl.style.color = '#f5a623'; }
+    return;
+  }
+
+  const coords = clientExtractCoords(val);
+  if (!coords) {
+    showToast('No coordinates found in that URL', 2500);
+    return;
+  }
+  await doFixLocSave(id, coords.lat, coords.lng);
+}
+
+async function doFixLocSave(id, lat, lng) {
+  const rec = allRecs.find(x => x.id === id);
+  if (!rec) return;
+  try {
+    const updated = await api('/api/recommendations/' + id, 'PUT', {
+      ...rec, latitude: lat, longitude: lng, geocode_attempted: true
+    });
+    if (updated && updated.id) {
+      // Update local state
+      const idx = allRecs.findIndex(x => x.id === id);
+      if (idx >= 0) allRecs[idx] = updated;
+      _failedCoords.delete(id);
+      _pendingCoords.delete(id);
+      // Animate row out
+      const row = document.getElementById(`fix-row-${id}`);
+      if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; setTimeout(() => row.remove(), 300); }
+      // Update count
+      const remaining = allRecs.filter(r => _failedCoords.has(r.id) || _pendingCoords.has(r.id)).length;
+      const countEl = document.getElementById('fix-loc-count');
+      if (countEl) countEl.textContent = `${remaining} place${remaining !== 1 ? 's' : ''} need precise location`;
+      const fixBtn = document.getElementById('fix-location-btn');
+      if (fixBtn) fixBtn.style.display = remaining > 0 ? 'inline-flex' : 'none';
+      renderMapMarkers();
+      showToast(`📍 Fixed: ${rec.name}`, 2000);
+    }
+  } catch(e) {
+    showToast('Save failed: ' + e.message, 3000);
+  }
 }
 
 // Auto-triggered after save/load when ⏳ (pending) places exist

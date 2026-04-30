@@ -283,6 +283,24 @@ function extractCoordsFromUrl(url) {
   return null;
 }
 
+// Resolve a short URL (goo.gl, maps.app.goo.gl) and extract coordinates
+app.post('/api/resolve-url', requireAuth, async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    const headResp = await fetch(url, {
+      method: 'HEAD', redirect: 'follow',
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+    });
+    const finalUrl = headResp.url || url;
+    const coords = extractCoordsFromUrl(finalUrl);
+    if (coords) return res.json({ lat: coords.latitude, lng: coords.longitude, finalUrl });
+    return res.json({ finalUrl, lat: null, lng: null });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/parse', requireAuth, async (req, res) => {
   let { input } = req.body;
   if (!input) return res.status(400).json({ error: 'Input required' });
@@ -687,10 +705,17 @@ app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
     longitude = coords.longitude;
   }
 
+  // Allow manual coordinate fixes to stamp geocode_attempted=TRUE
+  const geocode_attempted = (req.body.geocode_attempted === true || req.body.geocode_attempted === 'true') ? true : null;
+  const geocodeClause = geocode_attempted !== null ? ', geocode_attempted=$15' : '';
+  const queryParams = [name, type, city, neighborhood, address, country, recommended_by, notes, source_url, latitude, longitude, phone || null, req.params.id, req.userId];
+  if (geocode_attempted !== null) queryParams.splice(12, 0, geocode_attempted);
+  const idIdx = geocode_attempted !== null ? 14 : 13;
+  const userIdx = geocode_attempted !== null ? 15 : 14;
   const result = await pool.query(
-    `UPDATE recommendations SET name=$1, type=$2, city=$3, neighborhood=$4, address=$5, country=$6, recommended_by=$7, notes=$8, source_url=$9, latitude=$10, longitude=$11, phone=$12, updated_at=NOW()
-     WHERE id=$13 AND user_id=$14 RETURNING *`,
-    [name, type, city, neighborhood, address, country, recommended_by, notes, source_url, latitude, longitude, phone || null, req.params.id, req.userId]
+    `UPDATE recommendations SET name=$1, type=$2, city=$3, neighborhood=$4, address=$5, country=$6, recommended_by=$7, notes=$8, source_url=$9, latitude=$10, longitude=$11, phone=$12${geocode_attempted !== null ? ', geocode_attempted=$13' : ''}, updated_at=NOW()
+     WHERE id=$${idIdx} AND user_id=$${userIdx} RETURNING *`,
+    queryParams
   );
   if (!result.rows[0]) return res.status(404).json({ error: 'Not found' });
   res.json(result.rows[0]);
