@@ -2492,6 +2492,9 @@ function openDetail(id) {
   saveRecentPlace(id);
   _detailRecId = id;
 
+  // Opening a place exits orientation mode (so the map can pan to the place)
+  exitOrientationMode();
+
   // Build swipe order only when opening fresh (not during a swipe navigation)
   const isSwipeNav = _detailSwipeOrder.length > 0 && _detailSwipeOrder.includes(id);
   if (!isSwipeNav) buildDetailSwipeOrder(id);
@@ -3156,11 +3159,12 @@ function disableMapInteraction() {
 function enableMapInteraction() {
   if (!map) return;
   if (_compassMode === 'heading-up') {
-    // In rotation mode: no drag/dblclick-zoom; touchZoom re-enabled (pinch only)
+    // Orientation mode: pinch-zoom only, no drag, no dblclick-pan
     map.dragging.disable();
-    map.doubleClickZoom.disable();
     map.touchZoom.enable();
+    map.doubleClickZoom.disable();
   } else {
+    // Default: full pan/zoom, native dblclick (zoom+pan to tapped point)
     map.dragging.enable();
     map.touchZoom.enable();
     map.doubleClickZoom.enable();
@@ -3209,6 +3213,9 @@ function initMap() {
       if (!_initialCentered) {
         _initialCentered = true;
         centerOnUserWithDots(pos.coords.latitude, pos.coords.longitude);
+      } else if (_compassMode === 'heading-up') {
+        // Keep blue dot locked at screen center as user moves
+        map.panTo([pos.coords.latitude, pos.coords.longitude], { animate: false });
       }
     }, () => {
       // Location unavailable — map already shows all markers
@@ -3224,15 +3231,13 @@ function initMap() {
     }
   });
 
-  // Custom dblclick: in heading-up just zoom (no center change); north-up uses default
+  // In orientation mode: dblclick zooms only (no pan); north-up: Leaflet handles natively
   map.on('dblclick', e => {
     if (_compassMode === 'heading-up') {
       map.setZoom(map.getZoom() + 1, { animate: true });
     }
+    // north-up: native doubleClickZoom already handles zoom+pan, nothing needed here
   });
-
-  // Init 2-finger rotation for north-up mode
-  initMapRotation();
 
   // Re-render mobile list when map moves; update off-center pulse
   map.on('moveend', () => {
@@ -4086,79 +4091,67 @@ function setupDesktopFilters() {
 }
 
 // ════════════════════════════════════════════════════════
-// FEATURE 1: COMPASS / NORTH LOCK BUTTON + MAP ROTATION
+// COMPASS / ORIENTATION MODE
+//
+// DEFAULT (north-up):
+//   - Map does NOT rotate from gestures, always faces north
+//   - 1-finger: pan any direction
+//   - 2-finger: pinch zoom only (no rotation)
+//   - Double-tap: zoom in + pan to tapped location (native Leaflet)
+//   - Button icon: simple N-arrow
+//
+// ORIENTATION MODE (heading-up):
+//   - Map rotates with phone compass only
+//   - 1-finger: locked (no pan)
+//   - 2-finger: pinch zoom only (center snaps back to user on zoom)
+//   - Double-tap: zoom only, no pan
+//   - Blue dot stays locked at screen center
+//   - Tapping a place detail → exits back to north-up
+//   - Button icon: full compass with orange glow
 // ════════════════════════════════════════════════════════
-let _compassMode = 'north-up'; // 'north-up' | 'heading-up'
-let _mapBearing = 0; // user-rotated bearing (north-up manual twist, degrees)
-
-function getTouchAngle(touches) {
-  const dx = touches[1].clientX - touches[0].clientX;
-  const dy = touches[1].clientY - touches[0].clientY;
-  return Math.atan2(dy, dx) * 180 / Math.PI;
-}
-
-function initMapRotation() {
-  const container = map.getContainer();
-  let rotateStartAngle = null;
-  let rotateStartBearing = 0;
-
-  container.addEventListener('touchstart', e => {
-    if (_compassMode === 'heading-up' || e.touches.length !== 2) return;
-    rotateStartAngle = getTouchAngle(e.touches);
-    rotateStartBearing = _mapBearing;
-  }, { passive: true });
-
-  container.addEventListener('touchmove', e => {
-    if (_compassMode === 'heading-up' || e.touches.length !== 2 || rotateStartAngle === null) return;
-    const delta = getTouchAngle(e.touches) - rotateStartAngle;
-    _mapBearing = (rotateStartBearing + delta + 360) % 360;
-    const mapEl = document.getElementById('map');
-    if (mapEl) mapEl.style.transform = `rotate(${-_mapBearing}deg)`;
-    document.documentElement.style.setProperty('--mr-heading', `${_mapBearing}deg`);
-    updateCompassNeedle(_mapBearing);
-  }, { passive: true });
-
-  container.addEventListener('touchend', e => {
-    if (e.touches.length < 2) rotateStartAngle = null;
-  }, { passive: true });
-}
+let _compassMode = 'north-up';
 let _currentHeading = 0;
 let _compassPermissionGranted = false;
 let _orientationListenerActive = false;
-let _hasOrientationData = false; // true once real device data arrives
+let _hasOrientationData = false;
 
-function updateCompassNeedle(heading) {
+// In north-up: compass needle is static (no rotation); in heading-up it rotates
+function updateCompassIcon() {
+  const btn = document.getElementById('compass-btn');
   const svg = document.getElementById('compass-svg');
-  if (svg) svg.style.transform = `rotate(${-heading}deg)`;
+  if (!btn || !svg) return;
+  if (_compassMode === 'heading-up') {
+    // Full rotating compass + orange glow
+    svg.style.transform = `rotate(${-_currentHeading}deg)`;
+  } else {
+    // Simple static N-arrow, no rotation
+    svg.style.transform = '';
+  }
 }
 
 function applyHeadingToMap(heading) {
   _currentHeading = heading;
-  updateCompassNeedle(heading);
   if (_compassMode === 'heading-up') {
     const mapEl = document.getElementById('map');
     if (mapEl) mapEl.style.transform = `rotate(${-heading}deg)`;
-    // Counter-rotate markers so they stay upright
     document.documentElement.style.setProperty('--mr-heading', `${heading}deg`);
+    // Keep user at screen center as phone rotates
+    if (_userLocation && map) map.panTo([_userLocation.lat, _userLocation.lng], { animate: false });
   }
-  // Update heading cone
+  updateCompassIcon();
   if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, heading);
 }
 
 function startDeviceOrientation() {
-  if (_orientationListenerActive) return; // prevent duplicate listeners
+  if (_orientationListenerActive) return;
   _orientationListenerActive = true;
   window.addEventListener('deviceorientation', function(e) {
     let heading = null;
-    if (e.webkitCompassHeading != null) {
-      heading = e.webkitCompassHeading; // iOS
-    } else if (e.alpha != null) {
-      heading = 360 - e.alpha; // Android
-    }
+    if (e.webkitCompassHeading != null) heading = e.webkitCompassHeading;
+    else if (e.alpha != null) heading = 360 - e.alpha;
     if (heading === null) return;
     if (!_hasOrientationData) {
       _hasOrientationData = true;
-      // Show cone now that we have real data
       if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, heading);
     }
     applyHeadingToMap(heading);
@@ -4167,7 +4160,7 @@ function startDeviceOrientation() {
 
 async function toggleCompass() {
   if (_compassMode === 'north-up') {
-    // Switch to heading-up — always try to get permission / start listener
+    // ── Enter orientation mode ──
     if (typeof DeviceOrientationEvent !== 'undefined' &&
         typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
@@ -4179,32 +4172,38 @@ async function toggleCompass() {
     }
     _compassPermissionGranted = true;
     startDeviceOrientation();
-    _mapBearing = 0; // heading takes over rotation
     _compassMode = 'heading-up';
     document.getElementById('compass-btn').classList.add('heading-up');
     if (map) {
       map.dragging.disable();
-      map.touchZoom.enable();       // pinch-to-zoom allowed (center snapped on zoomend)
-      map.doubleClickZoom.disable(); // custom handler zooms without pan
+      map.touchZoom.enable();        // pinch zoom allowed; center snaps to user on zoomend
+      map.doubleClickZoom.disable(); // custom dblclick: zoom-only, no pan
     }
+    // Snap to user immediately
+    if (_userLocation && map) map.panTo([_userLocation.lat, _userLocation.lng], { animate: true, duration: 0.4 });
     if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
+    updateCompassIcon();
   } else {
-    // Switch back to north-up
-    _compassMode = 'north-up';
-    _mapBearing = 0;
-    document.getElementById('compass-btn').classList.remove('heading-up');
-    const mapEl = document.getElementById('map');
-    if (mapEl) mapEl.style.transform = '';
-    document.documentElement.style.setProperty('--mr-heading', '0deg');
-    if (map) {
-      map.dragging.enable();
-      map.touchZoom.enable();
-      map.doubleClickZoom.enable();
-    }
-    // Re-draw cone for north-up mode
-    if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
-    updateCompassNeedle(_currentHeading);
+    // ── Exit to north-up ──
+    exitOrientationMode();
   }
+}
+
+function exitOrientationMode() {
+  if (_compassMode !== 'heading-up') return;
+  _compassMode = 'north-up';
+  const btn = document.getElementById('compass-btn');
+  if (btn) btn.classList.remove('heading-up');
+  const mapEl = document.getElementById('map');
+  if (mapEl) mapEl.style.transform = '';
+  document.documentElement.style.setProperty('--mr-heading', '0deg');
+  if (map) {
+    map.dragging.enable();
+    map.touchZoom.enable();
+    map.doubleClickZoom.enable();
+  }
+  if (_userLocation && map) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
+  updateCompassIcon();
 }
 
 // ════════════════════════════════════════════════════════
