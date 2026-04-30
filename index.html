@@ -3081,6 +3081,10 @@ function initMap() {
 
   // Then try to get user location and re-center to show 2 nearest dots
   if (navigator.geolocation) {
+    // Single watchPosition handles both initial centering and ongoing updates.
+    // Using one call avoids a double permission prompt (getCurrentPosition + watchPosition
+    // each trigger their own dialog on some browsers/iOS versions).
+    let _initialCentered = false;
     navigator.geolocation.watchPosition(pos => {
       _userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       if (locationDot) map.removeLayer(locationDot);
@@ -3090,14 +3094,13 @@ function initMap() {
         weight: 3, fillOpacity: 1, zIndexOffset: 1000
       }).addTo(map);
       updateHeadingCone(pos.coords.latitude, pos.coords.longitude, _currentHeading);
+      if (!_initialCentered) {
+        _initialCentered = true;
+        centerOnUserWithDots(pos.coords.latitude, pos.coords.longitude);
+      }
     }, () => {
-      // No location available — already showing all markers, nothing to do
-    }, { enableHighAccuracy: true, timeout: 8000 });
-    // Initial center (one-shot, fast)
-    navigator.geolocation.getCurrentPosition(pos => {
-      _userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      centerOnUserWithDots(pos.coords.latitude, pos.coords.longitude);
-    }, () => {}, { enableHighAccuracy: false, timeout: 8000 });
+      // Location unavailable — map already shows all markers
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
   }
 
   // Re-render markers on zoomend; in heading-up mode snap center back to user
