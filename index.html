@@ -1790,7 +1790,8 @@ async function showApp() {
       renderList();
       renderMobileList();
       const fixBtn = document.getElementById('fix-location-btn');
-      if (fixBtn) fixBtn.style.display = _failedCoords.size > 0 ? 'inline-flex' : 'none';
+      const _tot = _failedCoords.size + _pendingCoords.size;
+      if (fixBtn) { fixBtn.style.display = _tot > 0 ? 'inline-flex' : 'none'; if (_tot > 0) fixBtn.textContent = `⚠️ ${_tot} missing locations`; }
       // Auto-fix any ⏳ (pending) places in the background
       autoFixIfNeeded();
     }
@@ -2169,12 +2170,19 @@ async function loadRecs(fromServer = true) {
     if (type   && r.type !== type) return false;
     if (person && !(r.recommended_by||'').toLowerCase().split(',').map(p=>p.trim()).includes(person)) return false;
     if (search) {
-      const hay = [r.name, r.city, r.neighborhood, r.notes, r.recommended_by, r.type].join(' ').toLowerCase();
-      const synonymTypes = SEARCH_SYNONYMS[search] || SEARCH_SYNONYMS[search.replace(/s$/, '')];
-      if (synonymTypes) {
-        if (!synonymTypes.includes(r.type) && !hay.includes(search)) return false;
+      // Special status filters
+      if (search === '⏳' || search === 'hourglass' || search === 'pending') {
+        if (!_pendingCoords.has(r.id)) return false;
+      } else if (search === '⚠️' || search === 'warning' || search === 'failed') {
+        if (!_failedCoords.has(r.id)) return false;
       } else {
-        if (!hay.includes(search)) return false;
+        const hay = [r.name, r.city, r.neighborhood, r.notes, r.recommended_by, r.type].join(' ').toLowerCase();
+        const synonymTypes = SEARCH_SYNONYMS[search] || SEARCH_SYNONYMS[search.replace(/s$/, '')];
+        if (synonymTypes) {
+          if (!synonymTypes.includes(r.type) && !hay.includes(search)) return false;
+        } else {
+          if (!hay.includes(search)) return false;
+        }
       }
     }
     // Filter by buddy visibility — recommended_by is the source of truth
@@ -2189,9 +2197,13 @@ async function loadRecs(fromServer = true) {
   renderMobileList();
   if (!isDesktop()) setTimeout(maybeShowNearbyBanner, 200);
   document.getElementById('rec-count').textContent = filtered.length + (filtered.length === 1 ? ' place' : ' places');
-  // Show fix button if there are ⚠️ (failed) places the user can manually retry
+  // Show fix button if there are any unlocated places (⏳ pending or ⚠️ failed)
   const fixBtn = document.getElementById('fix-location-btn');
-  if (fixBtn) fixBtn.style.display = _failedCoords.size > 0 ? 'inline-flex' : 'none';
+  const totalUnlocated = _failedCoords.size + _pendingCoords.size;
+  if (fixBtn) {
+    fixBtn.style.display = totalUnlocated > 0 ? 'inline-flex' : 'none';
+    if (totalUnlocated > 0) fixBtn.textContent = `⚠️ ${totalUnlocated} missing locations`;
+  }
   // Auto-fix any ⏳ (pending) places immediately
   if (Object.keys(_cityCoords).length > 0) autoFixIfNeeded();
 }
@@ -3953,7 +3965,7 @@ async function doFixLocSave(id, lat, lng) {
       const countEl = document.getElementById('fix-loc-count');
       if (countEl) countEl.textContent = `${remaining} place${remaining !== 1 ? 's' : ''} need precise location`;
       const fixBtn = document.getElementById('fix-location-btn');
-      if (fixBtn) fixBtn.style.display = remaining > 0 ? 'inline-flex' : 'none';
+      if (fixBtn) { fixBtn.style.display = remaining > 0 ? 'inline-flex' : 'none'; if (remaining > 0) fixBtn.textContent = `⚠️ ${remaining} missing locations`; }
       renderMapMarkers();
       showToast(`📍 Fixed: ${rec.name}`, 2000);
     }
