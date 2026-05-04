@@ -1271,7 +1271,12 @@
 
   <!-- MOBILE BOTTOM SHEET -->
   <div class="mobile-sheet" id="mobile-sheet">
-    <div class="mobile-sheet-handle" id="sheet-handle"></div>
+    <div class="mobile-sheet-handle" id="sheet-handle">
+      <div id="list-mode-toggle" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;align-items:center;background:var(--bg);border-radius:20px;padding:2px 3px;gap:1px;opacity:0;transition:opacity 0.2s">
+        <button id="toggle-recent" onclick="setListMode('recent')" style="background:none;border:none;font-size:11px;font-weight:600;color:var(--text3);padding:3px 9px;border-radius:16px;cursor:pointer;font-family:inherit;transition:all 0.15s">Recent</button>
+        <button id="toggle-map" onclick="setListMode('map')" style="background:none;border:none;font-size:11px;font-weight:600;color:var(--text3);padding:3px 9px;border-radius:16px;cursor:pointer;font-family:inherit;transition:all 0.15s">On map</button>
+      </div>
+    </div>
     <div id="mobile-list-view" class="mobile-list-body"></div>
   </div>
 
@@ -2333,30 +2338,29 @@ function renderMobileList() {
           }
         }
       } else if (map) {
-        // No filter → show only places in current map viewport
-        const bounds = map.getBounds();
-        const inBounds = filtered.filter(r => r.latitude && r.longitude
-          && bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
+        // No filter → show based on toggle mode
         const sectionLabel = s => `<div style="padding:10px 16px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">${s}</div>`;
-        const sheet = document.getElementById('mobile-sheet');
-        const sheetOpen = sheet && sheet.classList.contains('open');
-        // Recent places section (shown when sheet is open)
-        const recentRecs = sheetOpen ? getRecentPlaces() : [];
-        const recentHtml = recentRecs.length > 0 ? sectionLabel('Recent') + recentRecs.map(cardHtml).join('') : '';
-        // List = whatever dots are currently in the map frame
-        if (inBounds.length > 0) {
-          const allNearby = _userLocation && inBounds.every(r =>
-            r.latitude && r.longitude &&
-            haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) < NEARBY_KM
-          );
-          // Show "Nearby" or "On map" label above map results when recent section is also showing
-          const mapLabel = recentHtml ? sectionLabel(allNearby ? 'Nearby' : 'On map')
-                         : allNearby ? sectionLabel('Nearby') : '';
-          html = recentHtml + mapLabel + inBounds.map(cardHtml).join('');
+        if (_listMode === 'recent') {
+          const recentRecs = getRecentPlaces();
+          html = recentRecs.length > 0
+            ? recentRecs.map(cardHtml).join('')
+            : '<div class="empty-state"><p>No recently viewed places.</p></div>';
         } else {
-          // Nothing in viewport — show recent places if sheet is open
-          html = recentHtml || noMatch;
-          if (!sheetOpen) setTimeout(maybeShowNearbyBanner, 100);
+          // On map — show places in current viewport
+          const bounds = map.getBounds();
+          const inBounds = filtered.filter(r => r.latitude && r.longitude
+            && bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
+          if (inBounds.length > 0) {
+            const allNearby = _userLocation && inBounds.every(r =>
+              r.latitude && r.longitude &&
+              haversineKm(_userLocation.lat, _userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) < NEARBY_KM
+            );
+            const label = allNearby ? sectionLabel('Nearby') : '';
+            html = label + inBounds.map(cardHtml).join('');
+          } else {
+            html = noMatch;
+            setTimeout(maybeShowNearbyBanner, 100);
+          }
         }
       } else {
         html = filtered.length ? filtered.map(cardHtml).join('') : noMatch;
@@ -3075,6 +3079,33 @@ function toggleList() {
   else setMode('list');
 }
 
+// ── LIST MODE TOGGLE (Recent / On map) ────────────────────────────────────
+let _listMode = localStorage.getItem('hm_list_mode') || 'map'; // 'recent' or 'map'
+
+function setListMode(mode) {
+  _listMode = mode;
+  localStorage.setItem('hm_list_mode', mode);
+  updateListModeToggle();
+  renderMobileList();
+}
+
+function updateListModeToggle() {
+  const rBtn = document.getElementById('toggle-recent');
+  const mBtn = document.getElementById('toggle-map');
+  if (!rBtn || !mBtn) return;
+  const activeStyle = 'background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.18)';
+  const inactiveStyle = 'background:none;color:var(--text3);box-shadow:none';
+  rBtn.style.cssText = rBtn.style.cssText.replace(/background:[^;]+;color:[^;]+;box-shadow:[^;]+/, '');
+  mBtn.style.cssText = mBtn.style.cssText.replace(/background:[^;]+;color:[^;]+;box-shadow:[^;]+/, '');
+  if (_listMode === 'recent') {
+    rBtn.style.background = 'var(--card)'; rBtn.style.color = 'var(--text)'; rBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.18)';
+    mBtn.style.background = 'none'; mBtn.style.color = 'var(--text3)'; mBtn.style.boxShadow = 'none';
+  } else {
+    mBtn.style.background = 'var(--card)'; mBtn.style.color = 'var(--text)'; mBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.18)';
+    rBtn.style.background = 'none'; rBtn.style.color = 'var(--text3)'; rBtn.style.boxShadow = 'none';
+  }
+}
+
 function setMode(mode) {
   // Close buddy panel whenever user taps List, Add, or Map nav
   const buddy = document.getElementById('buddy-panel');
@@ -3092,6 +3123,10 @@ function setMode(mode) {
     renderMobileList(); // re-render with current map viewport bounds
     disableMapInteraction();
     if (compassBtn) compassBtn.style.display = 'none';
+    // Show toggle and set active state
+    const tog = document.getElementById('list-mode-toggle');
+    if (tog) tog.style.opacity = '1';
+    updateListModeToggle();
   } else if (mode === 'map') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
@@ -3099,6 +3134,8 @@ function setMode(mode) {
     if (!map) initMap();
     enableMapInteraction();
     if (compassBtn) compassBtn.style.display = 'flex';
+    const tog = document.getElementById('list-mode-toggle');
+    if (tog) tog.style.opacity = '0';
   } else if (mode === 'add') {
     document.getElementById('nav-map').classList.add('active');
     sheet.classList.remove('open');
@@ -3786,22 +3823,22 @@ async function runFixNoLocation(silent = false) {
 
   let fixed = 0;
   let attempts = 0;
-  const maxAttempts = 50; // safety cap
-  // On manual retry, reset geocode_attempted for ⚠️ places on first call
+  const maxAttempts = 500; // high cap — runs until all pending places are processed
+  // On manual retry, reset geocode_attempted so everything gets a fresh pass
   let firstCall = !silent;
 
   while (attempts++ < maxAttempts) {
     try {
       const url = firstCall ? '/api/fix-no-location?retry=1' : '/api/fix-no-location';
       firstCall = false;
-      const result = await api(url, { method: 'POST' });
-      if (!result || result.done) break;
+      const result = await api('/api/fix-no-location', 'POST');
+      if (!result || result.done || result.remaining === 0) break;
       if (result.updated) {
         fixed++;
-        showToast(`📍 Fixed location: ${result.name}`, 2000);
+        if (!silent) showToast(`📍 Located: ${result.name}`, 1500);
       }
-      if (result.remaining === 0) break;
-      await new Promise(r => setTimeout(r, 400));
+      // Small delay to respect Nominatim rate limit
+      await new Promise(r => setTimeout(r, 1200));
     } catch (e) {
       console.error('fix-no-location error:', e);
       break;
