@@ -505,10 +505,21 @@
     }
     .add-places-textarea:focus { outline: none; box-shadow: none; }
     .add-places-textarea::placeholder { color: var(--text3); }
+    .add-btn-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px 32px; gap: 12px; flex-shrink: 0;
+    }
+    .add-cancel-btn {
+      background: none; border: none; padding: 8px 4px;
+      font-size: 15px; color: var(--text3); cursor: pointer;
+      font-family: 'Google Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .add-cancel-btn:active { opacity: 0.6; }
     .add-go-btn {
-      margin: 14px 20px 32px; background: var(--blue); color: white;
-      border: none; border-radius: 24px; padding: 15px;
-      font-size: 16px; font-weight: 600; width: calc(100% - 40px);
+      background: var(--blue); color: white;
+      border: none; border-radius: 24px; padding: 14px 32px;
+      font-size: 16px; font-weight: 600;
       cursor: pointer; font-family: 'Google Sans', sans-serif;
       -webkit-tap-highlight-color: transparent; flex-shrink: 0;
     }
@@ -1376,7 +1387,7 @@
       <div class="add-inline-row" id="city-row" onclick="focusCityInput()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#d93025"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>
         <span id="city-display" style="flex:1;color:var(--text3);cursor:text;font-size:16px;font-family:inherit">Anywhere</span>
-        <input type="text" id="input-city" placeholder="City…" list="city-suggestions" autocomplete="off" class="add-row-input" style="display:none;flex:1" onfocus="this.value=''" onblur="hideCityInput()" />
+        <input type="text" id="input-city" placeholder="City…" list="city-suggestions" autocomplete="off" class="add-row-input" style="display:none;flex:1" onblur="hideCityInput()" />
         <datalist id="city-suggestions"></datalist>
       </div>
       <!-- Add to: person chips -->
@@ -1384,7 +1395,10 @@
         <div class="add-row-label">Add to</div>
         <div class="add-person-chips" id="add-person-chips"></div>
       </div>
-      <button class="add-go-btn" onclick="parseInput()" id="parse-btn">Add</button>
+      <div class="add-btn-row">
+        <button class="add-cancel-btn" onclick="closeAddDrawer()">Cancel</button>
+        <button class="add-go-btn" onclick="parseInput()" id="parse-btn">Add</button>
+      </div>
     </div>
     <div id="parse-results" class="parse-results"></div>
   </div>
@@ -3540,7 +3554,7 @@ function hideOverlappingLabels() {
 }
 
 // ── ADD DRAWER ──
-let _addSelectedPerson = 'Me';
+let _addSelectedPersons = new Set(['Me']); // multi-select set
 let _addCustomPerson = null;
 
 function renderAddChips() {
@@ -3552,10 +3566,11 @@ function renderAddChips() {
     people.push(_addCustomPerson);
   }
   container.innerHTML = people.map(p => {
-    const sel = p === _addSelectedPerson || (isMe(p) && _addSelectedPerson === 'Me');
+    const key = isMe(p) ? 'Me' : p;
+    const sel = _addSelectedPersons.has(key);
     const col = getPersonColor(p);
     const style = sel ? `background:${col};color:#fff;border-color:${col}` : '';
-    return `<button class="add-chip${sel ? '' : ''}" style="${style}" onclick="selectAddPerson('${p.replace(/'/g,"\\'")}')">
+    return `<button class="add-chip" style="${style}" onclick="selectAddPerson('${p.replace(/'/g,"\\'")}')">
       ${esc(p)}
     </button>`;
   }).join('') +
@@ -3563,8 +3578,18 @@ function renderAddChips() {
 }
 
 function selectAddPerson(name) {
-  _addSelectedPerson = name;
+  const key = isMe(name) ? 'Me' : name;
+  if (_addSelectedPersons.has(key)) {
+    // Don't allow deselecting the last one
+    if (_addSelectedPersons.size > 1) _addSelectedPersons.delete(key);
+  } else {
+    _addSelectedPersons.add(key);
+  }
   renderAddChips();
+}
+
+function getAddRecommendedBy() {
+  return [..._addSelectedPersons].join(', ') || 'Me';
 }
 
 function showAddNewChip() {
@@ -3577,7 +3602,7 @@ function showAddNewChip() {
   inp.autocomplete = 'off';
   const commit = () => {
     const v = inp.value.trim();
-    if (v) { _addCustomPerson = v; _addSelectedPerson = v; }
+    if (v) { _addCustomPerson = v; _addSelectedPersons.add(v); }
     renderAddChips();
   };
   inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') renderAddChips(); };
@@ -3586,13 +3611,18 @@ function showAddNewChip() {
   inp.focus();
 }
 
+let _cityPrevValue = '';
+
 function focusCityInput() {
   const display = document.getElementById('city-display');
   const inp = document.getElementById('input-city');
   if (!inp || !display) return;
+  // Save the current displayed value so we can restore if user types nothing
+  _cityPrevValue = display.textContent.trim() === 'Anywhere' ? '' : display.textContent.trim();
   display.style.display = 'none';
   inp.style.display = '';
-  inp.value = '';
+  inp.value = _cityPrevValue;
+  inp.select();
   inp.focus();
 }
 
@@ -3601,17 +3631,17 @@ function hideCityInput() {
   const display = document.getElementById('city-display');
   if (!inp || !display) return;
   const val = inp.value.trim();
-  display.textContent = val || 'Anywhere';
-  display.style.color = val ? 'var(--text)' : 'var(--text3)';
+  // If user cleared the field, restore previous value
+  const effective = val || _cityPrevValue;
+  display.textContent = effective || 'Anywhere';
+  display.style.color = effective ? 'var(--text)' : 'var(--text3)';
   display.style.display = '';
-  if (!val) {
-    inp.style.display = 'none';
-  }
+  inp.style.display = 'none';
 }
 
 function openAddDrawer() {
   document.getElementById('raw-input').value = '';
-  _addSelectedPerson = 'Me';
+  _addSelectedPersons = new Set(['Me']);
   _addCustomPerson = null;
   renderAddChips();
   updateAddBtnLabel();
@@ -3667,7 +3697,7 @@ async function parseInput() {
   const input = document.getElementById('raw-input').value.trim();
   if (!input) return showToast('Paste something first');
   const city = getCityValue();
-  const recommended_by = _addSelectedPerson || 'Me';
+  const recommended_by = getAddRecommendedBy();
   const btn = document.getElementById('parse-btn');
   btn.innerHTML = '<span class="spinner"></span> Parsing…';
   btn.disabled = true;
@@ -3725,7 +3755,7 @@ function showParseArea() {
 async function saveParseResults() {
   const count = pendingParseCount, rawInput = pendingRawInput;
   const city = getCityValue();
-  const recommended_by = _addSelectedPerson || 'Me';
+  const recommended_by = getAddRecommendedBy();
   const isSingle = count === 1;
   const recs = [];
   for (let i = 0; i < count; i++) {
