@@ -456,74 +456,148 @@
       width: 100%; height: 80vh; overflow-y: auto;
       display: flex; flex-direction: column;
     }
-    .drawer-handle {
-      width: 36px; height: 4px; background: rgba(255,255,255,0.2);
-      border-radius: 2px; margin: 14px auto 0; flex-shrink: 0;
-    }
-    /* ── ADD FORM ── */
-    .add-section {
-      padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
-    }
-    .add-inline-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
-    }
-    .add-row-label {
-      font-size: 12px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.06em; color: var(--text2); margin-bottom: 10px;
-    }
-    .add-inline-row .add-row-label { margin-bottom: 0; min-width: 40px; flex-shrink: 0; }
-    .add-row-input {
-      flex: 1; border: none; outline: none; font-size: 16px;
-      color: var(--text); background: transparent; font-family: inherit;
-    }
-    .add-row-input::placeholder { color: var(--text3); }
-    .add-person-chips {
-      display: flex; flex-wrap: wrap; gap: 7px; align-items: center;
-    }
-    .add-chip {
-      padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: 500;
-      border: 1.5px solid var(--border); cursor: pointer;
-      color: var(--text2); background: transparent;
-      -webkit-tap-highlight-color: transparent; transition: all 0.12s;
-      font-family: inherit;
-    }
-    .add-chip.new-chip { color: var(--text3); border-style: dashed; }
-    .add-new-name-input {
-      border: none; border-bottom: 1.5px solid var(--blue); outline: none;
-      font-size: 14px; padding: 4px 2px; background: transparent;
-      color: var(--text); font-family: inherit; min-width: 70px; max-width: 120px;
-    }
-    .add-places-section {
-      display: flex; flex-direction: column; padding: 14px 20px 0; flex-shrink: 0;
-    }
-    .add-places-textarea {
-      border: none; outline: none; resize: none; height: 130px;
-      font-size: 15px; line-height: 1.7; color: var(--text);
-      background: transparent; font-family: inherit; padding: 4px 4px 4px 8px;
-      -webkit-appearance: none; box-shadow: none;
-    }
-    .add-places-textarea:focus { outline: none; box-shadow: none; }
-    .add-places-textarea::placeholder { color: var(--text3); }
-    .add-btn-row {
+    /* ── ADD FORM (redesigned) ── */
+    .add-topbar {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 20px 32px; gap: 12px; flex-shrink: 0;
+      padding: 14px 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
     }
-    .add-cancel-btn {
-      background: none; border: none; padding: 8px 4px;
-      font-size: 15px; color: var(--text3); cursor: pointer;
-      font-family: 'Google Sans', sans-serif;
+    .add-x-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(255,255,255,0.08); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text); -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+    }
+    .add-topbar-title { font-size: 16px; font-weight: 600; color: var(--text); }
+    .add-post-btn {
+      background: var(--blue); color: white; border: none; border-radius: 20px;
+      padding: 8px 20px; font-size: 15px; font-weight: 600;
+      font-family: 'Google Sans', sans-serif; cursor: pointer;
+      -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+    }
+    .add-post-btn.dim { opacity: 0.35; pointer-events: none; }
+    .add-post-btn:active { opacity: 0.8; }
+    .add-composer {
+      display: flex; gap: 12px; padding: 16px 16px 10px; flex: 1; min-height: 120px;
+    }
+    .add-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 17px; font-weight: 600;
+    }
+    .add-composer-right {
+      flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0;
+    }
+    .add-composer-header { display: flex; align-items: center; gap: 7px; }
+    .add-composer-name { font-size: 15px; font-weight: 600; color: var(--text); }
+    .add-audience-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(255,255,255,0.08); border: none; border-radius: 7px;
+      padding: 4px 8px; font-size: 12px; font-weight: 600; color: var(--text2);
+      cursor: pointer; font-family: 'Google Sans', sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
-    .add-cancel-btn:active { opacity: 0.6; }
-    .add-go-btn {
-      background: var(--blue); color: white;
-      border: none; border-radius: 24px; padding: 14px 32px;
-      font-size: 16px; font-weight: 600;
-      cursor: pointer; font-family: 'Google Sans', sans-serif;
-      -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+    .add-big-textarea {
+      border: none; outline: none; resize: none; flex: 1;
+      font-size: 20px; line-height: 1.55; color: var(--text);
+      background: transparent; font-family: 'Google Sans', sans-serif;
+      min-height: 80px; margin-top: 8px; padding: 0;
+      -webkit-appearance: none;
     }
-    .add-go-btn:active { opacity: 0.88; }
+    .add-big-textarea::placeholder { color: var(--text3); }
+    .add-strip {
+      flex-shrink: 0; border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .add-detail-row {
+      display: flex; align-items: center; gap: 12px; padding: 13px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .add-detail-row:last-child { border-bottom: none; }
+    .add-dic {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .add-dt { flex: 1; min-width: 0; }
+    .add-dlabel { font-size: 11px; color: var(--text3); font-weight: 500; }
+    .add-dval { font-size: 15px; color: var(--text); font-weight: 500; }
+    .add-dval.add-dph { color: var(--text3); font-weight: 400; }
+    .add-chev { color: var(--text3); font-size: 19px; flex-shrink: 0; line-height: 1; }
+    .add-note-textarea {
+      width: 100%; border: none; outline: none; resize: none;
+      font-size: 15px; color: var(--text); background: transparent;
+      font-family: 'Google Sans', sans-serif; min-height: 56px; padding: 4px 0;
+    }
+    /* Sub-sheets (people, city, type) */
+    .add-sub-sheet {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #141d28; border-radius: 20px 20px 0 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 0 16px 32px; display: none; flex-direction: column;
+      max-height: 78%; overflow-y: auto;
+    }
+    .add-sub-sheet.open { display: flex; }
+    .add-sub-sheet-handle {
+      width: 32px; height: 4px; background: rgba(255,255,255,0.18);
+      border-radius: 2px; margin: 12px auto 0; flex-shrink: 0;
+    }
+    .add-sub-sheet-title {
+      font-size: 11px; font-weight: 600; color: var(--text2);
+      text-align: center; text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 14px 0 10px; flex-shrink: 0;
+    }
+    .add-prow {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .add-pav {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; color: white; flex-shrink: 0;
+    }
+    .add-pname { flex: 1; font-size: 16px; color: var(--text); font-weight: 500; }
+    .add-pcheck {
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 13px;
+    }
+    .add-pcheck.on { background: var(--blue); border-color: var(--blue); color: white; }
+    .add-done-btn {
+      margin-top: 14px; background: var(--blue); color: white;
+      border: none; border-radius: 14px; padding: 15px;
+      font-size: 16px; font-weight: 600; font-family: 'Google Sans', sans-serif;
+      cursor: pointer; width: 100%; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .add-city-input {
+      width: 100%; border: none; border-bottom: 1.5px solid rgba(255,255,255,0.1);
+      outline: none; font-size: 16px; padding: 8px 0 10px;
+      color: var(--text); background: transparent; font-family: 'Google Sans', sans-serif;
+      margin-bottom: 4px; flex-shrink: 0;
+    }
+    .add-city-input::placeholder { color: var(--text3); }
+    .add-city-suggestion {
+      padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 15px; color: var(--text2); cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .add-city-suggestion:active { color: var(--text); }
+    .add-type-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; padding: 4px 0 8px;
+    }
+    .add-type-tile {
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+      padding: 14px 8px; border-radius: 14px;
+      background: rgba(255,255,255,0.05); border: 1.5px solid transparent;
+      cursor: pointer; -webkit-tap-highlight-color: transparent; transition: all 0.12s;
+    }
+    .add-type-tile.sel { border-color: var(--blue); background: var(--blue-light); }
+    .add-type-tile-emoji { font-size: 24px; line-height: 1; }
+    .add-type-tile-label { font-size: 11px; color: var(--text2); font-weight: 500; text-align: center; }
+    .add-type-tile.sel .add-type-tile-label { color: var(--blue); }
 
     /* ── PARSE RESULTS ── */
     .parse-results { padding: 0 20px 32px; }
@@ -1376,31 +1450,82 @@
 
 <!-- ADD DRAWER -->
 <div class="overlay" id="add-overlay" onclick="closeAddDrawer(event)">
-  <div class="drawer" id="add-drawer">
-    <div class="drawer-handle" id="drawer-handle"></div>
-    <div class="parse-area">
-      <!-- Places textarea -->
-      <div class="add-places-section">
-        <textarea id="raw-input" class="add-places-textarea" placeholder="Type a name, paste a link, or drop in a list…" oninput="updateAddBtnLabel()"></textarea>
-      </div>
-      <!-- City -->
-      <div class="add-inline-row" id="city-row" onclick="focusCityInput()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#d93025"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>
-        <span id="city-display" style="flex:1;color:var(--text3);cursor:text;font-size:16px;font-family:inherit">Anywhere</span>
-        <input type="text" id="input-city" placeholder="City…" list="city-suggestions" autocomplete="off" class="add-row-input" style="display:none;flex:1" onblur="hideCityInput()" />
-        <datalist id="city-suggestions"></datalist>
-      </div>
-      <!-- Add to: person chips -->
-      <div class="add-section">
-        <div class="add-row-label">Add to</div>
-        <div class="add-person-chips" id="add-person-chips"></div>
-      </div>
-      <div class="add-btn-row">
-        <button class="add-cancel-btn" onclick="closeAddDrawer()">Cancel</button>
-        <button class="add-go-btn" onclick="parseInput()" id="parse-btn">Add</button>
+  <div class="drawer" id="add-drawer" style="position:relative;overflow:hidden">
+    <!-- Top bar -->
+    <div class="add-topbar">
+      <button class="add-x-btn" onclick="closeAddDrawer()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+      <span class="add-topbar-title">Add a place</span>
+      <button class="add-post-btn dim" id="parse-btn" onclick="parseInput()">Post</button>
+    </div>
+    <!-- Composer: avatar + name/audience + big textarea -->
+    <div class="add-composer" id="add-composer-area">
+      <div class="add-avatar" id="add-user-avatar">R</div>
+      <div class="add-composer-right">
+        <div class="add-composer-header">
+          <span class="add-composer-name" id="add-user-name">Rob</span>
+          <button class="add-audience-pill" id="add-audience-pill" onclick="openAddAudiencePicker()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            <span id="add-audience-label">Me</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+          </button>
+        </div>
+        <textarea id="raw-input" class="add-big-textarea" placeholder="Name a place, paste a link, or drop in a list…" oninput="updateAddBtnLabel()"></textarea>
       </div>
     </div>
+    <!-- Details strip -->
+    <div class="add-strip" id="add-strip-area">
+      <div class="add-detail-row" onclick="openAddCityPicker()">
+        <div class="add-dic" style="background:rgba(221,79,65,0.14)">📍</div>
+        <div class="add-dt">
+          <div class="add-dlabel">City</div>
+          <div class="add-dval add-dph" id="city-display">Anywhere</div>
+        </div>
+        <span class="add-chev">›</span>
+      </div>
+      <div class="add-detail-row" onclick="openAddTypePicker()">
+        <div class="add-dic" id="add-type-dic" style="background:rgba(255,255,255,0.05)"><span id="add-type-emoji">🔮</span></div>
+        <div class="add-dt">
+          <div class="add-dlabel">Type</div>
+          <div class="add-dval add-dph" id="add-type-display">Auto-detect</div>
+        </div>
+        <span class="add-chev">›</span>
+      </div>
+      <div class="add-detail-row" id="add-note-row" onclick="focusAddNote()">
+        <div class="add-dic" style="background:rgba(255,255,255,0.05)">📝</div>
+        <div class="add-dt">
+          <div class="add-dlabel">Note</div>
+          <div class="add-dval add-dph" id="add-note-display">Add a note…</div>
+          <textarea id="add-note-input" class="add-note-textarea" style="display:none" placeholder="Add a note…" onblur="commitAddNote()"></textarea>
+        </div>
+      </div>
+    </div>
+    <!-- Hidden city value holder (used by getCityValue) -->
+    <input type="text" id="input-city" style="display:none" />
+    <!-- Parse results (multi-result confirmation) -->
     <div id="parse-results" class="parse-results"></div>
+    <!-- People picker sub-sheet -->
+    <div class="add-sub-sheet" id="add-people-sheet">
+      <div class="add-sub-sheet-handle"></div>
+      <div class="add-sub-sheet-title">Saving for</div>
+      <div id="add-people-list"></div>
+      <button class="add-done-btn" onclick="closeAddAudiencePicker()">Done</button>
+    </div>
+    <!-- City picker sub-sheet -->
+    <div class="add-sub-sheet" id="add-city-sheet">
+      <div class="add-sub-sheet-handle"></div>
+      <div class="add-sub-sheet-title">City</div>
+      <input type="text" id="add-city-input" class="add-city-input" placeholder="Search or type a city…" oninput="filterAddCities()" autocomplete="off" />
+      <div id="add-city-list"></div>
+      <button class="add-done-btn" onclick="closeAddCityPicker()">Done</button>
+    </div>
+    <!-- Type picker sub-sheet -->
+    <div class="add-sub-sheet" id="add-type-sheet">
+      <div class="add-sub-sheet-handle"></div>
+      <div class="add-sub-sheet-title">Type</div>
+      <div class="add-type-grid" id="add-type-grid"></div>
+    </div>
   </div>
 </div>
 
@@ -3554,103 +3679,267 @@ function hideOverlappingLabels() {
 }
 
 // ── ADD DRAWER ──
-let _addSelectedPersons = new Set(['Me']); // multi-select set
+// ── ADD DRAWER STATE ──
+let _addSelectedPersons = new Set(['Me']);
 let _addCustomPerson = null;
+let _addSelectedType = null; // null = auto-detect
+let _addNote = '';
 
-function renderAddChips() {
-  const container = document.getElementById('add-person-chips');
-  if (!container) return;
-  const people = ['Me', ...allPeople.filter(p => !isMe(p))];
-  // Include custom person if typed and not already in list
-  if (_addCustomPerson && !people.some(p => p.toLowerCase() === _addCustomPerson.toLowerCase())) {
-    people.push(_addCustomPerson);
-  }
-  container.innerHTML = people.map(p => {
-    const key = isMe(p) ? 'Me' : p;
-    const sel = _addSelectedPersons.has(key);
-    const col = getPersonColor(p);
-    const style = sel ? `background:${col};color:#fff;border-color:${col}` : '';
-    return `<button class="add-chip" style="${style}" onclick="selectAddPerson('${p.replace(/'/g,"\\'")}')">
-      ${esc(p)}
-    </button>`;
-  }).join('') +
-  `<button class="add-chip new-chip" onclick="showAddNewChip()">+ New</button>`;
-}
-
-function selectAddPerson(name) {
-  const key = isMe(name) ? 'Me' : name;
-  if (_addSelectedPersons.has(key)) {
-    // Don't allow deselecting the last one
-    if (_addSelectedPersons.size > 1) _addSelectedPersons.delete(key);
-  } else {
-    _addSelectedPersons.add(key);
-  }
-  renderAddChips();
-}
+const ADD_TYPE_META = {
+  restaurant:   { emoji: '🍽️', bg: 'rgba(52,168,83,0.14)' },
+  bar:          { emoji: '🍸', bg: 'rgba(187,134,252,0.14)' },
+  cafe:         { emoji: '☕', bg: 'rgba(251,188,4,0.14)' },
+  museum:       { emoji: '🏛️', bg: 'rgba(79,163,247,0.14)' },
+  attraction:   { emoji: '🎡', bg: 'rgba(255,167,38,0.14)' },
+  hotel:        { emoji: '🏨', bg: 'rgba(79,163,247,0.14)' },
+  shop:         { emoji: '🛍️', bg: 'rgba(221,79,65,0.14)' },
+  market:       { emoji: '🛒', bg: 'rgba(251,188,4,0.14)' },
+  beach:        { emoji: '🏖️', bg: 'rgba(79,163,247,0.14)' },
+  church:       { emoji: '⛪', bg: 'rgba(255,255,255,0.08)' },
+  neighborhood: { emoji: '🏘️', bg: 'rgba(52,168,83,0.14)' },
+  other:        { emoji: '📍', bg: 'rgba(255,255,255,0.08)' },
+};
 
 function getAddRecommendedBy() {
   return [..._addSelectedPersons].join(', ') || 'Me';
 }
 
-function showAddNewChip() {
-  const container = document.getElementById('add-person-chips');
-  if (document.getElementById('add-new-chip-input')) return;
+function renderAudiencePill() {
+  const label = document.getElementById('add-audience-label');
+  if (!label) return;
+  const people = [..._addSelectedPersons];
+  if (people.length === 0 || (people.length === 1 && people[0] === 'Me')) {
+    label.textContent = 'Me';
+  } else if (people.length === 1) {
+    label.textContent = people[0];
+  } else if (people.length === 2 && people.includes('Me')) {
+    label.textContent = 'Me + ' + people.find(p => p !== 'Me');
+  } else {
+    label.textContent = people.length + ' people';
+  }
+}
+
+function renderAddPeopleList() {
+  const container = document.getElementById('add-people-list');
+  if (!container) return;
+  const people = ['Me', ...allPeople.filter(p => !isMe(p))];
+  if (_addCustomPerson && !people.some(p => p.toLowerCase() === _addCustomPerson.toLowerCase())) {
+    people.push(_addCustomPerson);
+  }
+  container.innerHTML = people.map(p => {
+    const key = isMe(p) ? 'Me' : p;
+    const checked = _addSelectedPersons.has(key);
+    const col = getPersonColor(p);
+    const displayName = (p === 'Me' && _currentUser) ? (_currentUser.name || 'Me') : p;
+    return `<div class="add-prow" onclick="toggleAddPerson('${p.replace(/'/g,"\\'")}')">
+      <div class="add-pav" style="background:${col}">${p[0].toUpperCase()}</div>
+      <span class="add-pname">${esc(displayName)}</span>
+      <div class="add-pcheck${checked ? ' on' : ''}">${checked ? '✓' : ''}</div>
+    </div>`;
+  }).join('') +
+  `<div class="add-prow" onclick="showAddNewPerson()">
+    <div class="add-pav" style="background:rgba(255,255,255,0.06);border:2px dashed rgba(255,255,255,0.15)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round"/></svg>
+    </div>
+    <span class="add-pname" style="color:var(--text3)">Add someone…</span>
+    <div class="add-pcheck"></div>
+  </div>`;
+}
+
+function toggleAddPerson(name) {
+  const key = isMe(name) ? 'Me' : name;
+  if (_addSelectedPersons.has(key)) {
+    if (_addSelectedPersons.size > 1) _addSelectedPersons.delete(key);
+  } else {
+    _addSelectedPersons.add(key);
+  }
+  renderAddPeopleList();
+  renderAudiencePill();
+}
+
+function showAddNewPerson() {
+  const container = document.getElementById('add-people-list');
+  if (document.getElementById('add-new-person-input')) return;
+  const row = document.createElement('div');
+  row.className = 'add-prow';
   const inp = document.createElement('input');
-  inp.id = 'add-new-chip-input';
-  inp.className = 'add-new-name-input';
+  inp.id = 'add-new-person-input';
   inp.placeholder = 'Name…';
   inp.autocomplete = 'off';
+  inp.style.cssText = 'flex:1;border:none;border-bottom:1.5px solid var(--blue);outline:none;font-size:16px;padding:4px 2px;background:transparent;color:var(--text);font-family:inherit';
   const commit = () => {
     const v = inp.value.trim();
     if (v) { _addCustomPerson = v; _addSelectedPersons.add(v); }
-    renderAddChips();
+    renderAddPeopleList(); renderAudiencePill();
   };
-  inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') renderAddChips(); };
+  inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') renderAddPeopleList(); };
   inp.onblur = commit;
-  container.appendChild(inp);
+  row.appendChild(inp);
+  container.appendChild(row);
   inp.focus();
 }
 
-let _cityPrevValue = '';
+function openAddAudiencePicker() {
+  renderAddPeopleList();
+  document.getElementById('add-people-sheet').classList.add('open');
+}
 
-function focusCityInput() {
+function closeAddAudiencePicker() {
+  document.getElementById('add-people-sheet').classList.remove('open');
+}
+
+function openAddCityPicker() {
+  const sheet = document.getElementById('add-city-sheet');
+  const inp = document.getElementById('add-city-input');
+  const currentCity = document.getElementById('city-display').textContent.trim();
+  if (inp) inp.value = currentCity === 'Anywhere' ? '' : currentCity;
+  filterAddCities();
+  sheet.classList.add('open');
+  setTimeout(() => inp && inp.focus(), 80);
+}
+
+function closeAddCityPicker() {
+  const inp = document.getElementById('add-city-input');
+  const val = inp ? inp.value.trim() : '';
+  if (val) {
+    const display = document.getElementById('city-display');
+    const cityInp = document.getElementById('input-city');
+    display.textContent = val;
+    display.classList.remove('add-dph');
+    if (cityInp) cityInp.value = val;
+  }
+  document.getElementById('add-city-sheet').classList.remove('open');
+}
+
+function selectAddCity(city) {
   const display = document.getElementById('city-display');
-  const inp = document.getElementById('input-city');
-  if (!inp || !display) return;
-  // Save the current displayed value so we can restore if user types nothing
-  _cityPrevValue = display.textContent.trim() === 'Anywhere' ? '' : display.textContent.trim();
+  const cityInp = document.getElementById('input-city');
+  display.textContent = city;
+  display.classList.remove('add-dph');
+  if (cityInp) cityInp.value = city;
+  document.getElementById('add-city-sheet').classList.remove('open');
+}
+
+function filterAddCities() {
+  const inp = document.getElementById('add-city-input');
+  const container = document.getElementById('add-city-list');
+  if (!inp || !container) return;
+  const q = inp.value.trim().toLowerCase();
+  const cities = [...new Set((allRecs || []).map(r => r.city).filter(Boolean))].sort();
+  const filtered = q ? cities.filter(c => c.toLowerCase().includes(q)) : cities;
+  container.innerHTML = filtered.slice(0, 12).map(c =>
+    `<div class="add-city-suggestion" onclick="selectAddCity('${c.replace(/'/g,"\\'")}')">📍 ${esc(c)}</div>`
+  ).join('');
+}
+
+function openAddTypePicker() {
+  const grid = document.getElementById('add-type-grid');
+  const TYPES = Object.keys(ADD_TYPE_META);
+  grid.innerHTML = TYPES.map(t => {
+    const meta = ADD_TYPE_META[t];
+    const sel = _addSelectedType === t;
+    return `<div class="add-type-tile${sel ? ' sel' : ''}" onclick="selectAddType('${t}')">
+      <span class="add-type-tile-emoji">${meta.emoji}</span>
+      <span class="add-type-tile-label">${t.charAt(0).toUpperCase() + t.slice(1)}</span>
+    </div>`;
+  }).join('') +
+  `<div class="add-type-tile${!_addSelectedType ? ' sel' : ''}" onclick="selectAddType(null)">
+    <span class="add-type-tile-emoji">🔮</span>
+    <span class="add-type-tile-label">Auto</span>
+  </div>`;
+  document.getElementById('add-type-sheet').classList.add('open');
+}
+
+function selectAddType(type) {
+  _addSelectedType = type;
+  const display = document.getElementById('add-type-display');
+  const emoji = document.getElementById('add-type-emoji');
+  const dic = document.getElementById('add-type-dic');
+  if (type) {
+    const meta = ADD_TYPE_META[type];
+    display.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    display.classList.remove('add-dph');
+    if (emoji) emoji.textContent = meta.emoji;
+    if (dic) dic.style.background = meta.bg;
+  } else {
+    display.textContent = 'Auto-detect';
+    display.classList.add('add-dph');
+    if (emoji) emoji.textContent = '🔮';
+    if (dic) dic.style.background = 'rgba(255,255,255,0.05)';
+  }
+  document.getElementById('add-type-sheet').classList.remove('open');
+}
+
+function focusAddNote() {
+  const display = document.getElementById('add-note-display');
+  const ta = document.getElementById('add-note-input');
+  if (!ta) return;
   display.style.display = 'none';
-  inp.style.display = '';
-  inp.value = _cityPrevValue;
-  inp.select();
-  inp.focus();
+  ta.style.display = '';
+  ta.value = _addNote;
+  ta.focus();
+  const row = document.getElementById('add-note-row');
+  if (row) row.onclick = null;
 }
 
-function hideCityInput() {
-  const inp = document.getElementById('input-city');
-  const display = document.getElementById('city-display');
-  if (!inp || !display) return;
-  const val = inp.value.trim();
-  // If user cleared the field, restore previous value
-  const effective = val || _cityPrevValue;
-  display.textContent = effective || 'Anywhere';
-  display.style.color = effective ? 'var(--text)' : 'var(--text3)';
+function commitAddNote() {
+  const ta = document.getElementById('add-note-input');
+  const display = document.getElementById('add-note-display');
+  if (!ta || !display) return;
+  _addNote = ta.value.trim();
+  ta.style.display = 'none';
   display.style.display = '';
-  inp.style.display = 'none';
+  display.textContent = _addNote || 'Add a note…';
+  if (_addNote) display.classList.remove('add-dph'); else display.classList.add('add-dph');
+  const row = document.getElementById('add-note-row');
+  if (row) row.onclick = focusAddNote;
 }
 
 function openAddDrawer() {
+  // Reset state
   document.getElementById('raw-input').value = '';
   _addSelectedPersons = new Set(['Me']);
   _addCustomPerson = null;
-  renderAddChips();
-  updateAddBtnLabel();
-  // Reset city display
+  _addSelectedType = null;
+  _addNote = '';
+
+  // Update avatar + name from current user
+  const uname = _currentUser?.name || 'Me';
+  const avatarEl = document.getElementById('add-user-avatar');
+  const nameEl = document.getElementById('add-user-name');
+  if (avatarEl) avatarEl.textContent = uname[0].toUpperCase();
+  if (nameEl) nameEl.textContent = uname;
+
+  // Reset audience pill
+  renderAudiencePill();
+
+  // Reset type
+  selectAddType(null);
+
+  // Reset note
+  const noteDisplay = document.getElementById('add-note-display');
+  const noteInput = document.getElementById('add-note-input');
+  if (noteDisplay) { noteDisplay.textContent = 'Add a note…'; noteDisplay.classList.add('add-dph'); noteDisplay.style.display = ''; }
+  if (noteInput) { noteInput.value = ''; noteInput.style.display = 'none'; }
+  const noteRow = document.getElementById('add-note-row');
+  if (noteRow) noteRow.onclick = focusAddNote;
+
+  // Reset city
   const cityInp = document.getElementById('input-city');
   const cityDisplay = document.getElementById('city-display');
-  if (cityInp) { cityInp.value = ''; cityInp.style.display = 'none'; }
-  if (cityDisplay) { cityDisplay.textContent = 'Anywhere'; cityDisplay.style.color = 'var(--text3)'; cityDisplay.style.display = ''; }
-  // Default city from reverse geocode
+  if (cityInp) cityInp.value = '';
+  if (cityDisplay) { cityDisplay.textContent = 'Anywhere'; cityDisplay.classList.add('add-dph'); }
+
+  // Close any open sub-sheets
+  ['add-people-sheet','add-city-sheet','add-type-sheet'].forEach(id => {
+    document.getElementById(id)?.classList.remove('open');
+  });
+
+  // Show compose area
+  showParseArea();
+  updateAddBtnLabel();
+
+  // Default city from map center
   if (map) {
     const c = map.getCenter();
     fetch(`https://nominatim.openstreetmap.org/reverse?lat=${c.lat}&lon=${c.lng}&format=json&zoom=10`, {
@@ -3658,21 +3947,25 @@ function openAddDrawer() {
     }).then(r => r.json()).then(d => {
       const a = d.address || {};
       const city = a.city || a.town || a.municipality || a.county || a.state_district || '';
-      if (city) {
-        if (cityDisplay) { cityDisplay.textContent = city; cityDisplay.style.color = 'var(--text)'; }
-        if (cityInp && !cityInp.value) cityInp.value = city;
+      if (city && cityDisplay && cityDisplay.textContent === 'Anywhere') {
+        cityDisplay.textContent = city;
+        cityDisplay.classList.remove('add-dph');
+        if (cityInp) cityInp.value = city;
       }
     }).catch(() => {});
   }
-  document.getElementById('parse-results').innerHTML = '';
+
   document.getElementById('add-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('raw-input')?.focus(), 150);
 }
 
 function closeAddDrawer(e) {
-  if (!e || e.target === document.getElementById('add-overlay')) {
-    document.getElementById('add-overlay').classList.remove('open');
-    showParseArea();
-  }
+  if (e && e.target !== document.getElementById('add-overlay')) return;
+  document.getElementById('add-overlay').classList.remove('open');
+  ['add-people-sheet','add-city-sheet','add-type-sheet'].forEach(id => {
+    document.getElementById(id)?.classList.remove('open');
+  });
+  showParseArea();
 }
 
 function getCityValue() {
@@ -3680,39 +3973,43 @@ function getCityValue() {
   const display = document.getElementById('city-display');
   const inpVal = inp ? inp.value.trim() : '';
   const displayVal = display ? display.textContent.trim() : '';
-  const city = inpVal || (displayVal !== 'Anywhere' ? displayVal : '');
-  return city;
+  return inpVal || (displayVal !== 'Anywhere' ? displayVal : '');
 }
 
 function updateAddBtnLabel() {
   const input = (document.getElementById('raw-input')?.value || '');
   const btn = document.getElementById('parse-btn');
   if (!btn) return;
-  const hasUrl = /https?:\/\//i.test(input);
-  const multiLine = input.split('\n').filter(l => l.trim()).length > 1;
-  btn.textContent = (hasUrl || multiLine) ? 'Next' : 'Add';
+  btn.classList.toggle('dim', !input.trim());
 }
 
 async function parseInput() {
   const input = document.getElementById('raw-input').value.trim();
-  if (!input) return showToast('Paste something first');
+  if (!input) return;
   const city = getCityValue();
   const recommended_by = getAddRecommendedBy();
   const btn = document.getElementById('parse-btn');
-  btn.innerHTML = '<span class="spinner"></span> Parsing…';
+  btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled = true;
   const data = await api('/api/parse', 'POST', { input });
-  btn.textContent = 'Add';
+  btn.textContent = 'Post';
   btn.disabled = false;
   if (!data || !data.recommendations) return showToast('Could not parse — try again');
 
-  // Auto-save if exactly 1 result (no confirmation step)
+  // Auto-save if exactly 1 result
   if (data.recommendations.length === 1) {
-    btn.innerHTML = '<span class="spinner"></span> Saving…';
+    btn.innerHTML = '<span class="spinner"></span>';
     btn.disabled = true;
-    const rec = { ...data.recommendations[0], city: city || data.recommendations[0].city, recommended_by, raw_input: input };
+    const rec = {
+      ...data.recommendations[0],
+      city: city || data.recommendations[0].city,
+      recommended_by,
+      notes: _addNote || data.recommendations[0].notes || '',
+      raw_input: input,
+    };
+    if (_addSelectedType) rec.type = _addSelectedType;
     const saved = await api('/api/recommendations', 'POST', [rec]);
-    btn.innerHTML = 'Add'; btn.disabled = false;
+    btn.textContent = 'Post'; btn.disabled = false;
     closeAddDrawer();
     showToast(`Added ${saved?.[0]?.name || 'place'}!`);
     await loadRecs(); await loadFilters();
@@ -3725,20 +4022,21 @@ function renderParseResults(recs, rawInput) {
   const el = document.getElementById('parse-results');
   if (!recs.length) { el.innerHTML = '<p style="color:var(--text2);font-size:13px">No recommendations found.</p>'; return; }
   const types = ['restaurant','bar','cafe','museum','attraction','hotel','shop','market','beach','church','neighborhood','other'];
-  const isSingle = recs.length === 1;
   pendingParseCount = recs.length;
   pendingRawInput = rawInput;
-  // Hide the parse area while showing results
-  document.querySelector('.parse-area').style.display = 'none';
+  // Hide composer + strip while showing results
+  const composer = document.getElementById('add-composer-area');
+  const strip = document.getElementById('add-strip-area');
+  if (composer) composer.style.display = 'none';
+  if (strip) strip.style.display = 'none';
   el.innerHTML = recs.map((r, i) => `
     <div class="parse-result-item" id="result-${i}" data-neighborhood="${esc(r.neighborhood||'')}">
       <div class="item-name" data-name="${esc(r.name)}">${esc(r.name)}</div>
       ${(r.neighborhood || r.city) ? `<div style="font-size:12px;color:var(--text2);margin:-4px 0 8px">📍 ${[r.neighborhood, r.city].filter(Boolean).map(s=>esc(s)).join(', ')}</div>` : ''}
       <div class="field">
         <label>Type</label>
-        <select id="r-type-${i}">${types.map(t=>`<option value="${t}"${r.type===t?' selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}</select>
+        <select id="r-type-${i}">${types.map(t=>`<option value="${t}"${((_addSelectedType||r.type)===t)?' selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}</select>
       </div>
-      ${isSingle ? `<div class="field"><label>Notes</label><textarea id="r-notes-${i}" style="min-height:60px;resize:vertical">${esc(r.notes||'')}</textarea></div>` : ''}
     </div>
   `).join('') + `
     <div style="display:flex;gap:8px;margin-top:8px;padding-bottom:8px">
@@ -3748,7 +4046,10 @@ function renderParseResults(recs, rawInput) {
 }
 
 function showParseArea() {
-  document.querySelector('.parse-area').style.display = '';
+  const composer = document.getElementById('add-composer-area');
+  const strip = document.getElementById('add-strip-area');
+  if (composer) composer.style.display = '';
+  if (strip) strip.style.display = '';
   document.getElementById('parse-results').innerHTML = '';
 }
 
@@ -3756,7 +4057,6 @@ async function saveParseResults() {
   const count = pendingParseCount, rawInput = pendingRawInput;
   const city = getCityValue();
   const recommended_by = getAddRecommendedBy();
-  const isSingle = count === 1;
   const recs = [];
   for (let i = 0; i < count; i++) {
     const nameDiv = document.querySelector(`#result-${i} .item-name`);
@@ -3766,7 +4066,7 @@ async function saveParseResults() {
       type: document.getElementById(`r-type-${i}`)?.value,
       city, recommended_by,
       neighborhood: resultEl?.dataset.neighborhood || '',
-      notes: isSingle ? (document.getElementById(`r-notes-${i}`)?.value || '') : '',
+      notes: _addNote || '',
       raw_input: rawInput,
     });
   }
@@ -3776,11 +4076,8 @@ async function saveParseResults() {
   closeAddDrawer();
   showToast(`Saved ${saved?.length || count} place${count>1?'s':''}!`);
   await loadRecs(); await loadFilters();
-  // Refresh city coords so any new city shows up on map immediately
   api('/api/city-coords').then(data => { if (data) { _cityCoords = data; if (map) renderMapMarkers(); } });
 }
-
-// Call /api/geocode-missing and re-render markers as precise coords arrive
 
 // ── EDIT ──
 function openEdit(id, e) {
