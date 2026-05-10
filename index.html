@@ -377,7 +377,7 @@
     /* ── MAP ── */
     #map-view { flex: 1; display: none; position: relative; }
     #map { height: 100%; width: 100%; background: #1c1610; }
-    #map .leaflet-tile-pane { filter: brightness(1.08) saturate(0.55) sepia(0.42); }
+    #map .leaflet-tile-pane { filter: brightness(0.72) saturate(0.6) sepia(0.55) hue-rotate(-8deg); }
 
     /* ── MARKER CLUSTERS ── */
     .cluster-icon {
@@ -3467,7 +3467,7 @@ function initMap() {
   const _theme = document.documentElement.getAttribute('data-theme');
   const _tileUrl = _theme === 'light'
     ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
   L.tileLayer(_tileUrl, {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19, subdomains: 'abcd'
