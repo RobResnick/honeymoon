@@ -542,18 +542,18 @@
     }
     /* Sub-sheets (people, city, type) */
     .add-sub-sheet {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      background: #141d28; border-radius: 20px 20px 0 0;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: #141d28; border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
       padding: 0 16px 32px; display: none; flex-direction: column;
-      max-height: 78%; overflow-y: auto;
+      max-height: 80vh; max-width: 90vw; width: 100%; overflow-y: auto;
+      touch-action: manipulation; z-index: 2;
     }
     .add-sub-sheet.open { display: flex; }
     .add-sub-backdrop {
-      position: absolute; inset: 0; z-index: 1; display: none;
+      position: fixed; inset: 0; z-index: 1; display: none; background: rgba(0,0,0,0.5);
     }
     .add-sub-backdrop.open { display: block; }
-    .add-sub-sheet { z-index: 2; }
     .add-sub-sheet-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 0 10px; flex-shrink: 0;
@@ -1521,7 +1521,7 @@
     <!-- Backdrop — tap to close any open sub-sheet -->
     <div class="add-sub-backdrop" id="add-sub-backdrop" onclick="closeAllAddSubSheets()"></div>
     <!-- People picker sub-sheet -->
-    <div class="add-sub-sheet" id="add-people-sheet">
+    <div class="add-sub-sheet" id="add-people-sheet" onclick="event.stopPropagation()">
       <div class="add-sub-sheet-header">
         <div style="width:28px"></div>
         <div class="add-sub-sheet-title">Saving for</div>
@@ -1531,7 +1531,7 @@
       <button class="add-done-btn" onclick="closeAddAudiencePicker()">Done</button>
     </div>
     <!-- City picker sub-sheet -->
-    <div class="add-sub-sheet" id="add-city-sheet">
+    <div class="add-sub-sheet" id="add-city-sheet" onclick="event.stopPropagation()">
       <div class="add-sub-sheet-header">
         <div style="width:28px"></div>
         <div class="add-sub-sheet-title">City</div>
@@ -1542,7 +1542,7 @@
       <button class="add-done-btn" onclick="closeAddCityPicker()">Done</button>
     </div>
     <!-- Type picker sub-sheet -->
-    <div class="add-sub-sheet" id="add-type-sheet">
+    <div class="add-sub-sheet" id="add-type-sheet" onclick="event.stopPropagation()">
       <div class="add-sub-sheet-header">
         <div style="width:28px"></div>
         <div class="add-sub-sheet-title">Type</div>
