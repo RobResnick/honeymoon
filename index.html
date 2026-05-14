@@ -507,6 +507,15 @@
     }
     .add-big-textarea:focus { outline: none; box-shadow: none; }
     .add-big-textarea::placeholder { color: var(--text3); }
+    .add-person-chips { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+    .add-chip {
+      padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: 500;
+      border: 1.5px solid var(--border); cursor: pointer;
+      color: var(--text2); background: transparent;
+      -webkit-tap-highlight-color: transparent; transition: all 0.12s;
+      font-family: inherit;
+    }
+    .add-chip:active { opacity: 0.75; }
     .add-strip {
       flex-shrink: 0; border-top: 1px solid rgba(255,255,255,0.07);
     }
@@ -1468,23 +1477,15 @@
       <button class="add-x-btn" onclick="closeAddDrawer()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
-      <span class="add-topbar-title">Add a place</span>
-      <button class="add-post-btn dim" id="parse-btn" onclick="parseInput()">Post</button>
+      <button class="add-post-btn dim" id="parse-btn" onclick="parseInput()">Add</button>
     </div>
-    <!-- Composer: avatar + name/audience + big textarea -->
-    <div class="add-composer" id="add-composer-area">
-      <div class="add-avatar" id="add-user-avatar">R</div>
-      <div class="add-composer-right">
-        <div class="add-composer-header">
-          <span class="add-composer-name" id="add-user-name">Rob</span>
-          <button class="add-audience-pill" id="add-audience-pill" onclick="openAddAudiencePicker()">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-            <span id="add-audience-label">Me</span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
-          </button>
-        </div>
-        <textarea id="raw-input" class="add-big-textarea" placeholder="Name a place, paste a link, or drop in a list…" oninput="updateAddBtnLabel()"></textarea>
-      </div>
+    <!-- Textarea -->
+    <div class="add-composer" id="add-composer-area" style="padding:14px 16px 8px">
+      <textarea id="raw-input" class="add-big-textarea" placeholder="Name a place, paste a link, or drop in a list…" oninput="updateAddBtnLabel()" style="width:100%;min-height:90px"></textarea>
+    </div>
+    <!-- Person chips -->
+    <div style="padding:4px 16px 10px;flex-shrink:0" id="add-chips-area">
+      <div class="add-person-chips" id="add-person-chips"></div>
     </div>
     <!-- Details strip -->
     <div class="add-strip" id="add-strip-area">
@@ -1534,7 +1535,7 @@
       <div class="add-sub-sheet-header">
         <div style="width:28px"></div>
         <div class="add-sub-sheet-title">City</div>
-        <button class="add-sub-close" onclick="closeAddCityPicker()">✕</button>
+        <button class="add-sub-close" onclick="cancelAddCityPicker()">✕</button>
       </div>
       <input type="text" id="add-city-input" class="add-city-input" placeholder="Search or type a city…" oninput="filterAddCities()" autocomplete="off" />
       <div id="add-city-list"></div>
@@ -3728,19 +3729,24 @@ function getAddRecommendedBy() {
   return [..._addSelectedPersons].join(', ') || 'Me';
 }
 
-function renderAudiencePill() {
-  const label = document.getElementById('add-audience-label');
-  if (!label) return;
-  const people = [..._addSelectedPersons];
-  if (people.length === 0 || (people.length === 1 && people[0] === 'Me')) {
-    label.textContent = 'Me';
-  } else if (people.length === 1) {
-    label.textContent = people[0];
-  } else if (people.length === 2 && people.includes('Me')) {
-    label.textContent = 'Me + ' + people.find(p => p !== 'Me');
-  } else {
-    label.textContent = people.length + ' people';
+function renderAddChips() {
+  const container = document.getElementById('add-person-chips');
+  if (!container) return;
+  const people = ['Me', ...allPeople.filter(p => !isMe(p))];
+  if (_addCustomPerson && !people.some(p => p.toLowerCase() === _addCustomPerson.toLowerCase())) {
+    people.push(_addCustomPerson);
   }
+  container.innerHTML = people.map(p => {
+    const key = isMe(p) ? 'Me' : p;
+    const sel = _addSelectedPersons.has(key);
+    const col = getPersonColor(p);
+    const style = sel ? `background:${col};color:#fff;border-color:${col}` : '';
+    const label = (p === 'Me' && _currentUser?.name) ? _currentUser.name : p;
+    return `<button class="add-chip" style="${style}" onclick="toggleAddPerson('${p.replace(/'/g,"\\'")}')">
+      ${esc(label)}
+    </button>`;
+  }).join('') +
+  `<button class="add-chip" style="border-style:dashed;color:var(--text3)" onclick="showAddNewPerson()">+ New</button>`;
 }
 
 function renderAddPeopleList() {
@@ -3777,29 +3783,25 @@ function toggleAddPerson(name) {
   } else {
     _addSelectedPersons.add(key);
   }
-  renderAddPeopleList();
-  renderAudiencePill();
+  renderAddChips();
 }
 
 function showAddNewPerson() {
-  const container = document.getElementById('add-people-list');
+  const container = document.getElementById('add-person-chips');
   if (document.getElementById('add-new-person-input')) return;
-  const row = document.createElement('div');
-  row.className = 'add-prow';
   const inp = document.createElement('input');
   inp.id = 'add-new-person-input';
   inp.placeholder = 'Name…';
   inp.autocomplete = 'off';
-  inp.style.cssText = 'flex:1;border:none;border-bottom:1.5px solid var(--blue);outline:none;font-size:16px;padding:4px 2px;background:transparent;color:var(--text);font-family:inherit';
+  inp.style.cssText = 'border:none;border-bottom:1.5px solid var(--blue);outline:none;font-size:13px;padding:4px 2px;background:transparent;color:var(--text);font-family:inherit;width:80px';
   const commit = () => {
     const v = inp.value.trim();
     if (v) { _addCustomPerson = v; _addSelectedPersons.add(v); }
-    renderAddPeopleList(); renderAudiencePill();
+    renderAddChips();
   };
-  inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') renderAddPeopleList(); };
+  inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') renderAddChips(); };
   inp.onblur = commit;
-  row.appendChild(inp);
-  container.appendChild(row);
+  container.appendChild(inp);
   inp.focus();
 }
 
@@ -3825,11 +3827,18 @@ function closeAddAudiencePicker() {
   _setSubBackdrop(false);
 }
 
+let _cityBeforePicker = '';
+
 function openAddCityPicker() {
   const sheet = document.getElementById('add-city-sheet');
   const inp = document.getElementById('add-city-input');
   const currentCity = document.getElementById('city-display').textContent.trim();
-  if (inp) inp.value = currentCity === 'Anywhere' ? '' : currentCity;
+  _cityBeforePicker = currentCity === 'Anywhere' ? '' : currentCity;
+  if (inp) {
+    inp.value = _cityBeforePicker;
+    // Auto-clear when user taps into the field
+    inp.onfocus = () => { inp.value = ''; filterAddCities(); };
+  }
   filterAddCities();
   sheet.classList.add('open');
   _setSubBackdrop(true);
@@ -3839,12 +3848,30 @@ function openAddCityPicker() {
 function closeAddCityPicker() {
   const inp = document.getElementById('add-city-input');
   const val = inp ? inp.value.trim() : '';
-  if (val) {
-    const display = document.getElementById('city-display');
-    const cityInp = document.getElementById('input-city');
-    display.textContent = val;
+  const effective = val || _cityBeforePicker;
+  const display = document.getElementById('city-display');
+  const cityInp = document.getElementById('input-city');
+  if (effective) {
+    display.textContent = effective;
     display.classList.remove('add-dph');
-    if (cityInp) cityInp.value = val;
+    if (cityInp) cityInp.value = effective;
+  }
+  document.getElementById('add-city-sheet').classList.remove('open');
+  _setSubBackdrop(false);
+}
+
+function cancelAddCityPicker() {
+  // Revert to whatever was there before opening
+  const display = document.getElementById('city-display');
+  const cityInp = document.getElementById('input-city');
+  if (_cityBeforePicker) {
+    display.textContent = _cityBeforePicker;
+    display.classList.remove('add-dph');
+    if (cityInp) cityInp.value = _cityBeforePicker;
+  } else {
+    display.textContent = 'Anywhere';
+    display.classList.add('add-dph');
+    if (cityInp) cityInp.value = '';
   }
   document.getElementById('add-city-sheet').classList.remove('open');
   _setSubBackdrop(false);
@@ -3951,8 +3978,8 @@ function openAddDrawer() {
   if (avatarEl) avatarEl.textContent = uname[0].toUpperCase();
   if (nameEl) nameEl.textContent = uname;
 
-  // Reset audience pill
-  renderAudiencePill();
+  // Render person chips
+  renderAddChips();
 
   // Reset type
   selectAddType(null);
@@ -4063,10 +4090,12 @@ function renderParseResults(recs, rawInput) {
   const types = ['restaurant','bar','cafe','museum','attraction','hotel','shop','market','beach','church','neighborhood','other'];
   pendingParseCount = recs.length;
   pendingRawInput = rawInput;
-  // Hide composer + strip while showing results
+  // Hide composer + chips + strip while showing results
   const composer = document.getElementById('add-composer-area');
+  const chips = document.getElementById('add-chips-area');
   const strip = document.getElementById('add-strip-area');
   if (composer) composer.style.display = 'none';
+  if (chips) chips.style.display = 'none';
   if (strip) strip.style.display = 'none';
   el.innerHTML = recs.map((r, i) => `
     <div class="parse-result-item" id="result-${i}" data-neighborhood="${esc(r.neighborhood||'')}">
@@ -4086,8 +4115,10 @@ function renderParseResults(recs, rawInput) {
 
 function showParseArea() {
   const composer = document.getElementById('add-composer-area');
+  const chips = document.getElementById('add-chips-area');
   const strip = document.getElementById('add-strip-area');
   if (composer) composer.style.display = '';
+  if (chips) chips.style.display = '';
   if (strip) strip.style.display = '';
   document.getElementById('parse-results').innerHTML = '';
 }
