@@ -377,7 +377,7 @@
     /* ── MAP ── */
     #map-view { flex: 1; display: none; position: relative; }
     #map { height: 100%; width: 100%; background: #1a1610; }
-    #map .leaflet-tile-pane { filter: brightness(0.92) saturate(0.7) sepia(0.35) hue-rotate(-5deg); }
+    #map .leaflet-tile-pane { filter: brightness(1.12) saturate(0.7) sepia(0.35) hue-rotate(-5deg); }
 
     /* ── MARKER CLUSTERS ── */
     .cluster-icon {
@@ -2106,7 +2106,7 @@ function onSearchFocus() {
   document.getElementById('map-search-clear').style.display = val ? 'block' : 'none';
   // On mobile, always hide the suggestion overlay — the list sheet handles search display
   if (!isDesktop()) { hideSuggestions(); }
-  else if (val.length > 1) showSuggestions(val);
+  else showSuggestions(val);
   if (!isDesktop()) {
     expandSearchFilters();
     const sheet = document.getElementById('mobile-sheet');
@@ -2153,44 +2153,57 @@ function onSearchInput(val) {
 }
 
 function showSuggestions(q) {
-  if (!q) { hideSuggestions(); return; }
   // Don't show dropdown overlay when list sheet is open — list already filters live
   if (!isDesktop() && document.getElementById('mobile-sheet')?.classList.contains('open')) {
     hideSuggestions(); return;
   }
-  const lq = q.toLowerCase();
   const box = document.getElementById('search-suggestions');
   if (!box) return;
   // Position just below the search bar
   const bar = document.getElementById('map-search-bar');
   if (bar) box.style.top = (12 + bar.offsetHeight + 4) + 'px';
 
-  // Match place names and cities
-  const placeMatches = allRecs
-    .filter(r => r.name.toLowerCase().includes(lq) || (r.city||'').toLowerCase().includes(lq))
-    .slice(0, 6);
-
-  // Unique cities matching
-  const citySet = new Set();
-  allRecs.forEach(r => { if (r.city && r.city.toLowerCase().includes(lq)) citySet.add(r.city); });
-  const cities = [...citySet].slice(0, 3);
-
   let html = '';
-  cities.forEach(c => {
-    html += `<div class="suggestion-item" onclick="selectCitySuggestion('${esc(c)}')">
-      <span style="color:var(--text2);font-size:16px">📍</span>
-      <span><strong>${esc(c)}</strong> <span style="color:var(--text2);font-size:12px">city</span></span>
-    </div>`;
-  });
-  placeMatches.forEach(r => {
-    const cleanName = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
-    html += `<div class="suggestion-item" onclick="selectPlaceSuggestion(${r.id})">
-      ${typeEmojiIcon(r.type, 28)}
-      <span>${esc(cleanName)} ${r.city ? `<span style="color:var(--text2);font-size:12px">· ${esc(r.city)}</span>` : ''}</span>
-    </div>`;
-  });
 
-  if (!html) { hideSuggestions(); return; }
+  if (!q) {
+    // No query — show recently added places
+    const recent = getRecentlyAdded(8);
+    if (!recent.length) { hideSuggestions(); return; }
+    html += `<div style="padding:6px 14px 4px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Recently Added</div>`;
+    recent.forEach(r => {
+      const cleanName = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
+      html += `<div class="suggestion-item" onclick="selectPlaceSuggestion(${r.id})">
+        ${typeEmojiIcon(r.type, 28)}
+        <span>${esc(cleanName)} ${r.city ? `<span style="color:var(--text2);font-size:12px">· ${esc(r.city)}</span>` : ''}</span>
+      </div>`;
+    });
+  } else {
+    const lq = q.toLowerCase();
+    // Match place names and cities
+    const placeMatches = allRecs
+      .filter(r => r.name.toLowerCase().includes(lq) || (r.city||'').toLowerCase().includes(lq))
+      .slice(0, 6);
+    // Unique cities matching
+    const citySet = new Set();
+    allRecs.forEach(r => { if (r.city && r.city.toLowerCase().includes(lq)) citySet.add(r.city); });
+    const cities = [...citySet].slice(0, 3);
+
+    cities.forEach(c => {
+      html += `<div class="suggestion-item" onclick="selectCitySuggestion('${esc(c)}')">
+        <span style="color:var(--text2);font-size:16px">📍</span>
+        <span><strong>${esc(c)}</strong> <span style="color:var(--text2);font-size:12px">city</span></span>
+      </div>`;
+    });
+    placeMatches.forEach(r => {
+      const cleanName = r.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || r.name;
+      html += `<div class="suggestion-item" onclick="selectPlaceSuggestion(${r.id})">
+        ${typeEmojiIcon(r.type, 28)}
+        <span>${esc(cleanName)} ${r.city ? `<span style="color:var(--text2);font-size:12px">· ${esc(r.city)}</span>` : ''}</span>
+      </div>`;
+    });
+    if (!html) { hideSuggestions(); return; }
+  }
+
   box.innerHTML = html;
   box.classList.add('visible');
 }
@@ -2219,6 +2232,13 @@ function saveRecentPlace(id) {
 function getRecentPlaces() {
   return JSON.parse(localStorage.getItem('hm_recent_places') || '[]')
     .map(id => allRecs.find(r => r.id === id)).filter(Boolean);
+}
+
+function getRecentlyAdded(n = 15) {
+  return [...allRecs]
+    .filter(r => r.created_at)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, n);
 }
 function applyRecentSearch(q) {
   const inp = document.getElementById('map-search-input');
@@ -2504,10 +2524,14 @@ function renderMobileList() {
         // No filter → show based on toggle mode
         const sectionLabel = s => `<div style="padding:10px 16px 4px;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">${s}</div>`;
         if (_listMode === 'recent') {
-          const recentRecs = getRecentPlaces();
-          html = recentRecs.length > 0
-            ? recentRecs.map(cardHtml).join('')
-            : '<div class="empty-state"><p>No recently viewed places.</p></div>';
+          // Merge recently viewed + recently added, dedup, keep order
+          const viewed = getRecentPlaces();
+          const added = getRecentlyAdded(10);
+          const seen = new Set(viewed.map(r => r.id));
+          const merged = [...viewed, ...added.filter(r => !seen.has(r.id))];
+          html = merged.length > 0
+            ? merged.map(cardHtml).join('')
+            : '<div class="empty-state"><p>No recently added places.</p></div>';
         } else {
           // On map — show places in current viewport
           const bounds = map.getBounds();
@@ -3536,9 +3560,10 @@ function initMap() {
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
   }
 
-  // Re-render markers on zoomend; in heading-up mode snap center back to user
+  // Re-render markers on zoomend; in heading-up mode snap center back to user.
+  // Skip re-render during active pinch — renderMapMarkers is called once on touchend instead.
   map.on('zoomend', () => {
-    renderMapMarkers();
+    if (!_inCustomPinch) renderMapMarkers();
     if (_userLocation) updateHeadingCone(_userLocation.lat, _userLocation.lng, _currentHeading);
     if (_compassMode === 'heading-up' && _userLocation) {
       map.panTo([_userLocation.lat, _userLocation.lng], { animate: false });
@@ -3608,6 +3633,8 @@ function initMap() {
     if (e.touches.length < 2) {
       _inCustomPinch = false;
       _pinchStartDist = 0;
+      // Render markers once now that pinch is done
+      renderMapMarkers();
     }
   }, { passive: true, capture: true });
 }
