@@ -1481,7 +1481,7 @@
     </div>
     <!-- Textarea -->
     <div class="add-composer" id="add-composer-area" style="padding:14px 16px 8px">
-      <textarea id="raw-input" class="add-big-textarea" placeholder="Name a place, paste a link, or drop in a list…" oninput="_rawClearPending=false;updateAddBtnLabel()" style="width:100%;min-height:90px"></textarea>
+      <textarea id="raw-input" class="add-big-textarea" placeholder="Name a place, paste a link, or drop in a list…" oninput="updateAddBtnLabel()" style="width:100%;min-height:90px"></textarea>
     </div>
     <!-- Person chips -->
     <div style="padding:4px 16px 10px;flex-shrink:0" id="add-chips-area">
@@ -4016,13 +4016,12 @@ function commitAddNote() {
 let _rawSaved = '';
 let _rawClearPending = false;
 function openAddDrawer() {
-  // Preserve last text — auto-clear on first keystroke, restore on close without typing
+  // Always start fresh
   const ta = document.getElementById('raw-input');
-  _rawSaved = ta.value;
-  _rawClearPending = !!ta.value; // only pending if there's something to clear
-  ta.onfocus = function() {
-    if (_rawClearPending) { ta.value = ''; _rawClearPending = false; updateAddBtnLabel(); }
-  };
+  ta.value = '';
+  ta.onfocus = null;
+  _rawSaved = '';
+  _rawClearPending = false;
   _addSelectedPersons = new Set(['Me']);
   _addCustomPerson = null;
   _addSelectedType = null;
@@ -4079,15 +4078,11 @@ function openAddDrawer() {
   }
 
   document.getElementById('add-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('raw-input')?.focus(), 150);
 }
 
 function closeAddDrawer(e) {
   if (e && e.target !== document.getElementById('add-overlay')) return;
   // If user closed without typing anything, restore the previous text
-  const ta = document.getElementById('raw-input');
-  if (_rawClearPending && ta && ta.value === '') ta.value = _rawSaved;
-  _rawClearPending = false;
   document.getElementById('add-overlay').classList.remove('open');
   closeAllAddSubSheets();
   showParseArea();
