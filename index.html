@@ -547,11 +547,11 @@
       border: 1px solid rgba(255,255,255,0.08);
       padding: 0 16px 32px; display: none; flex-direction: column;
       max-height: 80vh; max-width: 90vw; width: 100%; overflow-y: auto;
-      touch-action: manipulation; z-index: 2;
+      touch-action: manipulation; z-index: 2200;
     }
     .add-sub-sheet.open { display: flex; }
     .add-sub-backdrop {
-      position: fixed; inset: 0; z-index: 1; display: none; background: rgba(0,0,0,0.5);
+      position: fixed; inset: 0; z-index: 2100; display: none; background: rgba(0,0,0,0.5);
     }
     .add-sub-backdrop.open { display: block; }
     .add-sub-sheet-header {
@@ -2556,10 +2556,17 @@ function renderMobileList() {
             ? merged.map(cardHtml).join('')
             : '<div class="empty-state"><p>No recently added places.</p></div>');
         } else {
-          // On map — show places in current viewport
-          const bounds = map.getBounds();
+          // On map — show places in the *visible* screen area only
+          // getBounds() covers full tile extent including under search bar/nav;
+          // use containerPointToLatLng on the actual visible pixel rect instead.
+          const mapEl = map.getContainer();
+          const topPx = 80;   // approx height of search bar
+          const botPx = mapEl.offsetHeight - 90; // approx height of bottom nav
+          const nw = map.containerPointToLatLng([0, topPx]);
+          const se = map.containerPointToLatLng([mapEl.offsetWidth, botPx]);
+          const visibleBounds = L.latLngBounds(se, nw);
           const inBounds = filtered.filter(r => r.latitude && r.longitude
-            && bounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
+            && visibleBounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
           if (inBounds.length > 0) {
             const allNearby = _userLocation && inBounds.every(r =>
               r.latitude && r.longitude &&
