@@ -268,17 +268,23 @@ async function fetchPageText(url) {
 
 // Extract lat/lng from a Google Maps or Apple Maps URL without fetching the page
 function extractCoordsFromUrl(url) {
-  // Google Maps /@lat,lng,zoom
-  let m = url.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  // Google Maps /@lat,lng,zoom (flexible decimal)
+  let m = url.match(/\/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
   if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
-  // Google Maps embedded !3dLAT!4dLNG
-  m = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  // Google Maps embedded !3dLAT!4dLNG (flexible decimal)
+  m = url.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
   if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
-  // Apple Maps ll=lat,lng
-  m = url.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  // Apple Maps ll=lat,lng (flexible decimal)
+  m = url.match(/[?&]ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
   if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
-  // Generic q=lat,lng
-  m = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  // Generic q=lat,lng (flexible decimal)
+  m = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  // Google Maps short share: coords sometimes embedded in query
+  m = url.match(/maps\.google\.[^/]*[?&][^?&]*@?(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
+  if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+  // Raw lat,lng format
+  m = url.trim().match(/^(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)$/);
   if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
   return null;
 }
@@ -708,6 +714,41 @@ app.post('/api/fix-no-location', requireAuth, async (req, res) => {
     res.json({ done: false, updated, name: rec.name, city: rec.city, remaining: parseInt(remRows[0].cnt) });
   } catch (err) {
     console.error('fix-no-location error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Manual location fix: accept URL or coordinates for a specific recommendation
+app.post('/api/geocode-missing', requireAuth, async (req, res) => {
+  const { id, url, latitude, longitude } = req.body;
+  if (!id) return res.status(400).json({ error: 'id required' });
+
+  let lat = latitude, lng = longitude;
+
+  // If URL provided, extract coordinates
+  if (url && (!lat || !lng)) {
+    const coords = extractCoordsFromUrl(url);
+    if (coords) {
+      lat = coords.latitude;
+      lng = coords.longitude;
+    }
+  }
+
+  if (!lat || !lng) {
+    return res.status(400).json({ error: 'Could not extract coordinates from URL or invalid coordinates provided' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE recommendations SET latitude=$1, longitude=$2, geocode_attempted=TRUE, updated_at=NOW() WHERE id=$3 RETURNING *`,
+      [lat, lng, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Recommendation not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('geocode-missing error:', err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -4114,7 +4114,7 @@ async function parseInput() {
   const city = getCityValue();
   const recommended_by = getAddRecommendedBy();
   const btn = document.getElementById('parse-btn');
-  const resetBtn = () => { btn.textContent = 'Post'; btn.disabled = false; btn.classList.remove('dim'); };
+  const resetBtn = () => { btn.textContent = 'Add'; btn.disabled = false; btn.classList.remove('dim'); };
   btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled = true;
   let data;
