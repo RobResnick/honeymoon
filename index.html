@@ -1249,7 +1249,7 @@
         display: flex !important;
         position: fixed; top: 92px; right: 0;
         z-index: 500;
-        width: 24px; height: 48px;
+        width: 48px; height: 96px;
         border-radius: 12px 0 0 12px;
         background: rgba(22,28,36,0.85);
         backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -1257,7 +1257,13 @@
         box-shadow: -2px 0 12px rgba(0,0,0,0.35);
         align-items: center; justify-content: center;
         cursor: pointer; padding: 0; flex-direction: column;
+        transform: translateX(0);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       }
+      #buddy-btn.open {
+        transform: translateX(-300px);
+      }
+      #buddy-btn svg { width: 12px; height: 52px; }
       #buddy-panel {
         position: fixed; top: 0; bottom: 0;
         right: 0; left: auto; width: 300px;
@@ -4772,6 +4778,7 @@ function toggleBuddy() {
 
 function openBuddy() {
   document.getElementById('buddy-panel').classList.add('open');
+  document.getElementById('buddy-btn').classList.add('open');
   document.getElementById('buddy-settings-popup').classList.remove('visible');
   // Always keep map movable while buddy is open
   enableMapInteraction();
@@ -4994,6 +5001,7 @@ function renderBuddyNames() {
 
 function closeBuddy() {
   document.getElementById('buddy-panel').classList.remove('open');
+  document.getElementById('buddy-btn').classList.remove('open');
   document.getElementById('buddy-settings-popup').classList.remove('visible');
   // Re-disable map if the list sheet is still open
   const sheet = document.getElementById('mobile-sheet');
