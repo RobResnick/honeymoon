@@ -1564,7 +1564,7 @@
       </div>
     </div>
     <div style="padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);line-height:1.5">
-      For each place, tap <strong>Search →</strong> to find it in Google Maps, then copy the URL from the address bar and paste it below. Works with Google Maps share links too.
+      For each place, paste a <strong>street address</strong>, a <strong>Google Maps URL</strong>, or <strong>lat,lng</strong> coordinates. Tap <strong>Search →</strong> to look it up first.
     </div>
     <div id="fix-loc-list" style="flex:1;padding:8px 0"></div>
   </div>
@@ -4385,7 +4385,7 @@ function renderFixLocationsList() {
              style="flex-shrink:0;font-size:12px;color:var(--blue);white-space:nowrap;text-decoration:none;padding:4px 8px;border:1px solid var(--blue);border-radius:8px">Search →</a>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <input id="fix-input-${r.id}" type="text" placeholder="Paste Google Maps URL or lat,lng…"
+          <input id="fix-input-${r.id}" type="text" placeholder="Address, Google Maps URL, or lat,lng…"
             style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none"
             oninput="fixLocPreview(${r.id}, this.value)" />
           <button onclick="fixLocSave(${r.id})"
@@ -4399,6 +4399,7 @@ function renderFixLocationsList() {
   `).join('');
 }
 
+const _fixLocGeoTimers = {};
 function fixLocPreview(id, val) {
   const previewEl = document.getElementById(`fix-preview-${id}`);
   if (!previewEl) return;
@@ -4407,21 +4408,58 @@ function fixLocPreview(id, val) {
   if (coords) {
     previewEl.textContent = `✓ ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
     previewEl.style.color = '#4caf50';
-  } else {
+    previewEl._resolvedCoords = coords;
+    return;
+  }
+  // Looks like a plain address — debounce geocode
+  previewEl._resolvedCoords = null;
+  if (/^https?:\/\//.test(val)) {
     previewEl.textContent = 'No coordinates found in that URL';
     previewEl.style.color = '#f5a623';
+    return;
   }
+  previewEl.textContent = 'Looking up address…';
+  previewEl.style.color = 'var(--text3)';
+  clearTimeout(_fixLocGeoTimers[id]);
+  _fixLocGeoTimers[id] = setTimeout(async () => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=1`, {
+        headers: { 'User-Agent': 'HoneymoonApp/1.0 rob@robresnick.com' }
+      });
+      const data = await res.json();
+      if (data && data[0]) {
+        const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+        previewEl._resolvedCoords = { lat, lng };
+        previewEl.textContent = `✓ ${data[0].display_name.split(',').slice(0,3).join(',')} · ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        previewEl.style.color = '#4caf50';
+      } else {
+        previewEl._resolvedCoords = null;
+        previewEl.textContent = 'Address not found — try adding city or country';
+        previewEl.style.color = '#f5a623';
+      }
+    } catch(e) {
+      previewEl.textContent = 'Geocode failed — check connection';
+      previewEl.style.color = '#f5a623';
+    }
+  }, 700);
 }
 
 async function fixLocSave(id) {
   const inp = document.getElementById(`fix-input-${id}`);
+  const previewEl = document.getElementById(`fix-preview-${id}`);
   if (!inp) return;
   const val = inp.value.trim();
   if (!val) return;
 
+  // If we already resolved coords via preview, use them
+  if (previewEl?._resolvedCoords) {
+    const { lat, lng } = previewEl._resolvedCoords;
+    await doFixLocSave(id, lat, lng);
+    return;
+  }
+
   // If it's a goo.gl short link, resolve server-side first
   if (/goo\.gl|maps\.app\.goo\.gl/.test(val)) {
-    const previewEl = document.getElementById(`fix-preview-${id}`);
     if (previewEl) { previewEl.textContent = 'Resolving short link…'; previewEl.style.color = 'var(--text3)'; }
     try {
       const res = await api('/api/resolve-url', 'POST', { url: val });
@@ -4434,12 +4472,28 @@ async function fixLocSave(id) {
     return;
   }
 
+  // Try URL coord extraction
   const coords = clientExtractCoords(val);
-  if (!coords) {
-    showToast('No coordinates found in that URL', 2500);
+  if (coords) {
+    await doFixLocSave(id, coords.lat, coords.lng);
     return;
   }
-  await doFixLocSave(id, coords.lat, coords.lng);
+
+  // Plain address — geocode now
+  if (previewEl) { previewEl.textContent = 'Looking up address…'; previewEl.style.color = 'var(--text3)'; }
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=1`, {
+      headers: { 'User-Agent': 'HoneymoonApp/1.0 rob@robresnick.com' }
+    });
+    const data = await res.json();
+    if (data && data[0]) {
+      await doFixLocSave(id, parseFloat(data[0].lat), parseFloat(data[0].lon));
+    } else {
+      if (previewEl) { previewEl.textContent = 'Address not found — try adding city or country'; previewEl.style.color = '#f5a623'; }
+    }
+  } catch(e) {
+    showToast('Geocode failed — check connection', 2500);
+  }
 }
 
 async function doFixLocSave(id, lat, lng) {
