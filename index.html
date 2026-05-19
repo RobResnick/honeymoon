@@ -2302,6 +2302,8 @@ function detectCoordState() {
       return;
     }
     const lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
+    // Trust manually-set coordinates — never re-flag them as city-level
+    if (r.manual_location) return;
     // Check if coords are at city center (city-level fallback)
     const cityKey = (r.city || '').toLowerCase().trim();
     const cc = _cityCoords[cityKey];
@@ -4525,7 +4527,7 @@ async function doFixLocSave(id, lat, lng) {
   if (!rec) return;
   try {
     const updated = await api('/api/recommendations/' + id, 'PUT', {
-      ...rec, latitude: lat, longitude: lng, geocode_attempted: true
+      ...rec, latitude: lat, longitude: lng, geocode_attempted: true, manual_location: true
     });
     if (updated && updated.id) {
       // Update local state

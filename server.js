@@ -789,15 +789,17 @@ app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
     longitude = coords.longitude;
   }
 
-  // Allow manual coordinate fixes to stamp geocode_attempted=TRUE
+  // Allow manual coordinate fixes to stamp geocode_attempted=TRUE and manual_location=TRUE
   const geocode_attempted = (req.body.geocode_attempted === true || req.body.geocode_attempted === 'true') ? true : null;
-  const geocodeClause = geocode_attempted !== null ? ', geocode_attempted=$15' : '';
-  const queryParams = [name, type, city, neighborhood, address, country, recommended_by, notes, source_url, latitude, longitude, phone || null, req.params.id, req.userId];
-  if (geocode_attempted !== null) queryParams.splice(12, 0, geocode_attempted);
-  const idIdx = geocode_attempted !== null ? 14 : 13;
-  const userIdx = geocode_attempted !== null ? 15 : 14;
+  const manual_location = (req.body.manual_location === true || req.body.manual_location === 'true') ? true : null;
+  let extraClauses = '';
+  const queryParams = [name, type, city, neighborhood, address, country, recommended_by, notes, source_url, latitude, longitude, phone || null];
+  if (geocode_attempted !== null) { extraClauses += `, geocode_attempted=$${queryParams.length + 1}`; queryParams.push(geocode_attempted); }
+  if (manual_location !== null) { extraClauses += `, manual_location=$${queryParams.length + 1}`; queryParams.push(manual_location); }
+  const idIdx = queryParams.length + 1; queryParams.push(req.params.id);
+  const userIdx = queryParams.length + 1; queryParams.push(req.userId);
   const result = await pool.query(
-    `UPDATE recommendations SET name=$1, type=$2, city=$3, neighborhood=$4, address=$5, country=$6, recommended_by=$7, notes=$8, source_url=$9, latitude=$10, longitude=$11, phone=$12${geocode_attempted !== null ? ', geocode_attempted=$13' : ''}, updated_at=NOW()
+    `UPDATE recommendations SET name=$1, type=$2, city=$3, neighborhood=$4, address=$5, country=$6, recommended_by=$7, notes=$8, source_url=$9, latitude=$10, longitude=$11, phone=$12${extraClauses}, updated_at=NOW()
      WHERE id=$${idIdx} AND user_id=$${userIdx} RETURNING *`,
     queryParams
   );
