@@ -4143,7 +4143,7 @@ async function parseInput() {
     _rawSaved = ''; // clear saved text after successful add
     closeAddDrawer();
     showToast(`Added ${saved?.[0]?.name || 'place'}!`);
-    await loadRecs(); await loadFilters();
+    await loadRecs(); await loadFilters(); loadPeople().then(renderAddChips);
     return;
   }
   resetBtn();

@@ -556,6 +556,9 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
   }
 
   res.json(saved);
+  // Async: register any new people from these recs into the people_list
+  const newNames = [...new Set(saved.flatMap(r => (r.recommended_by||'').split(',').map(p=>p.trim()).filter(Boolean)))];
+  if (newNames.length) updatePeopleList(newNames).catch(()=>{});
   // Precise place-level geocoding happens via /api/geocode-missing called by the client
 });
 
@@ -821,6 +824,16 @@ app.delete('/api/recommendations/:id', requireAuth, async (req, res) => {
   await pool.query('DELETE FROM recommendations WHERE id=$1 AND user_id=$2', [req.params.id, req.userId]);
   res.json({ ok: true });
 });
+
+// Merge new names into the stored people_list (called after saves)
+async function updatePeopleList(newNames) {
+  const stored = await pool.query("SELECT value FROM app_config WHERE key='people_list'");
+  const current = stored.rows[0] ? JSON.parse(stored.rows[0].value) : [];
+  const merged = [...new Set([...current, ...newNames])].sort((a, b) => a.localeCompare(b));
+  if (merged.length !== current.length) {
+    await pool.query("INSERT INTO app_config(key,value) VALUES('people_list',$1) ON CONFLICT(key) DO UPDATE SET value=$1", [JSON.stringify(merged)]);
+  }
+}
 
 // Canonical people list (recommended_by "users")
 app.get('/api/people', requireAuth, async (req, res) => {
