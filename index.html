@@ -4392,6 +4392,9 @@ function renderFixLocationsList() {
             style="flex-shrink:0;background:var(--blue);color:white;border:none;border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:500">
             Save
           </button>
+          <button onclick="fixLocDelete(${r.id})"
+            style="flex-shrink:0;background:none;color:#e57373;border:1px solid #e57373;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit"
+            title="Delete this place">🗑</button>
         </div>
         <div id="fix-preview-${r.id}" style="font-size:11px;color:var(--text3);margin-top:4px;min-height:14px"></div>
       </div>
@@ -4493,6 +4496,27 @@ async function fixLocSave(id) {
     }
   } catch(e) {
     showToast('Geocode failed — check connection', 2500);
+  }
+}
+
+async function fixLocDelete(id) {
+  const rec = allRecs.find(x => x.id === id);
+  if (!rec) return;
+  if (!confirm(`Delete "${rec.name}"?`)) return;
+  try {
+    await api('/api/recommendations/' + id, 'DELETE');
+    allRecs = allRecs.filter(x => x.id !== id);
+    _failedCoords.delete(id);
+    _pendingCoords.delete(id);
+    const row = document.getElementById(`fix-row-${id}`);
+    if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.2s'; setTimeout(() => { row.remove(); renderFixLocationsList(); }, 200); }
+    const remaining = allRecs.filter(r => _failedCoords.has(r.id) || _pendingCoords.has(r.id)).length;
+    const fixBtn = document.getElementById('fix-location-btn');
+    if (fixBtn) { fixBtn.style.display = remaining > 0 ? 'inline-flex' : 'none'; if (remaining > 0) fixBtn.textContent = `⚠️ ${remaining} missing locations`; }
+    renderMapMarkers();
+    showToast(`Deleted ${rec.name}`, 2000);
+  } catch(e) {
+    showToast('Delete failed', 2500);
   }
 }
 
