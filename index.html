@@ -1230,8 +1230,8 @@
       .compass-btn { display: none !important; }
 
       /* Desktop zoom buttons — bottom-right, slides left when buddy opens */
+      .recenter-btn { display: none !important; }
       .leaflet-control-zoom { border: none !important; }
-      .leaflet-control-zoom-out { display: none !important; }
       .leaflet-control-zoom a {
         background: var(--card) !important;
         color: var(--text) !important;
@@ -1250,7 +1250,7 @@
         transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       }
       body.buddy-open .leaflet-bottom.leaflet-right {
-        right: calc(300px + 20px);
+        right: calc(240px + 20px);
       }
 
       /* Desktop buddy panel — right side, matches mobile styling */
@@ -1267,15 +1267,23 @@
         align-items: center; justify-content: center;
         cursor: pointer; padding: 0; flex-direction: column;
         transform: translateX(0);
-        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                    width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                    height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       }
       #buddy-btn.open {
-        transform: translateX(-300px);
+        transform: translateX(-240px);
+        width: 24px; height: 48px;
       }
-      #buddy-btn svg { width: 12px; height: 52px; }
+      #buddy-btn svg {
+        width: 12px; height: 52px;
+        transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                    height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      #buddy-btn.open svg { width: 6px; height: 26px; }
       #buddy-panel {
         position: fixed; top: 0; bottom: 0;
-        right: 0; left: auto; width: 300px;
+        right: 0; left: auto; width: 240px;
         background: #111; color: white;
         z-index: 490;
         transform: translateX(100%);
