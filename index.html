@@ -1208,6 +1208,13 @@
       .main-content { flex: 1; position: relative; }
       #map-view { display: block !important; position: absolute; inset: 0; }
 
+      /* Add button: move over map when search is active */
+      body.searching .add-btn {
+        position: fixed !important;
+        left: calc(380px + 16px) !important;
+        right: auto !important;
+      }
+
       .mobile-sheet { display: none !important; }
       .bottom-nav { display: none !important; }
       .map-search-bar { display: none !important; }
@@ -1356,6 +1363,9 @@
       /* Left panel: 380px is too wide on portrait iPad (768px total) */
       #left-panel { width: 280px !important; min-width: 240px; }
 
+      /* Add button: move over map when searching (iPad panel is 280px) */
+      body.searching .add-btn { left: calc(280px + 16px) !important; }
+
       /* Larger touch targets for zoom +/- */
       .leaflet-control-zoom a {
         width: 40px !important; height: 40px !important;
@@ -1430,9 +1440,12 @@
       <button id="fix-location-btn" onclick="openFixLocations()" title="Fix missing locations" style="display:none;align-items:center;gap:4px;background:none;border:1px solid #f5a623;border-radius:14px;color:#f5a623;font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">⚠️ Fix locations</button>
     </header>
     <div class="filter-bar" id="filter-bar">
-      <input type="text" id="search-input" placeholder="Search places…"
-        enterkeyhint="search" inputmode="search"
-        oninput="applyFilters()" onkeydown="handleSearchKey(event)" />
+      <div style="position:relative;display:flex;align-items:center">
+        <input type="text" id="search-input" placeholder="Search places…"
+          enterkeyhint="search" inputmode="search" style="flex:1;padding-right:28px"
+          oninput="applyFilters();updatePanelSearchClear()" onkeydown="handleSearchKey(event)" />
+        <button id="panel-search-clear" onclick="clearPanelSearch()" style="display:none;position:absolute;right:6px;background:none;border:none;color:var(--text3);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px">×</button>
+      </div>
       <div class="filter-row">
         <select id="filter-city"   onchange="applyFilters()"><option value="">All cities</option></select>
         <select id="filter-type"   onchange="applyFilters()"><option value="">All types</option></select>
@@ -2562,6 +2575,20 @@ let filterDebounce = null;
 function applyFilters() {
   clearTimeout(filterDebounce);
   filterDebounce = setTimeout(() => loadRecs(false), 150);
+}
+
+function updatePanelSearchClear() {
+  const val = document.getElementById('search-input')?.value || '';
+  const btn = document.getElementById('panel-search-clear');
+  if (btn) btn.style.display = val ? 'block' : 'none';
+  document.body.classList.toggle('searching', !!val);
+}
+
+function clearPanelSearch() {
+  const inp = document.getElementById('search-input');
+  if (inp) { inp.value = ''; inp.focus(); }
+  updatePanelSearchClear();
+  applyFilters();
 }
 
 // ── RENDER ──
