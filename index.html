@@ -758,7 +758,7 @@
     /* ════════════════════════════════
        MOBILE LAYOUT
     ════════════════════════════════ */
-    @media (hover: none) and (pointer: coarse) {
+    @media (hover: none) and (pointer: coarse) and (max-width: 767px) {
       body { background: #000; }
 
       #left-panel { display: none !important; }
@@ -1180,7 +1180,7 @@
     /* ════════════════════════════════
        DESKTOP LAYOUT
     ════════════════════════════════ */
-    @media (hover: hover) and (pointer: fine) {
+    @media (hover: hover) and (pointer: fine), (hover: none) and (min-width: 768px) {
       body { overflow: hidden; }
       #app { flex-direction: row; height: 100vh; }
 
@@ -1961,7 +1961,7 @@ function isPersonVisible(name) {
   return true;
 }
 
-const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches || window.innerWidth >= 768;
 
 // ── AUTH ──
 function toggleAuthMode() {
