@@ -130,6 +130,7 @@ async function initDb() {
   await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS phone VARCHAR(50)`);
   // Track whether we've already attempted precise geocoding (prevents infinite retries)
   await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS geocode_attempted BOOLEAN DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS manual_location BOOLEAN DEFAULT FALSE`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_config (
@@ -787,9 +788,16 @@ app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
 
   let { latitude, longitude } = req.body;
   if (!latitude || !longitude) {
-    const coords = await geocode(name, address, city);
-    latitude = coords.latitude;
-    longitude = coords.longitude;
+    // If this record has manual_location set, preserve its coords instead of re-geocoding
+    const existing = await pool.query('SELECT latitude, longitude, manual_location FROM recommendations WHERE id=$1', [req.params.id]);
+    if (existing.rows[0]?.manual_location) {
+      latitude = existing.rows[0].latitude;
+      longitude = existing.rows[0].longitude;
+    } else {
+      const coords = await geocode(name, address, city);
+      latitude = coords.latitude;
+      longitude = coords.longitude;
+    }
   }
 
   // Allow manual coordinate fixes to stamp geocode_attempted=TRUE and manual_location=TRUE

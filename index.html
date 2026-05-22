@@ -4337,6 +4337,7 @@ function closeEditModal(e) {
 
 async function saveEdit() {
   const id = document.getElementById('edit-id').value;
+  const existing = allRecs.find(r => String(r.id) === String(id)) || {};
   const body = {
     name: document.getElementById('edit-name').value,
     type: document.getElementById('edit-type').value,
@@ -4347,6 +4348,10 @@ async function saveEdit() {
     address: document.getElementById('edit-address').value,
     notes: document.getElementById('edit-notes').value,
     source_url: document.getElementById('edit-source-url').value,
+    latitude: existing.latitude,
+    longitude: existing.longitude,
+    geocode_attempted: existing.geocode_attempted,
+    manual_location: existing.manual_location,
   };
   await api('/api/recommendations/' + id, 'PUT', body);
   closeEditModal();
