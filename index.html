@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Honeymaps</title>
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -269,7 +269,7 @@
     .btn-sm { padding: 6px 14px; font-size: 12px; }
 
     /* ── APP SHELL ── */
-    #app { display: none; flex-direction: column; height: 100vh; }
+    #app { display: none; flex-direction: column; height: 100vh; height: 100svh; }
 
     header {
       background: var(--card);
@@ -1182,12 +1182,12 @@
     ════════════════════════════════ */
     @media (hover: hover) and (pointer: fine), (hover: none) and (min-width: 768px) {
       body { overflow: hidden; }
-      #app { flex-direction: row; height: 100vh; }
+      #app { flex-direction: row; height: 100vh; height: 100svh; }
 
       #left-panel {
         display: flex; flex-direction: column;
         width: 380px; min-width: 320px; flex-shrink: 0;
-        height: 100vh; border-right: 1px solid var(--border);
+        height: 100vh; height: 100svh; border-right: 1px solid var(--border);
         background: var(--card); position: relative; z-index: 10;
       }
 
@@ -1362,18 +1362,14 @@
         line-height: 38px !important; font-size: 22px !important;
         margin-bottom: 6px !important;
       }
-      /* Lift zoom controls above Safari's bottom bar */
-      .leaflet-bottom.leaflet-right {
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 24px) !important;
-      }
-      body.buddy-open .leaflet-bottom.leaflet-right {
-        right: calc(240px + 20px) !important;
-      }
+      /* Lift zoom controls clear of the bottom edge */
+      .leaflet-bottom.leaflet-right { bottom: 24px !important; }
+      body.buddy-open .leaflet-bottom.leaflet-right { right: calc(240px + 20px) !important; }
 
-      /* Bigger Add button for touch, lifted above Safari bottom bar */
+      /* Bigger Add button for touch */
       .add-btn {
         width: 54px !important; height: 54px !important; font-size: 30px !important;
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 20px) !important;
+        bottom: 24px !important;
       }
 
       /* Buddy panel: account for narrower panel offset */
@@ -1388,11 +1384,6 @@
       /* Place name labels: ensure no-wrap (already in desktop block but reinforce) */
       .map-place-label { white-space: nowrap !important; max-width: none !important; }
 
-      /* Push header below Safari's top bar */
-      header {
-        padding-top: env(safe-area-inset-top, 0px) !important;
-        height: calc(52px + env(safe-area-inset-top, 0px)) !important;
-      }
     }
   </style>
 </head>
