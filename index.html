@@ -1344,11 +1344,39 @@
       #buddy-settings-popup.visible { display: block; }
     }
 
-    @media (min-width: 600px) and (hover: none) {
+    @media (min-width: 600px) and (hover: none) and (max-width: 767px) {
       .overlay { align-items: center; justify-content: center; padding: 20px; }
       .drawer { border-radius: 16px; max-width: 560px; height: auto; max-height: 90vh; }
       .modal-overlay { align-items: center; padding: 20px; }
       .modal { border-radius: 8px; }
+    }
+
+    /* ── iPad overrides (touch + min 768px) ── */
+    @media (hover: none) and (min-width: 768px) {
+      /* Left panel: 380px is too wide on portrait iPad (768px total) */
+      #left-panel { width: 280px !important; min-width: 240px; }
+
+      /* Larger touch targets for zoom +/- */
+      .leaflet-control-zoom a {
+        width: 40px !important; height: 40px !important;
+        line-height: 38px !important; font-size: 22px !important;
+        margin-bottom: 6px !important;
+      }
+
+      /* Bigger Add button for touch */
+      .add-btn { width: 54px !important; height: 54px !important; font-size: 30px !important; }
+
+      /* Buddy panel: account for narrower panel offset */
+      #buddy-btn.open { transform: translateX(-240px); }
+
+      /* Overlay/drawers: centered modal style for iPad */
+      .overlay { align-items: center; justify-content: center; padding: 20px; }
+      .drawer { border-radius: 16px; max-width: 560px; height: auto; max-height: 90vh; }
+      .modal-overlay { align-items: center; padding: 20px; }
+      .modal { border-radius: 8px; }
+
+      /* Place name labels: ensure no-wrap (already in desktop block but reinforce) */
+      .map-place-label { white-space: nowrap !important; max-width: none !important; }
     }
   </style>
 </head>
@@ -1961,7 +1989,7 @@ function isPersonVisible(name) {
   return true;
 }
 
-const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches || window.innerWidth >= 768;
+const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches || window.matchMedia('(hover: none) and (min-width: 768px)').matches;
 
 // ── AUTH ──
 function toggleAuthMode() {
