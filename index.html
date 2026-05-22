@@ -1364,7 +1364,7 @@
       }
       /* Lift zoom controls clear of the bottom edge */
       .leaflet-bottom.leaflet-right { bottom: 24px !important; }
-      body.buddy-open .leaflet-bottom.leaflet-right { right: calc(240px + 20px) !important; }
+      body.buddy-open .leaflet-bottom.leaflet-right { right: calc(180px + 20px) !important; }
 
       /* Bigger Add button for touch */
       .add-btn {
@@ -1372,8 +1372,9 @@
         bottom: 24px !important;
       }
 
-      /* Buddy panel: account for narrower panel offset */
-      #buddy-btn.open { transform: translateX(-240px); }
+      /* Buddy panel: narrower on iPad (180px) */
+      #buddy-btn.open { transform: translateX(-180px); }
+      #buddy-panel { width: 180px !important; }
 
       /* Overlay/drawers: centered modal style for iPad */
       .overlay { align-items: center; justify-content: center; padding: 20px; }
