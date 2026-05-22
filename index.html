@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Honeymaps</title>
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -1362,9 +1362,19 @@
         line-height: 38px !important; font-size: 22px !important;
         margin-bottom: 6px !important;
       }
+      /* Lift zoom controls above Safari's bottom bar */
+      .leaflet-bottom.leaflet-right {
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 24px) !important;
+      }
+      body.buddy-open .leaflet-bottom.leaflet-right {
+        right: calc(240px + 20px) !important;
+      }
 
-      /* Bigger Add button for touch */
-      .add-btn { width: 54px !important; height: 54px !important; font-size: 30px !important; }
+      /* Bigger Add button for touch, lifted above Safari bottom bar */
+      .add-btn {
+        width: 54px !important; height: 54px !important; font-size: 30px !important;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 20px) !important;
+      }
 
       /* Buddy panel: account for narrower panel offset */
       #buddy-btn.open { transform: translateX(-240px); }
