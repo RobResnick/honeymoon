@@ -3311,7 +3311,7 @@ function initDetailSwipe() {
     _previewIdx = -1;
   }
 
-  const GAP = 10; // px gap between swiping cards
+  const GAP = 10;
 
   function getOrBuildPreview(goNext) {
     const nextIdx = _detailSwipeIndex + (goNext ? 1 : -1);
@@ -3323,9 +3323,10 @@ function initDetailSwipe() {
     if (!nr) return null;
     _previewEl = document.createElement('div');
     _previewEl.className = 'modal';
-    // Match the current modal's exact height so both cards sit at the same level
-    const modalH = modal.getBoundingClientRect().height;
-    _previewEl.style.cssText = `position:absolute;bottom:0;left:0;right:0;pointer-events:none;overflow:hidden;height:${modalH}px;`;
+    // Match the current modal's exact position (works for both full-width mobile
+    // and centered desktop/iPad cards)
+    const r = modal.getBoundingClientRect();
+    _previewEl.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;pointer-events:none;overflow:hidden;z-index:10001;`;
     const cleanNm = nr.name.replace(/^[\p{Emoji}\s]+/u, '').trim() || nr.name;
     const metaParts = [nr.city, nr.neighborhood, nr.type ? nr.type.charAt(0).toUpperCase()+nr.type.slice(1) : ''].filter(Boolean);
     _previewEl.innerHTML = `
@@ -3336,7 +3337,7 @@ function initDetailSwipe() {
           <div class="detail-meta">${metaParts.join(' · ')}</div>
         </div>
       </div>`;
-    overlay.appendChild(_previewEl);
+    document.body.appendChild(_previewEl);
     return _previewEl;
   }
 
@@ -3358,6 +3359,7 @@ function initDetailSwipe() {
     }
     if (swipeDir === 0) return;
     const goNext = swipeDir === -1;
+    const W = modal.offsetWidth;
     const atEdge = (goNext && _detailSwipeIndex >= _detailSwipeOrder.length - 1) ||
                    (!goNext && _detailSwipeIndex <= 0);
     if (atEdge) {
@@ -3368,7 +3370,7 @@ function initDetailSwipe() {
       modal.style.transform = `translateX(${dx}px)`;
       if (preview) {
         preview.style.transition = 'none';
-        const previewBase = goNext ? window.innerWidth + GAP : -window.innerWidth - GAP;
+        const previewBase = goNext ? W + GAP : -(W + GAP);
         preview.style.transform = `translateX(${previewBase + dx}px)`;
       }
     }
@@ -3378,14 +3380,15 @@ function initDetailSwipe() {
     if (!isDragging) return;
     isDragging = false;
     const dx = e.changedTouches[0].clientX - startX;
+    const W = modal.offsetWidth;
     const goNext = swipeDir === -1;
     const EASING = 'transform 0.2s cubic-bezier(0.4,0,0.2,1)';
-    if (Math.abs(dx) > window.innerWidth * 0.5 && swipeDir !== 0) {
+    if (Math.abs(dx) > W * 0.4 && swipeDir !== 0) {
       const nextIdx = _detailSwipeIndex + (goNext ? 1 : -1);
       if (nextIdx >= 0 && nextIdx < _detailSwipeOrder.length) {
         _detailSwipeIndex = nextIdx;
         modal.style.transition = EASING;
-        modal.style.transform = `translateX(${goNext ? '-100%' : '100%'})`;
+        modal.style.transform = `translateX(${goNext ? -(W + GAP) : (W + GAP)}px)`;
         if (_previewEl) {
           _previewEl.style.transition = EASING;
           _previewEl.style.transform = 'translateX(0)';
@@ -3405,8 +3408,8 @@ function initDetailSwipe() {
     modal.style.transform = '';
     if (_previewEl) {
       _previewEl.style.transition = EASING;
-      const bounceBase = goNext ? `calc(100% + ${GAP}px)` : `calc(-100% - ${GAP}px)`;
-      _previewEl.style.transform = `translateX(${bounceBase})`;
+      const bounceBase = goNext ? W + GAP : -(W + GAP);
+      _previewEl.style.transform = `translateX(${bounceBase}px)`;
       setTimeout(clearPreview, 200);
     }
     swipeDir = 0;
