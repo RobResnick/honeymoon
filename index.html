@@ -1387,6 +1387,12 @@
 
       /* Place name labels: ensure no-wrap (already in desktop block but reinforce) */
       .map-place-label { white-space: nowrap !important; max-width: none !important; }
+
+      /* Push header below Safari's top bar */
+      header {
+        padding-top: env(safe-area-inset-top, 0px) !important;
+        height: calc(52px + env(safe-area-inset-top, 0px)) !important;
+      }
     }
   </style>
 </head>
