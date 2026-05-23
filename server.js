@@ -830,7 +830,7 @@ app.get('/api/city-coords', requireAuth, async (req, res) => {
 });
 
 app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
-  const { name, type, city, neighborhood, address, notes, source_url, phone } = req.body;
+  const { name, type, city, neighborhood, source_url, phone } = req.body;
 
   // Normalize recommended_by
   let recommended_by = (req.body.recommended_by || '').trim();
@@ -842,8 +842,46 @@ app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
   const country = req.body.country || inferCountry(city) || null;
 
   let { latitude, longitude } = req.body;
-  if (!latitude || !longitude) {
-    // If this record has manual_location set, preserve its coords instead of re-geocoding
+  let address = req.body.address || '';
+  let notes = req.body.notes || '';
+  let notesSetLocation = false;
+
+  // If notes contains location info, use it to set/override coords
+  if (notes) {
+    // 1. Google Maps or Apple Maps URL
+    const notesUrl = notes.match(/https?:\/\/[^\s]*(google\.com\/maps|maps\.apple\.com|goo\.gl|maps\.google)[^\s]*/i);
+    if (notesUrl) {
+      const coords = extractCoordsFromUrl(notesUrl[0]);
+      if (coords) {
+        latitude = coords.latitude;
+        longitude = coords.longitude;
+        notesSetLocation = true;
+      }
+    }
+    // 2. Raw coordinates in notes
+    if (!notesSetLocation) {
+      const coordMatch = notes.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
+      if (coordMatch) {
+        latitude = parseFloat(coordMatch[1]);
+        longitude = parseFloat(coordMatch[2]);
+        notesSetLocation = true;
+      }
+    }
+    // 3. Notes looks like a street address — geocode it
+    if (!notesSetLocation && looksLikeAddress(notes)) {
+      const tryAddr = await geocode(name, notes, city, country);
+      if (tryAddr) {
+        latitude = tryAddr.latitude;
+        longitude = tryAddr.longitude;
+        notesSetLocation = true;
+        address = notes;  // promote to address field
+        notes = '';       // clear from notes
+      }
+    }
+  }
+
+  if (!notesSetLocation && (!latitude || !longitude)) {
+    // Preserve manual_location coords, or re-geocode
     const existing = await pool.query('SELECT latitude, longitude, manual_location FROM recommendations WHERE id=$1', [req.params.id]);
     if (existing.rows[0]?.manual_location) {
       latitude = existing.rows[0].latitude;
@@ -856,8 +894,9 @@ app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
   }
 
   // Allow manual coordinate fixes to stamp geocode_attempted=TRUE and manual_location=TRUE
+  // Also stamp manual_location when notes set the location
   const geocode_attempted = (req.body.geocode_attempted === true || req.body.geocode_attempted === 'true') ? true : null;
-  const manual_location = (req.body.manual_location === true || req.body.manual_location === 'true') ? true : null;
+  const manual_location = (notesSetLocation || req.body.manual_location === true || req.body.manual_location === 'true') ? true : null;
   let extraClauses = '';
   const queryParams = [name, type, city, neighborhood, address, country, recommended_by, notes, source_url, latitude, longitude, phone || null];
   if (geocode_attempted !== null) { extraClauses += `, geocode_attempted=$${queryParams.length + 1}`; queryParams.push(geocode_attempted); }
