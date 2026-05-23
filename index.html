@@ -2231,17 +2231,39 @@ function handleSearchKey(e) {
 async function jumpToSearch(q) {
   if (!map) return;
   const lq = q.toLowerCase();
-  // 1. Match a city in our data → filter + pan to it
+  // 1. Exact city match in our data → pan to it
   const cityMatch = allRecs.find(r => r.city && r.city.toLowerCase() === lq);
   if (cityMatch && cityMatch.latitude && cityMatch.longitude) {
     map.setView([cityMatch.latitude, cityMatch.longitude], 13); return;
   }
-  // 2. Match a place name → pan to it
+  // 2. Exact place name match → pan to it
   const placeMatch = allRecs.find(r => r.name.toLowerCase().includes(lq) && r.latitude);
   if (placeMatch) {
     map.setView([placeMatch.latitude, placeMatch.longitude], 15); return;
   }
-  // 3. Geocode via Nominatim
+  // 3. Generic search (type word, notes, etc.) — if it matches any of our places,
+  //    gently fit to those results. Don't geocode and fly somewhere unrelated.
+  const synonymTypes = SEARCH_SYNONYMS[lq] || SEARCH_SYNONYMS[lq.replace(/s$/, '')];
+  const matchingRecs = allRecs.filter(r => {
+    const hay = [r.name, r.city, r.neighborhood, r.notes, r.recommended_by, r.type].join(' ').toLowerCase();
+    return synonymTypes ? (synonymTypes.includes(r.type) || hay.includes(lq)) : hay.includes(lq);
+  }).filter(r => r.latitude && r.longitude);
+
+  if (matchingRecs.length > 0) {
+    // If only 1-2 specific matches, pan to the first one
+    if (matchingRecs.length <= 2) {
+      const r = matchingRecs[0];
+      map.setView([parseFloat(r.latitude), parseFloat(r.longitude)], Math.max(map.getZoom(), 13));
+    } else {
+      // Multiple matches — fit bounds but stay sane: don't zoom out below 10
+      const group = L.featureGroup(matchingRecs.map(r =>
+        L.marker([parseFloat(r.latitude), parseFloat(r.longitude)])
+      ));
+      map.fitBounds(group.getBounds().pad(0.25), { maxZoom: 14, minZoom: 10, animate: true, duration: 0.5 });
+    }
+    return;
+  }
+  // 4. No matches in our data at all — treat as a location search and geocode
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, {
       headers: { 'Accept-Language': 'en' }
