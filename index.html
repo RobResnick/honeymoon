@@ -4286,9 +4286,11 @@ function openAddDrawer() {
 
 function closeAddDrawer(e) {
   if (e && e.target !== document.getElementById('add-overlay')) return;
-  // If user closed without typing anything, restore the previous text
   document.getElementById('add-overlay').classList.remove('open');
   document.body.classList.remove('add-open');
+  // Always reset the Add button in case it was mid-spinner
+  const btn = document.getElementById('parse-btn');
+  if (btn) { btn.textContent = 'Add'; btn.disabled = false; btn.classList.add('dim'); }
   closeAllAddSubSheets();
   showParseArea();
 }
@@ -4315,7 +4317,7 @@ async function parseInput() {
   const recommended_by = getAddRecommendedBy();
   const btn = document.getElementById('parse-btn');
   const resetBtn = () => { btn.textContent = 'Add'; btn.disabled = false; btn.classList.remove('dim'); };
-  btn.innerHTML = '<span class="spinner"></span>';
+  btn.innerHTML = '<span class="spinner" style="margin-right:5px;vertical-align:middle"></span>Adding…';
   btn.disabled = true;
   let data;
   try { data = await api('/api/parse', 'POST', { input }); } catch(e) { resetBtn(); return showToast('Network error — try again'); }
@@ -4323,7 +4325,7 @@ async function parseInput() {
 
   // Auto-save if exactly 1 result
   if (data.recommendations.length === 1) {
-    btn.innerHTML = '<span class="spinner"></span>';
+    btn.innerHTML = '<span class="spinner" style="margin-right:5px;vertical-align:middle"></span>Saving…';
     btn.disabled = true;
     const rec = {
       ...data.recommendations[0],

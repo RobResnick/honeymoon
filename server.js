@@ -505,7 +505,8 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
     }
 
     // If city is actually a neighborhood, promote parent to city
-    let normalizedCity = city;
+    // Always title-case the city name to avoid "paris" vs "Paris" duplicates
+    let normalizedCity = city ? city.trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : city;
     let normalizedNeighborhood = neighborhood;
     const cityParent = city ? CITY_PARENT[city.toLowerCase().trim()] : null;
     if (cityParent) {
@@ -830,7 +831,8 @@ app.get('/api/city-coords', requireAuth, async (req, res) => {
 });
 
 app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
-  const { name, type, city, neighborhood, source_url, phone } = req.body;
+  const { name, type, neighborhood, source_url, phone } = req.body;
+  const city = req.body.city ? req.body.city.trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : req.body.city;
 
   // Normalize recommended_by
   let recommended_by = (req.body.recommended_by || '').trim();
