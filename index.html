@@ -1208,6 +1208,9 @@
       .main-content { flex: 1; position: relative; }
       #map-view { display: block !important; position: absolute; inset: 0; }
 
+      /* Hide floating + button while add drawer is open */
+      body.add-open .add-btn { opacity: 0 !important; pointer-events: none !important; }
+
       /* Add button: always fixed on desktop so left can animate */
       .add-btn {
         position: fixed !important;
@@ -3647,6 +3650,7 @@ function initDrawerSwipe() {
         drawer.style.transition = '';
         drawer.style.transform = '';
         document.getElementById('add-overlay').classList.remove('open');
+        document.body.classList.remove('add-open');
       }, 300);
     } else {
       drawer.style.transition = '';
@@ -4255,12 +4259,14 @@ function openAddDrawer() {
   }
 
   document.getElementById('add-overlay').classList.add('open');
+  document.body.classList.add('add-open');
 }
 
 function closeAddDrawer(e) {
   if (e && e.target !== document.getElementById('add-overlay')) return;
   // If user closed without typing anything, restore the previous text
   document.getElementById('add-overlay').classList.remove('open');
+  document.body.classList.remove('add-open');
   closeAllAddSubSheets();
   showParseArea();
 }
