@@ -1208,11 +1208,15 @@
       .main-content { flex: 1; position: relative; }
       #map-view { display: block !important; position: absolute; inset: 0; }
 
-      /* Add button: move over map when search is active */
-      body.searching .add-btn {
+      /* Add button: always fixed on desktop so left can animate */
+      .add-btn {
         position: fixed !important;
-        left: calc(380px + 16px) !important;
+        left: calc(380px - 16px - 48px) !important;
         right: auto !important;
+        transition: left 0.28s cubic-bezier(0.4,0,0.2,1), box-shadow 0.15s, transform 0.15s !important;
+      }
+      body.searching .add-btn {
+        left: calc(380px + 16px) !important;
       }
 
       .mobile-sheet { display: none !important; }
@@ -1363,7 +1367,8 @@
       /* Left panel: 380px is too wide on portrait iPad (768px total) */
       #left-panel { width: 280px !important; min-width: 240px; }
 
-      /* Add button: move over map when searching (iPad panel is 280px) */
+      /* Add button: resting position adjusted for 280px panel + 54px button size */
+      .add-btn { left: calc(280px - 16px - 54px) !important; }
       body.searching .add-btn { left: calc(280px + 16px) !important; }
 
       /* Larger touch targets for zoom +/- */
