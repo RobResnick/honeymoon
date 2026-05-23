@@ -548,12 +548,37 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
       if (cityCoords) { lat = cityCoords.latitude; lon = cityCoords.longitude; }
     }
 
+    // If coordinates are missing or imprecise (city-level), try to extract from notes
+    let foundPreciseCoord = false;
+    if (lat && lon && normalizedCity) {
+      foundPreciseCoord = await isPreciseCoord(lat, lon, normalizedCity);
+    }
+
+    if (!foundPreciseCoord && notes) {
+      // Search notes for Google Maps URLs or raw coordinates
+      const notesUrl = notes.match(/https?:\/\/[^\s]*(google\.com\/maps|maps\.apple\.com|goo\.gl|maps\.google)[^\s]*/i);
+      if (notesUrl) {
+        const coords = extractCoordsFromUrl(notesUrl[0]);
+        if (coords) { lat = coords.latitude; lon = coords.longitude; foundPreciseCoord = true; }
+      }
+      // If no URL, try to extract raw coordinates (lat,lng)
+      if (!foundPreciseCoord) {
+        const coordMatch = notes.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
+        if (coordMatch) { lat = parseFloat(coordMatch[1]); lon = parseFloat(coordMatch[2]); foundPreciseCoord = true; }
+      }
+    }
+
     const result = await pool.query(
       `INSERT INTO recommendations (user_id, name, type, city, neighborhood, address, country, recommended_by, notes, source_url, raw_input, latitude, longitude, phone)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
       [req.userId, name, type, normalizedCity, normalizedNeighborhood, address, country, recommended_by, notes, source_url, raw_input, lat, lon, phone || null]
     );
-    saved.push(result.rows[0]);
+    const resultRec = result.rows[0];
+    // Mark if this record has imprecise location data (only city-level coords)
+    if (!foundPreciseCoord && lat && lon) {
+      resultRec.no_precise_location = true;
+    }
+    saved.push(resultRec);
   }
 
   res.json(saved);

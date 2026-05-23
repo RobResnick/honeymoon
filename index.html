@@ -4307,6 +4307,18 @@ async function parseInput() {
     if (_addSelectedType) rec.type = _addSelectedType;
     let saved;
     try { saved = await api('/api/recommendations', 'POST', [rec]); } catch(e) { resetBtn(); return showToast('Save failed — try again'); }
+
+    // Check if place doesn't have precise location
+    if (saved?.[0]?.no_precise_location) {
+      const proceed = confirm(`⚠️ Couldn't find a location for "${saved[0].name}".\n\nIf you have a Google Maps link or coordinates, add them to the notes field.\n\nProceed with saving?`);
+      if (!proceed) {
+        // Delete the place that was just saved
+        await api(`/api/recommendations/${saved[0].id}`, 'DELETE').catch(() => {});
+        resetBtn();
+        return;
+      }
+    }
+
     resetBtn();
     _rawSaved = ''; // clear saved text after successful add
     closeAddDrawer();
@@ -4377,6 +4389,23 @@ async function saveParseResults() {
   const btn = document.querySelector('#parse-results .btn-primary');
   if (btn) { btn.innerHTML = '<span class="spinner"></span> Saving…'; btn.disabled = true; }
   const saved = await api('/api/recommendations', 'POST', recs);
+
+  // Check if any places don't have precise locations
+  const noLocationPlaces = saved.filter(r => r.no_precise_location);
+  if (noLocationPlaces.length > 0) {
+    const names = noLocationPlaces.map(r => r.name).join(', ');
+    const proceed = confirm(`⚠️ ${noLocationPlaces.length} place${noLocationPlaces.length > 1 ? 's' : ''} (${names}) couldn't find a location.\n\nIf you have a Google Maps link or coordinates, add them to the notes field.\n\nProceed with saving?`);
+    if (!proceed) {
+      // Delete the places that were just saved
+      for (const place of noLocationPlaces) {
+        await api(`/api/recommendations/${place.id}`, 'DELETE').catch(() => {});
+      }
+      if (btn) { btn.innerHTML = 'Save ' + count + ' place' + (count > 1 ? 's' : ''); btn.disabled = false; }
+      showParseArea();
+      return;
+    }
+  }
+
   closeAddDrawer();
   showToast(`Saved ${saved?.length || count} place${count>1?'s':''}!`);
   await loadRecs(); await loadFilters();
