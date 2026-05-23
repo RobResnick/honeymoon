@@ -378,7 +378,7 @@ app.post('/api/parse', requireAuth, async (req, res) => {
 - type: one of "restaurant", "bar", "cafe", "museum", "attraction", "hotel", "shop", "market", "beach", "church", "neighborhood", "other"
 - city: the city (e.g. Rome, Florence, Venice, Paris, etc.)
 - neighborhood: neighborhood or area within the city (if mentioned)
-- address: street address if mentioned
+- address: street address if mentioned (IMPORTANT: put any street address here, not in notes)
 - recommended_by: who recommended it (if mentioned)
 - notes: any additional details, descriptions, or context about the place
 - source_url: ${sourceUrl ? `"${sourceUrl}"` : 'any URL associated with this place (if present), otherwise empty string'}
@@ -418,6 +418,17 @@ ${input}`
 
 // In-memory city coordinate cache (per process lifetime)
 const cityCoordCache = {};
+
+// Returns true if a string looks like a street address (not a description)
+function looksLikeAddress(str) {
+  if (!str || str.length > 150) return false;
+  const s = str.trim();
+  // Starts with a house number: "56 Rue Claude Rodier..."
+  if (/^\d+[\s,]/.test(s)) return true;
+  // Contains common street-type words (French, Italian, English, Spanish, German)
+  if (/\b(rue|avenue|avenu|blvd|boulevard|street|via\s|corso|viale|piazza|place|road|lane|drive|strasse|stra[ß]e|calle|carrer|rambla)\b/i.test(s)) return true;
+  return false;
+}
 
 async function geocodeCity(city) {
   if (!city) return null;
@@ -483,7 +494,8 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
   await Promise.all(uniqueCities.map(c => geocodeCity(c)));
 
   for (const rec of recs) {
-    const { name, type, city, neighborhood, address, notes, source_url, raw_input, latitude, longitude, phone } = rec;
+    const { name, type, city, neighborhood, notes, source_url, raw_input, latitude, longitude, phone } = rec;
+    let address = rec.address || '';
 
     // Normalize recommended_by: if it matches the current user's name, store as "Me"
     let recommended_by = (rec.recommended_by || '').trim();
@@ -565,6 +577,17 @@ app.post('/api/recommendations', requireAuth, async (req, res) => {
       if (!foundPreciseCoord) {
         const coordMatch = notes.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
         if (coordMatch) { lat = parseFloat(coordMatch[1]); lon = parseFloat(coordMatch[2]); foundPreciseCoord = true; }
+      }
+      // If notes looks like a street address, try geocoding with it
+      if (!foundPreciseCoord && !address && looksLikeAddress(notes)) {
+        const tryAddr = await geocode(name, notes, normalizedCity, country);
+        if (tryAddr) {
+          const precise = await isPreciseCoord(tryAddr.latitude, tryAddr.longitude, normalizedCity);
+          if (precise) {
+            lat = tryAddr.latitude; lon = tryAddr.longitude; foundPreciseCoord = true;
+            address = notes; // promote notes to address field
+          }
+        }
       }
     }
 
@@ -677,7 +700,14 @@ async function claudeGeocode(name, city, country) {
 
 // Geocode a single place using all available strategies — returns {lat, lng, address?} or null
 async function smartGeocode(rec) {
-  const { name, city, country } = rec;
+  const { name, city, country, notes, address } = rec;
+  // 0. If notes looks like a street address and no address is set, try that first
+  if (!address && notes && looksLikeAddress(notes)) {
+    const n0 = await nominatimSearch(`${name}, ${notes}, ${city}`, city);
+    if (n0) return { ...n0, address: notes };
+    const n0b = await nominatimSearch(`${notes}, ${city}`, city);
+    if (n0b) return { ...n0b, address: notes };
+  }
   // 1. Nominatim freetext: "Name, City, Country"
   const n1 = await nominatimSearch(`${name}, ${city}, ${country || ''}`, city);
   if (n1) return n1;
@@ -705,7 +735,7 @@ app.post('/api/fix-no-location', requireAuth, async (req, res) => {
 
     // Find next un-attempted place that still has only city-level coords
     const { rows: candidates } = await pool.query(`
-      SELECT id, name, city, country, address, latitude, longitude
+      SELECT id, name, city, country, address, notes, latitude, longitude
       FROM recommendations
       WHERE geocode_attempted = FALSE
       ORDER BY created_at DESC
