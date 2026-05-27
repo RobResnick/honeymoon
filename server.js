@@ -131,6 +131,8 @@ async function initDb() {
   // Track whether we've already attempted precise geocoding (prevents infinite retries)
   await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS geocode_attempted BOOLEAN DEFAULT FALSE`);
   await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS manual_location BOOLEAN DEFAULT FALSE`);
+  // Track visited status
+  await pool.query(`ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS visited BOOLEAN DEFAULT FALSE`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_config (
@@ -899,10 +901,12 @@ app.put('/api/recommendations/:id', requireAuth, async (req, res) => {
   // Also stamp manual_location when notes set the location
   const geocode_attempted = (req.body.geocode_attempted === true || req.body.geocode_attempted === 'true') ? true : null;
   const manual_location = (notesSetLocation || req.body.manual_location === true || req.body.manual_location === 'true') ? true : null;
+  const visited = (req.body.visited === true || req.body.visited === 'true') ? true : (req.body.visited === false || req.body.visited === 'false') ? false : null;
   let extraClauses = '';
   const queryParams = [name, type, city, neighborhood, address, country, recommended_by, notes, source_url, latitude, longitude, phone || null];
   if (geocode_attempted !== null) { extraClauses += `, geocode_attempted=$${queryParams.length + 1}`; queryParams.push(geocode_attempted); }
   if (manual_location !== null) { extraClauses += `, manual_location=$${queryParams.length + 1}`; queryParams.push(manual_location); }
+  if (visited !== null) { extraClauses += `, visited=$${queryParams.length + 1}`; queryParams.push(visited); }
   const idIdx = queryParams.length + 1; queryParams.push(req.params.id);
   const userIdx = queryParams.length + 1; queryParams.push(req.userId);
   const result = await pool.query(

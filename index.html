@@ -1760,6 +1760,11 @@
       </button>
     </div>
 
+    <div class="detail-row" id="detail-visited-row" style="display:none;border-top:none;padding-top:0;justify-content:space-between;align-items:center">
+      <span style="font-size:13px">Visited</span>
+      <button id="detail-visited-btn" onclick="toggleDetailVisited()" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--text);padding:6px 12px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">✓</button>
+    </div>
+
     <div class="detail-row" id="detail-notes-row" style="display:none; flex-direction: column; align-items: flex-start">
       <div id="detail-notes-text" contenteditable="true" style="line-height:1.5; width:100%; min-height:40px; outline:none; cursor:text; color:var(--text)"></div>
     </div>
@@ -2629,6 +2634,7 @@ function cardHtml(r) {
   const srcColor = getRecSourceColor(r);
   const tagStyle = `background:${srcColor};color:white;border-radius:10px;padding:3px 9px;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;`;
   const statusIcon = _pendingCoords.has(r.id) ? `<span title="Finding location…" style="font-size:11px;opacity:0.5">⏳</span>` : _failedCoords.has(r.id) ? `<span title="No precise location found" style="font-size:11px;opacity:0.6">⚠️</span>` : '';
+  const visitedIcon = r.visited ? `<span title="Visited" style="font-size:11px;opacity:0.6">✓</span>` : '';
   const sub = [r.neighborhood || r.city, r.type].filter(Boolean).join(' · ');
   return `
     <div class="rec-card" id="card-${r.id}" data-id="${r.id}" onclick="handleCardTap(${r.id})">
@@ -2636,7 +2642,8 @@ function cardHtml(r) {
         ${typeIconHtmlSquare(r.type, 38, srcColor)}
         <div class="rec-card-info" style="min-width:0;flex:1;gap:2px">
           <div style="display:flex;align-items:center;gap:6px;min-width:0">
-            <div class="rec-name" style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">${esc(cleanName)}${statusIcon}</div>
+            <div class="rec-name" style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;opacity:${r.visited ? '0.6' : '1'}">${esc(cleanName)}${statusIcon}</div>
+            ${visitedIcon}
             ${person ? `<span style="${tagStyle}">${esc(person)}</span>` : ''}
           </div>
           ${sub ? `<div style="font-size:12px;color:var(--text3);margin-top:1px">${esc(sub)}</div>` : ''}
@@ -2655,6 +2662,26 @@ function renderList() {
     if (el) el.innerHTML = html;
   });
   if (!isDesktop()) initSwipeDelete();
+  initCardLongPress();
+}
+
+function initCardLongPress() {
+  ['list-view', 'mobile-list-view'].forEach(cid => {
+    const container = document.getElementById(cid);
+    if (!container) return;
+    container.querySelectorAll('.rec-card').forEach(card => {
+      const id = parseInt(card.dataset.id);
+      const rec = allRecs.find(x => x.id === id);
+      if (!rec || !_currentUser || rec.user_id !== _currentUser.id) return;
+      addLongPress(card, async () => {
+        rec.visited = !rec.visited;
+        await api('/api/recommendations/' + rec.id, 'PUT', { ...rec });
+        renderList();
+        renderMapMarkers();
+        showToast(rec.visited ? '✓ Visited' : '○ Not visited');
+      }, 550);
+    });
+  });
 }
 
 // Mobile-only: viewport-filtered list with "recently added" fallback
@@ -3020,6 +3047,16 @@ function openDetail(id) {
     phoneRow.style.display = 'none';
   }
 
+  // Visited toggle (only for own items)
+  const visitedRow = document.getElementById('detail-visited-row');
+  if (myItem) {
+    visitedRow.style.display = 'flex';
+    const visitedBtn = document.getElementById('detail-visited-btn');
+    visitedBtn.textContent = r.visited ? '✓' : '○';
+  } else {
+    visitedRow.style.display = 'none';
+  }
+
   // Recommended by — interactive tags (add / long-press to remove)
   const recRow = document.getElementById('detail-recommended-row');
   const recPeople = document.getElementById('detail-recommended-people');
@@ -3324,6 +3361,18 @@ function closeDetailModal() {
   _detailSwipeOrder = [];
   _detailSwipeIndex = -1;
 }
+
+async function toggleDetailVisited() {
+  const rec = allRecs.find(x => x.id === _detailRecId);
+  if (!rec) return;
+  rec.visited = !rec.visited;
+  const btn = document.getElementById('detail-visited-btn');
+  if (btn) btn.textContent = rec.visited ? '✓' : '○';
+  await api('/api/recommendations/' + rec.id, 'PUT', { ...rec });
+  renderList();
+  renderMapMarkers();
+}
+
 // Close detail modal when clicking outside it.
 // _detailJustOpened prevents the same tap that opened it from immediately closing it.
 let _detailJustOpened = false;
@@ -3918,7 +3967,8 @@ function renderMapMarkers() {
     const labelHtml = showLabel
       ? `<div class="map-place-label">${esc(cleanName)}</div>`
       : '';
-    const pinHtml = `<div class="mcr-pin" style="position:relative;display:inline-block">${typeIconHtml(r.type, 30, srcColor)}${labelHtml}</div>`;
+    const visitedStyle = r.visited ? 'opacity:0.4;filter:grayscale(100%)' : '';
+    const pinHtml = `<div class="mcr-pin" style="position:relative;display:inline-block;${visitedStyle}">${typeIconHtml(r.type, 30, srcColor)}${labelHtml}</div>`;
     const icon = L.divIcon({
       className: '',
       html: pinHtml,
