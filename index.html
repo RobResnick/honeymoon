@@ -1761,7 +1761,6 @@
     </div>
 
     <div class="detail-row" id="detail-visited-row" style="display:none;border-top:none;padding-top:0;justify-content:space-between;align-items:center">
-      <span style="font-size:13px">Visited</span>
       <button id="detail-visited-btn" onclick="toggleDetailVisited()" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--text);padding:6px 12px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">✓</button>
     </div>
 
@@ -2634,7 +2633,7 @@ function cardHtml(r) {
   const srcColor = getRecSourceColor(r);
   const tagStyle = `background:${srcColor};color:white;border-radius:10px;padding:3px 9px;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;`;
   const statusIcon = _pendingCoords.has(r.id) ? `<span title="Finding location…" style="font-size:11px;opacity:0.5">⏳</span>` : _failedCoords.has(r.id) ? `<span title="No precise location found" style="font-size:11px;opacity:0.6">⚠️</span>` : '';
-  const visitedIcon = r.visited ? `<span title="Visited" style="font-size:11px;opacity:0.6">✓</span>` : '';
+  const visitedIcon = r.visited ? `<span title="Visited" style="font-size:11px;opacity:1">✓</span>` : `<span title="Not visited" style="font-size:11px;opacity:0.3">✓</span>`;
   const sub = [r.neighborhood || r.city, r.type].filter(Boolean).join(' · ');
   return `
     <div class="rec-card" id="card-${r.id}" data-id="${r.id}" onclick="handleCardTap(${r.id})">
@@ -2678,7 +2677,7 @@ function initCardLongPress() {
         await api('/api/recommendations/' + rec.id, 'PUT', { ...rec });
         renderList();
         renderMapMarkers();
-        showToast(rec.visited ? '✓ Visited' : '○ Not visited');
+        showToast(rec.visited ? '✓' : '◯');
       }, 550);
     });
   });
@@ -3052,7 +3051,7 @@ function openDetail(id) {
   if (myItem) {
     visitedRow.style.display = 'flex';
     const visitedBtn = document.getElementById('detail-visited-btn');
-    visitedBtn.textContent = r.visited ? '✓' : '○';
+    visitedBtn.style.opacity = r.visited ? '1' : '0.3';
   } else {
     visitedRow.style.display = 'none';
   }
@@ -3367,7 +3366,7 @@ async function toggleDetailVisited() {
   if (!rec) return;
   rec.visited = !rec.visited;
   const btn = document.getElementById('detail-visited-btn');
-  if (btn) btn.textContent = rec.visited ? '✓' : '○';
+  if (btn) btn.style.opacity = rec.visited ? '1' : '0.3';
   await api('/api/recommendations/' + rec.id, 'PUT', { ...rec });
   renderList();
   renderMapMarkers();
