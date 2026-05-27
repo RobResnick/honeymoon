@@ -375,21 +375,28 @@ app.post('/api/parse', requireAuth, async (req, res) => {
         max_tokens: 4096,
         messages: [{
           role: 'user',
-          content: `You are helping parse travel recommendations. Extract all place recommendations from the following content and return them as a JSON array. Each recommendation should have these fields:
-- name: the place name (required)
+          content: `You are helping parse travel recommendations. Extract ALL place recommendations from the content and return them as a JSON array. Each recommendation should have these fields:
+- name: the place name (required). If a place name contains a location suffix (e.g., "Valois Vintage Paris"), split it: name="Valois Vintage", city="Paris"
 - type: one of "restaurant", "bar", "cafe", "museum", "attraction", "hotel", "shop", "market", "beach", "church", "neighborhood", "other"
-- city: the city (e.g. Rome, Florence, Venice, Paris, etc.)
+- city: the city (e.g. Rome, Florence, Venice, Paris, etc.). This can come from a comma in the place name, hashtags, location tags, or the caption
 - neighborhood: neighborhood or area within the city (if mentioned)
-- address: street address if mentioned (IMPORTANT: put any street address here, not in notes)
+- address: street address or intersection if mentioned (IMPORTANT: extract all addresses including those in captions, location text, or hashtags)
 - recommended_by: who recommended it (if mentioned)
 - notes: any additional details, descriptions, or context about the place
 - source_url: ${sourceUrl ? `"${sourceUrl}"` : 'any URL associated with this place (if present), otherwise empty string'}
-- phone: phone number if mentioned, otherwise empty string
+- phone: phone number if mentioned (check captions and location info carefully), otherwise empty string
 - latitude: GPS latitude as a number if available in the content or URL, otherwise null
 - longitude: GPS longitude as a number if available in the content or URL, otherwise null
 ${coordHint}
-Return ONLY a valid JSON array, no other text. Extract every distinct place mentioned. Example:
-[{"name":"Trattoria da Mario","type":"restaurant","city":"Florence","neighborhood":"Santa Croce","address":"","recommended_by":"","notes":"Amazing pasta, cash only","source_url":"${sourceUrl}","phone":"","latitude":null,"longitude":null}]
+
+IMPORTANT: For Instagram and social media content:
+- Extract locations from captions, hashtags (#place #location), and the location tag
+- Parse any mentioned addresses, street names, intersections, or neighborhood references
+- If a caption lists multiple addresses or place details, extract each as a distinct place with full address info
+- Look for patterns like "📍 address" or location-related emoji indicators
+
+Return ONLY a valid JSON array, no other text. Extract EVERY distinct place mentioned. Example:
+[{"name":"Trattoria da Mario","type":"restaurant","city":"Florence","neighborhood":"Santa Croce","address":"Via della Michelangiolo 12","recommended_by":"","notes":"Amazing pasta, cash only","source_url":"${sourceUrl}","phone":"","latitude":null,"longitude":null}]
 
 Content to parse:
 ${input}`
