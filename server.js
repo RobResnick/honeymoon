@@ -215,6 +215,36 @@ function extractMetaTags(html) {
 // For social media (Instagram, TikTok, Twitter) we rely on OG meta tags
 // which are server-rendered even without login.
 async function fetchPageText(url) {
+  // Special handling for Instagram: try JSON endpoint first
+  if (url.includes('instagram.com')) {
+    try {
+      const instagramMatch = url.match(/instagram\.com\/(reel|p)\/([^/?]+)/);
+      if (instagramMatch) {
+        const postId = instagramMatch[2];
+        const jsonUrl = `https://www.instagram.com/${instagramMatch[1]}/${postId}/?__a=1&__w=1`;
+        const jsonResp = await fetch(jsonUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+          timeout: 12000,
+        });
+        if (jsonResp.ok) {
+          const data = await jsonResp.json();
+          const media = data?.graphql?.shortcode_media;
+          if (media) {
+            const caption = media.edge_media_to_caption?.edges?.[0]?.node?.text || '';
+            const locations = [];
+            if (media.location) locations.push(`📍 ${media.location.name}`);
+            const text = [caption, ...locations].filter(Boolean).join('\n\n');
+            if (text) return text;
+          }
+        }
+      }
+    } catch (e) {
+      // Fall through to HTML parsing
+    }
+  }
+
   const resp = await fetch(url, {
     headers: {
       // Pretend to be a browser so sites return full HTML (including OG tags)
