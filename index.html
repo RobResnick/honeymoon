@@ -1770,6 +1770,19 @@
   </div>
 </div>
 
+<!-- MISSING LOCATION MODAL -->
+<div class="modal-overlay" id="missing-location-overlay" style="display:none" onclick="closeMissingLocationModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2 style="margin:0 0 12px 0">Add location for "<span id="missing-loc-name"></span>"</h2>
+    <p style="font-size:13px;color:var(--text2);margin:0 0 16px 0">Couldn't find this place automatically. Help us by providing one of:</p>
+    <textarea id="missing-loc-input" placeholder="Paste a Google Maps link, Apple Maps link, street address, or coordinates (lat,lng)" style="width:100%;min-height:80px;resize:vertical;margin-bottom:12px"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeMissingLocationModal()">Skip</button>
+      <button class="btn btn-primary" onclick="submitMissingLocation()">Use location</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT MODAL -->
 <div class="modal-overlay" id="edit-overlay" onclick="closeEditModal(event)">
   <div class="modal">
@@ -4389,13 +4402,16 @@ async function parseInput() {
 
     // Check if place doesn't have precise location
     if (saved?.[0]?.no_precise_location) {
-      const proceed = confirm(`⚠️ Couldn't find a location for "${saved[0].name}".\n\nIf you have a Google Maps link or coordinates, add them to the notes field.\n\nProceed with saving?`);
-      if (!proceed) {
-        // Delete the place that was just saved
-        await api(`/api/recommendations/${saved[0].id}`, 'DELETE').catch(() => {});
-        resetBtn();
-        return;
-      }
+      resetBtn();
+      return new Promise((resolve) => {
+        showMissingLocationModal(saved[0], (updated) => {
+          _rawSaved = ''; // clear saved text after successful add
+          closeAddDrawer();
+          showToast(`Added ${saved[0].name}!`);
+          loadRecs(); loadFilters(); loadPeople().then(renderAddChips);
+          resolve();
+        });
+      });
     }
 
     resetBtn();
@@ -4472,16 +4488,13 @@ async function saveParseResults() {
   // Check if any places don't have precise locations
   const noLocationPlaces = saved.filter(r => r.no_precise_location);
   if (noLocationPlaces.length > 0) {
-    const names = noLocationPlaces.map(r => r.name).join(', ');
-    const proceed = confirm(`⚠️ ${noLocationPlaces.length} place${noLocationPlaces.length > 1 ? 's' : ''} (${names}) couldn't find a location.\n\nIf you have a Google Maps link or coordinates, add them to the notes field.\n\nProceed with saving?`);
-    if (!proceed) {
-      // Delete the places that were just saved
-      for (const place of noLocationPlaces) {
-        await api(`/api/recommendations/${place.id}`, 'DELETE').catch(() => {});
-      }
-      if (btn) { btn.innerHTML = 'Save ' + count + ' place' + (count > 1 ? 's' : ''); btn.disabled = false; }
-      showParseArea();
-      return;
+    // Show modal for each place without location (sequentially)
+    if (btn) { btn.innerHTML = 'Save ' + count + ' place' + (count > 1 ? 's' : ''); btn.disabled = false; }
+
+    for (const place of noLocationPlaces) {
+      await new Promise((resolve) => {
+        showMissingLocationModal(place, resolve);
+      });
     }
   }
 
@@ -4489,6 +4502,65 @@ async function saveParseResults() {
   showToast(`Saved ${saved?.length || count} place${count>1?'s':''}!`);
   await loadRecs(); await loadFilters();
   api('/api/city-coords').then(data => { if (data) { _cityCoords = data; if (map) renderMapMarkers(); } });
+}
+
+// ── MISSING LOCATION MODAL ──
+let _pendingMissingLocation = null;
+
+function showMissingLocationModal(place, onResolved) {
+  _pendingMissingLocation = { place, onResolved };
+  document.getElementById('missing-loc-name').textContent = place.name;
+  document.getElementById('missing-loc-input').value = '';
+  document.getElementById('missing-location-overlay').style.display = 'flex';
+  document.getElementById('missing-loc-input').focus();
+}
+
+function closeMissingLocationModal() {
+  document.getElementById('missing-location-overlay').style.display = 'none';
+  if (_pendingMissingLocation?.onResolved) {
+    _pendingMissingLocation.onResolved(false);
+  }
+  _pendingMissingLocation = null;
+}
+
+async function submitMissingLocation() {
+  if (!_pendingMissingLocation) return;
+  const input = document.getElementById('missing-loc-input').value.trim();
+  if (!input) return showToast('Please enter a location');
+
+  const overlay = document.getElementById('missing-location-overlay');
+  const btn = overlay.querySelector('.btn-primary');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="margin-right:5px"></span>Looking up…';
+
+  try {
+    const coords = await api('/api/resolve-url', 'POST', { url: input });
+    if (coords?.lat && coords?.lng) {
+      // Update the place with the resolved coordinates
+      const result = await api(`/api/recommendations/${_pendingMissingLocation.place.id}`, 'PUT', {
+        latitude: coords.lat,
+        longitude: coords.lng,
+        geocode_attempted: true,
+        manual_location: true
+      });
+      showToast(`✓ Located "${result.name}"!`);
+      closeMissingLocationModal();
+      if (_pendingMissingLocation.onResolved) {
+        _pendingMissingLocation.onResolved(true);
+      }
+      await loadRecs();
+      api('/api/city-coords').then(data => { if (data) { _cityCoords = data; if (map) renderMapMarkers(); } });
+    } else {
+      showToast('Could not resolve location. Try a Google Maps link, street address, or coordinates.');
+      btn.disabled = false;
+      btn.innerHTML = 'Use location';
+    }
+  } catch (e) {
+    const errMsg = e?.message || 'Error looking up location';
+    showToast(errMsg);
+    btn.disabled = false;
+    btn.innerHTML = 'Use location';
+  }
 }
 
 // ── EDIT ──

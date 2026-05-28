@@ -322,22 +322,44 @@ function extractCoordsFromUrl(url) {
   return null;
 }
 
-// Resolve a short URL (goo.gl, maps.app.goo.gl) and extract coordinates
+// Resolve a location: can be a URL, street address, or coordinates
 app.post('/api/resolve-url', requireAuth, async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'url required' });
-  try {
-    const headResp = await fetch(url, {
-      method: 'HEAD', redirect: 'follow',
-      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
-    });
-    const finalUrl = headResp.url || url;
-    const coords = extractCoordsFromUrl(finalUrl);
-    if (coords) return res.json({ lat: coords.latitude, lng: coords.longitude, finalUrl });
-    return res.json({ finalUrl, lat: null, lng: null });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  const input = url.trim();
+
+  // Try raw coordinates first (lat,lng or lat, lng)
+  const coordMatch = input.match(/^(-?\d{1,3}\.?\d*)\s*,\s*(-?\d{1,3}\.?\d*)$/);
+  if (coordMatch) {
+    return res.json({ lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) });
   }
+
+  // Try as URL
+  if (/^https?:\/\//.test(input)) {
+    try {
+      const headResp = await fetch(input, {
+        method: 'HEAD', redirect: 'follow',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+      });
+      const finalUrl = headResp.url || input;
+      const coords = extractCoordsFromUrl(finalUrl);
+      if (coords) return res.json({ lat: coords.latitude, lng: coords.longitude, finalUrl });
+      return res.json({ finalUrl, lat: null, lng: null });
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
+  // Try as street address/place name
+  try {
+    const nomResult = await nominatimSearch(input, '');
+    if (nomResult) {
+      return res.json({ lat: nomResult.lat, lng: nomResult.lng, source: 'address' });
+    }
+  } catch (e) {}
+
+  // Could not resolve
+  res.status(422).json({ error: 'Could not resolve location. Try a Google Maps link or street address.' });
 });
 
 app.post('/api/parse', requireAuth, async (req, res) => {
