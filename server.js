@@ -368,30 +368,11 @@ app.post('/api/parse', requireAuth, async (req, res) => {
 
   let sourceUrl = '';
   let urlCoords = null; // coords extracted directly from the URL (no page fetch needed)
+  const originalInput = input.trim();
 
-  const urlMatch = input.trim().match(/^(https?:\/\/[^\s]+)$/i);
+  const urlMatch = originalInput.match(/^(https?:\/\/[^\s]+)$/i);
   if (urlMatch) {
     sourceUrl = urlMatch[1];
-
-    // For Google short links (maps.app.goo.gl / goo.gl), follow the redirect to get the final URL
-    // which contains the actual coordinates in its /@lat,lng pattern
-    if (/goo\.gl|maps\.app\.goo\.gl/.test(sourceUrl)) {
-      try {
-        const headResp = await fetch(sourceUrl, {
-          method: 'HEAD',
-          redirect: 'follow',
-          headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
-        });
-        const finalUrl = headResp.url;
-        if (finalUrl && finalUrl !== sourceUrl) {
-          console.log(`Short URL resolved: ${sourceUrl} → ${finalUrl}`);
-          urlCoords = extractCoordsFromUrl(finalUrl);
-          sourceUrl = finalUrl;
-        }
-      } catch (e) {
-        console.error('Short URL redirect follow error:', e.message);
-      }
-    }
 
     // Extract coords from the URL itself before fetching (Google/Apple Maps URLs embed coords)
     if (!urlCoords) urlCoords = extractCoordsFromUrl(sourceUrl);
@@ -402,11 +383,65 @@ app.post('/api/parse', requireAuth, async (req, res) => {
       console.error('URL fetch error:', err.message);
       return res.status(422).json({ error: `Could not fetch that URL: ${err.message}` });
     }
+  } else {
+    // Not a URL — check if it's a simple place name, address, or coordinates
+    const isAddress = looksLikeAddress(originalInput);
+    const isCoords = originalInput.match(/^(-?\d{1,3}\.?\d*)\s*,\s*(-?\d{1,3}\.?\d*)$/);
+
+    // If it's just a simple place name or address (not rich content), use Claude to create a recommendation
+    if (!isAddress && !isCoords && originalInput.length < 200) {
+      try {
+        const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 500,
+            messages: [{
+              role: 'user',
+              content: `A user is adding a travel recommendation. They entered: "${originalInput}"
+
+If this appears to be a place name (e.g., "Semilla", "Koast", etc.), treat it as one. Try to infer the city if it's mentioned, or ask the user to specify. If it looks like an address, extract the place name and address.
+
+Return a JSON array with a single place object or empty array if unclear:
+[{"name":"Place Name","type":"restaurant","city":"City Name","neighborhood":"","address":"Street address if known","recommended_by":"","notes":"","source_url":"","phone":"","latitude":null,"longitude":null}]
+
+Be permissive — if the user typed just a place name with maybe a city, create a recommendation.
+Return ONLY valid JSON array, no other text.`
+            }]
+          })
+        });
+        const aiData = await aiRes.json();
+        const text = aiData.content?.[0]?.text?.trim();
+        if (text) {
+          let jsonMatch = text.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            let jsonStr = jsonMatch[0];
+            // Strip markdown code blocks if present
+            jsonStr = jsonStr.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+            try {
+              const parsed = JSON.parse(jsonStr);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                return res.json({ recommendations: parsed });
+              }
+            } catch (e) {
+              console.error('JSON parse error:', e);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Simple place parse error:', err);
+      }
+    }
   }
 
   // Also check if the raw input (could be multi-line text) has embedded map URLs
   if (!urlCoords) {
-    const anyMapUrl = input.match(/https?:\/\/[^\s]*(google\.com\/maps|maps\.apple\.com|goo\.gl)[^\s]*/i);
+    const anyMapUrl = originalInput.match(/https?:\/\/[^\s]*(google\.com\/maps|maps\.apple\.com|goo\.gl)[^\s]*/i);
     if (anyMapUrl) urlCoords = extractCoordsFromUrl(anyMapUrl[0]);
   }
 
@@ -458,10 +493,13 @@ ${input}`
     const aiData = await aiRes.json();
     const text = aiData.content?.[0]?.text?.trim();
     if (!text) return res.status(422).json({ error: 'No response from AI' });
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    let jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return res.status(422).json({ error: 'Could not parse input' });
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    let jsonStr = jsonMatch[0];
+    // Strip markdown code blocks if present
+    jsonStr = jsonStr.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+    const parsed = JSON.parse(jsonStr);
     // Inject source URL and any URL-extracted coords into all results
     parsed.forEach(p => {
       if (!p.source_url) p.source_url = sourceUrl;
