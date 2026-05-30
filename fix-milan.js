@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// fix-milan.js — find and fix Milan places with missing/city-center coordinates
+// fix-milan.js — ensure every Milan place has a unique, correct location
 require('dotenv').config();
 const { Pool } = require('pg');
 const fetch = (...args) => import('node-fetch').then(m => m.default(...args));
@@ -9,20 +9,28 @@ const NOM_UA = 'HoneymoonApp/1.0 rob@robresnick.com';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const MILAN_CENTER = [45.46419, 9.18963];
-const THRESHOLD = 0.002;
+const CENTER_THRESHOLD = 0.002;  // ~200m — city-center stub
+const CITY_THRESHOLD   = 0.15;   // ~15km — must be within Milan proper
 
 function atCityCenter(lat, lng) {
-  return (
-    Math.abs(lat - MILAN_CENTER[0]) < THRESHOLD &&
-    Math.abs(lng - MILAN_CENTER[1]) < THRESHOLD
-  );
+  return Math.abs(lat - MILAN_CENTER[0]) < CENTER_THRESHOLD
+      && Math.abs(lng - MILAN_CENTER[1]) < CENTER_THRESHOLD;
+}
+function withinMilan(lat, lng) {
+  return Math.abs(lat - MILAN_CENTER[0]) < CITY_THRESHOLD
+      && Math.abs(lng - MILAN_CENTER[1]) < CITY_THRESHOLD;
+}
+function coordKey(lat, lng) {
+  // Round to 4 dp (~11m) to detect places sharing the exact same pin
+  return `${parseFloat(lat).toFixed(4)},${parseFloat(lng).toFixed(4)}`;
 }
 
-async function nominatimSearch(name, address, city) {
+async function nominatim(name, address, neighborhood) {
   const queries = [
-    address ? `${name}, ${address}, ${city}, Italy` : null,
-    `${name}, ${city}, Italy`,
-    `${name} Milan Italy`,
+    address     ? `${address}, Milan, Italy`           : null,
+    neighborhood ? `${name}, ${neighborhood}, Milan, Italy` : null,
+    `${name}, Milan, Italy`,
+    `${name} Milano`,
   ].filter(Boolean);
 
   for (const q of queries) {
@@ -30,37 +38,26 @@ async function nominatimSearch(name, address, city) {
     const res = await fetch(url, { headers: { 'User-Agent': NOM_UA } });
     const data = await res.json();
     await sleep(1100);
-    if (data && data[0]) {
-      const lat = parseFloat(data[0].lat);
-      const lng = parseFloat(data[0].lon);
-      if (!atCityCenter(lat, lng)) {
+    if (data?.[0]) {
+      const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+      if (!atCityCenter(lat, lng) && withinMilan(lat, lng))
         return { lat, lng, source: 'nominatim' };
-      }
     }
   }
   return null;
 }
 
-async function claudeCoords(name, address) {
-  const addrHint = address ? ` at ${address}` : '';
+async function claudeCoords(name, address, neighborhood) {
+  const hints = [address, neighborhood ? `${neighborhood} neighborhood` : null].filter(Boolean).join(', ');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: {
-      'x-api-key': ANTHROPIC_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
+    headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-opus-4-5',
-      max_tokens: 150,
-      messages: [{
-        role: 'user',
-        content:
-          `I need GPS coordinates for "${name}"${addrHint} in Milan, Italy. ` +
-          `Give your best estimate — even approximate is fine. ` +
-          `Return ONLY JSON: {"lat":NUMBER,"lng":NUMBER,"confidence":"high|medium|low"} ` +
-          `or {"lat":null,"lng":null} if you have absolutely no idea.`,
-      }],
+      model: 'claude-opus-4-5', max_tokens: 200,
+      messages: [{ role: 'user', content:
+        `Precise GPS coordinates for "${name}"${hints ? ` (${hints})` : ''} in Milan, Italy.\n` +
+        `Return ONLY JSON: {"lat":NUMBER,"lng":NUMBER,"address":"full street address if known","confidence":"high|medium|low"}\n` +
+        `or {"lat":null,"lng":null} only if you have no idea at all.` }],
     }),
   });
   const data = await res.json();
@@ -69,83 +66,143 @@ async function claudeCoords(name, address) {
     const m = text.match(/\{[\s\S]*?\}/);
     if (!m) return null;
     const j = JSON.parse(m[0]);
-    if (j.lat && j.lng && !atCityCenter(j.lat, j.lng)) {
-      return { lat: j.lat, lng: j.lng, source: `claude:${j.confidence}` };
-    }
+    if (j.lat && j.lng && !atCityCenter(j.lat, j.lng) && withinMilan(j.lat, j.lng))
+      return { lat: j.lat, lng: j.lng, address: j.address || null, source: `claude:${j.confidence}` };
   } catch (_) {}
   return null;
+}
+
+async function geocode(rec) {
+  const nom = await nominatim(rec.name, rec.address, rec.neighborhood);
+  if (nom) return nom;
+  const cl = await claudeCoords(rec.name, rec.address, rec.neighborhood);
+  return cl;
 }
 
 async function main() {
   const { rows } = await pool.query(`
     SELECT id, name, address, neighborhood, notes, latitude, longitude
-    FROM recommendations
-    WHERE city = 'Milan'
-    ORDER BY name
+    FROM recommendations WHERE city = 'Milan' ORDER BY name
   `);
 
-  const bad = rows.filter(r => {
-    if (!r.latitude || !r.longitude) return true;
-    return atCityCenter(parseFloat(r.latitude), parseFloat(r.longitude));
+  // ── Identify bad places ────────────────────────────────────────────────────
+  // 1. Missing coords
+  const missing = rows.filter(r => !r.latitude || !r.longitude);
+
+  // 2. City-center stubs
+  const stubs = rows.filter(r => r.latitude && r.longitude
+    && atCityCenter(parseFloat(r.latitude), parseFloat(r.longitude)));
+
+  // 3. Outside Milan entirely (geocoded to wrong city)
+  const wrongCity = rows.filter(r => r.latitude && r.longitude
+    && !atCityCenter(parseFloat(r.latitude), parseFloat(r.longitude))
+    && !withinMilan(parseFloat(r.latitude), parseFloat(r.longitude)));
+
+  // 4. Duplicate coordinates — two or more places sharing the exact same pin
+  const coordGroups = new Map();
+  rows.forEach(r => {
+    if (!r.latitude || !r.longitude) return;
+    const k = coordKey(r.latitude, r.longitude);
+    if (!coordGroups.has(k)) coordGroups.set(k, []);
+    coordGroups.get(k).push(r);
+  });
+  const dupeSets = [...coordGroups.values()].filter(g => g.length > 1);
+  // Collect the non-stub dupes that need re-geocoding
+  const dupes = dupeSets.flatMap(g =>
+    atCityCenter(parseFloat(g[0].latitude), parseFloat(g[0].longitude)) ? [] : g
+  );
+
+  // Build the fix list (deduplicated by id)
+  const seen = new Set();
+  const toFix = [...missing, ...stubs, ...wrongCity, ...dupes].filter(r => {
+    if (seen.has(r.id)) return false;
+    seen.add(r.id);
+    return true;
   });
 
-  if (bad.length === 0) {
-    console.log('✅ All Milan places already have precise coordinates.');
-    await pool.end();
-    return;
+  // ── Report ─────────────────────────────────────────────────────────────────
+  console.log(`\n=== Milan location audit ===`);
+  console.log(`  Total places : ${rows.length}`);
+  console.log(`  Missing      : ${missing.length}`);
+  console.log(`  City-center  : ${stubs.length}`);
+  console.log(`  Wrong city   : ${wrongCity.length}`);
+  console.log(`  Dup coords   : ${dupes.length} (in ${dupeSets.filter(g => !atCityCenter(parseFloat(g[0].latitude), parseFloat(g[0].longitude))).length} group(s))`);
+  console.log(`  → Need fix   : ${toFix.length}\n`);
+
+  if (dupeSets.length) {
+    console.log('Duplicate coordinate groups:');
+    dupeSets.forEach(g => {
+      console.log(`  [${parseFloat(g[0].latitude).toFixed(4)}, ${parseFloat(g[0].longitude).toFixed(4)}]`);
+      g.forEach(r => console.log(`    id:${r.id} ${r.name}`));
+    });
+    console.log('');
+  }
+  if (wrongCity.length) {
+    console.log('Outside-Milan coordinates:');
+    wrongCity.forEach(r => console.log(`  id:${r.id} ${r.name} → ${parseFloat(r.latitude).toFixed(4)}, ${parseFloat(r.longitude).toFixed(4)}`));
+    console.log('');
   }
 
-  console.log(`Found ${bad.length} Milan place(s) with missing/city-center coordinates:\n`);
-  bad.forEach(r => console.log(`  id:${r.id} ${r.name} (lat:${r.latitude}, lng:${r.longitude})`));
-  console.log('');
+  if (toFix.length === 0) {
+    console.log('✅ All Milan places have unique, correct coordinates.');
+    await pool.end(); return;
+  }
 
+  // ── Fix ────────────────────────────────────────────────────────────────────
   let fixed = 0, failed = 0;
-
-  for (const rec of bad) {
+  for (const rec of toFix) {
     process.stdout.write(`${rec.name} (id:${rec.id}) … `);
-
-    const nom = await nominatimSearch(rec.name, rec.address, 'Milan');
-    if (nom) {
+    const coords = await geocode(rec);
+    if (coords) {
+      const addrClause = coords.address && !rec.address
+        ? `, address=$4` : '';
+      const params = coords.address && !rec.address
+        ? [coords.lat, coords.lng, rec.id, coords.address]
+        : [coords.lat, coords.lng, rec.id];
       await pool.query(
-        `UPDATE recommendations SET latitude=$1, longitude=$2, geocode_attempted=TRUE, updated_at=NOW() WHERE id=$3`,
-        [nom.lat, nom.lng, rec.id]
+        `UPDATE recommendations SET latitude=$1, longitude=$2, geocode_attempted=TRUE, updated_at=NOW()${addrClause} WHERE id=$3`,
+        params
       );
-      console.log(`✅ ${nom.lat.toFixed(5)}, ${nom.lng.toFixed(5)} [${nom.source}]`);
+      console.log(`✅ ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)} [${coords.source}]`);
       fixed++;
-      continue;
+    } else {
+      await pool.query(`UPDATE recommendations SET geocode_attempted=TRUE WHERE id=$1`, [rec.id]);
+      console.log(`❌ not found`);
+      failed++;
     }
-
-    const cl = await claudeCoords(rec.name, rec.address);
-    if (cl) {
-      await pool.query(
-        `UPDATE recommendations SET latitude=$1, longitude=$2, geocode_attempted=TRUE, updated_at=NOW() WHERE id=$3`,
-        [cl.lat, cl.lng, rec.id]
-      );
-      console.log(`✅ ${cl.lat.toFixed(5)}, ${cl.lng.toFixed(5)} [${cl.source}]`);
-      fixed++;
-      continue;
-    }
-
-    await pool.query(`UPDATE recommendations SET geocode_attempted=TRUE WHERE id=$1`, [rec.id]);
-    console.log(`❌ not found`);
-    failed++;
   }
 
-  console.log(`\nFixed: ${fixed}, still unknown: ${failed}`);
-
-  // Verify
-  const { rows: check } = await pool.query(`
+  // ── Final verification ─────────────────────────────────────────────────────
+  const { rows: final } = await pool.query(`
     SELECT id, name, latitude, longitude FROM recommendations WHERE city='Milan' ORDER BY name
   `);
-  const stillBad = check.filter(r => {
-    if (!r.latitude || !r.longitude) return true;
-    return atCityCenter(parseFloat(r.latitude), parseFloat(r.longitude));
+
+  const finalMissing = final.filter(r => !r.latitude || !r.longitude);
+  const finalStubs   = final.filter(r => r.latitude && r.longitude
+    && atCityCenter(parseFloat(r.latitude), parseFloat(r.longitude)));
+  const finalCoordGroups = new Map();
+  final.forEach(r => {
+    if (!r.latitude || !r.longitude) return;
+    const k = coordKey(r.latitude, r.longitude);
+    if (!finalCoordGroups.has(k)) finalCoordGroups.set(k, []);
+    finalCoordGroups.get(k).push(r);
   });
-  if (stillBad.length === 0) {
-    console.log('✅ All Milan places now have precise coordinates — no more ⚠️ badges.');
+  const finalDupes = [...finalCoordGroups.values()].filter(g => g.length > 1);
+
+  console.log(`\n=== Final state ===`);
+  console.log(`  Fixed: ${fixed}, Failed: ${failed}`);
+  if (!finalMissing.length && !finalStubs.length && !finalDupes.length) {
+    console.log('✅ All Milan places have unique, precise coordinates. No ⚠️ badges.');
   } else {
-    console.log(`\n⚠️  Still at city-center (${stillBad.length}):`);
-    stillBad.forEach(r => console.log(`  id:${r.id} ${r.name} ${r.latitude}, ${r.longitude}`));
+    if (finalMissing.length) { console.log(`⚠️  Still missing (${finalMissing.length}):`); finalMissing.forEach(r => console.log(`  id:${r.id} ${r.name}`)); }
+    if (finalStubs.length)   { console.log(`⚠️  Still at city-center (${finalStubs.length}):`);  finalStubs.forEach(r => console.log(`  id:${r.id} ${r.name}`)); }
+    if (finalDupes.length)   {
+      console.log(`⚠️  Still duplicated (${finalDupes.length} group(s)):`);
+      finalDupes.forEach(g => {
+        console.log(`  [${parseFloat(g[0].latitude).toFixed(4)}, ${parseFloat(g[0].longitude).toFixed(4)}]`);
+        g.forEach(r => console.log(`    id:${r.id} ${r.name}`));
+      });
+    }
   }
 
   await pool.end();
