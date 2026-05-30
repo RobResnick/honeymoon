@@ -14,8 +14,9 @@ const PLACES = [
     type: 'restaurant',
     city: 'Milan',
     neighborhood: 'Isola',
+    address: 'Viale Pasubio 10, 20154 Milano',
     country: 'Italy',
-    notes: 'Classic Milanese trattoria in Isola. Traditional local cooking.',
+    notes: 'Classic Milanese trattoria in Isola since 1880. Famous for risotto and ossobuco.',
     source_url: 'https://share.google/ai6VAvDWpVpIwHrZT',
   },
   {
@@ -151,7 +152,7 @@ async function main() {
     process.stdout.write(`${p.name} … geocoding … `);
     let lat = null, lng = null, geocodeAttempted = false;
 
-    const nom = await nominatim(p.name, p.neighborhood, p.city);
+    const nom = await nominatim(p.address || p.name, p.neighborhood, p.city);
     if (nom) { lat = nom.lat; lng = nom.lng; geocodeAttempted = true; process.stdout.write(`[${nom.source}] `); }
     else {
       const cl = await claudeCoords(p.name, p.neighborhood);
@@ -161,10 +162,10 @@ async function main() {
 
     await pool.query(
       `INSERT INTO recommendations
-         (user_id, name, type, city, neighborhood, country, recommended_by,
+         (user_id, name, type, city, neighborhood, address, country, recommended_by,
           notes, source_url, latitude, longitude, geocode_attempted)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-      [userId, p.name, p.type, p.city, p.neighborhood, p.country,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+      [userId, p.name, p.type, p.city, p.neighborhood, p.address || null, p.country,
        RECOMMENDED_BY, p.notes, p.source_url,
        lat, lng, geocodeAttempted]
     );
