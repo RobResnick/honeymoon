@@ -8,7 +8,13 @@ const fetch = require('node-fetch');
 const path = require('path');
 
 const app = express();
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 3,
+  idleTimeoutMillis: 10000,   // close idle connections after 10s → lets Neon suspend
+  connectionTimeoutMillis: 10000,
+});
 const JWT_SECRET = process.env.SESSION_SECRET || 'honeymoon-secret';
 
 app.use(express.json({ limit: '10mb' }));
