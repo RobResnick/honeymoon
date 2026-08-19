@@ -279,6 +279,14 @@
       height: 52px; flex-shrink: 0;
       box-shadow: 0 1px 3px rgba(60,64,67,.1);
     }
+    .header-back-btn {
+      width: 32px; height: 32px; padding: 0; border: none;
+      background: transparent; cursor: pointer; color: var(--text);
+      display: none; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: color 0.15s, opacity 0.15s;
+    }
+    .header-back-btn:hover { color: var(--blue); opacity: 0.8; }
+    .header-back-btn.visible { display: flex; }
     .header-logo { width: 28px; height: 28px; flex-shrink: 0; }
     header h1 {
       font-family: 'Google Sans', sans-serif;
@@ -1443,6 +1451,11 @@
   <!-- LEFT PANEL (desktop only) -->
   <div id="left-panel">
     <header>
+      <button id="header-back-btn" class="header-back-btn" onclick="window.history.back()" title="Go back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="140 78 408 502" width="20" height="25" class="header-logo"><defs><clipPath id="h-pin-clip"><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z"/></clipPath><radialGradient id="h-bevel" cx="38%" cy="30%" r="65%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="#FF7A6A" stop-opacity="0.55"/><stop offset="100%" stop-color="#FF7A6A" stop-opacity="0"/></radialGradient></defs><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="#DD4F41"/><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="url(#h-bevel)"/><path d="M 420 105 C 460 130 500 180 515 240 C 528 290 520 340 500 383 L 420 470 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 200 492 130 420 105 Z" fill="#AE3E34" opacity="0.6" clip-path="url(#h-pin-clip)"/><path d="M 343 88 C 231 88 148 171 148 283 C 148 340 174 384 210 421 L 343 572 L 476 421 C 512 384 538 340 538 283 C 538 171 455 88 343 88 Z" fill="none" stroke="#1A0A08" stroke-width="12" stroke-linejoin="round"/><path d="M 343 350 C 310 325 263 303 263 268 C 263 242 282 226 305 226 C 319 226 331 233 343 248 C 355 233 367 226 381 226 C 404 226 423 242 423 268 C 423 303 376 325 343 350 Z" fill="white"/></svg>
       <h1>Honeymaps</h1>
       <span class="header-count" id="rec-count"></span>
@@ -2113,9 +2126,19 @@ function saveBuddySettings() {
   }, 800);
 }
 
+function updateBackButtonVisibility() {
+  const backBtn = document.getElementById('header-back-btn');
+  if (backBtn && history.length > 1) {
+    backBtn.classList.add('visible');
+  } else if (backBtn) {
+    backBtn.classList.remove('visible');
+  }
+}
+
 async function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+  updateBackButtonVisibility();
   await Promise.all([loadRecs(), loadPeople(), loadBuddySettings()]);
   await loadFilters();
   // Fetch city-level coords (fast, cached server-side) — lets all places show on map
@@ -5691,6 +5714,8 @@ if (isDesktop()) {
     if (bar && !bar.contains(e.target) && sugg && !sugg.contains(e.target)) hideSuggestions();
   }, { passive: true });
 }
+updateBackButtonVisibility();
+window.addEventListener('popstate', updateBackButtonVisibility);
 checkSession();
 </script>
 </body>
