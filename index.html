@@ -2050,6 +2050,7 @@ function isPersonVisible(name) {
 }
 
 const isDesktop = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches || window.matchMedia('(hover: none) and (min-width: 768px)').matches;
+const isIPad = () => window.matchMedia('(hover: none) and (min-width: 768px)').matches;
 
 // ── AUTH ──
 function toggleAuthMode() {
@@ -2688,8 +2689,29 @@ function cardHtml(r) {
 }
 
 function renderList() {
-  // Simple, safe render — used by both desktop and mobile
   const noRecs = `<div class="empty-state"><div class="emoji">🗺️</div><p>No recommendations yet.<br>Tap <strong>+</strong> to get started.</p></div>`;
+
+  // iPad: when no search/filter active, show only places visible in the map viewport
+  if (isIPad() && map) {
+    const { search, city, type, person } = getFilterValues();
+    if (!search && !city && !type && !person) {
+      const el = document.getElementById('list-view');
+      if (el) {
+        if (!allRecs.length) { el.innerHTML = noRecs; return; }
+        const mapEl = map.getContainer();
+        const nw = map.containerPointToLatLng([0, 0]);
+        const se = map.containerPointToLatLng([mapEl.offsetWidth, mapEl.offsetHeight]);
+        const visibleBounds = L.latLngBounds(se, nw);
+        const inBounds = filtered.filter(r => r.latitude && r.longitude
+          && visibleBounds.contains([parseFloat(r.latitude), parseFloat(r.longitude)]));
+        el.innerHTML = inBounds.length
+          ? inBounds.map(cardHtml).join('')
+          : '<div class="empty-state"><p>No places in this area.</p></div>';
+      }
+      return;
+    }
+  }
+
   const html = !allRecs.length ? noRecs
     : (filtered.length ? filtered.map(cardHtml).join('') : '<div class="empty-state"><p>No matches.</p></div>');
   ['list-view', 'mobile-list-view'].forEach(id => {
@@ -3878,6 +3900,7 @@ function initMap() {
     if (_compassMode === 'heading-up' && _userLocation) {
       map.panTo([_userLocation.lat, _userLocation.lng], { animate: false });
     }
+    if (isIPad()) renderList();
   });
 
   // In orientation mode: dblclick zooms only (no pan); north-up: Leaflet handles natively
@@ -3890,7 +3913,9 @@ function initMap() {
 
   // Re-render mobile list when map moves; update off-center pulse
   map.on('moveend', () => {
-    if (!isDesktop()) {
+    if (isIPad()) {
+      renderList();
+    } else if (!isDesktop()) {
       const sheet = document.getElementById('mobile-sheet');
       if (sheet && sheet.classList.contains('open')) renderMobileList();
       else maybeShowNearbyBanner();
@@ -3952,7 +3977,7 @@ function initMap() {
 function recenterMap() {
   if (!map) return;
   if (markers.length) {
-    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.3), { maxZoom: 14 });
+    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.15), { maxZoom: 15 });
   } else {
     map.setView([42.5, 12.5], 6);
   }
